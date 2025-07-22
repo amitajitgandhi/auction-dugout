@@ -1,0 +1,6 @@
+node_modules/
+build/
+.env
+
+# Ignore Visual Studio / Copilot IDE folders
+.vs/
