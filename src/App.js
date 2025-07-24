@@ -10,6 +10,7 @@ import AuctionInterface from "./components/AuctionInterface";
 import TeamsPage from "./components/TeamsPage";
 import ResetConfirmation from "./components/ResetConfirmation";
 import WhatsAppSettings from "./components/WhatsAppSettings";
+import AuthPage from "./components/AuthPage";
 
 // Hooks
 import { useAuction } from "./hooks/useAuction";
@@ -24,6 +25,7 @@ import { useStartupRestore } from "./hooks/useStartupRestore";
 import { TOAST_STYLES, EMOJIS } from "./utils/constants";
 
 export default function CricketAuctionTool() {
+    const [authUser, setAuthUser] = useState(null);
     // Main app state
     const [players, setPlayers] = useState([]);
     const [teams, setTeams] = useState({});
@@ -32,20 +34,16 @@ export default function CricketAuctionTool() {
     const [currentPage, setCurrentPage] = useState('auction'); // 'auction' or 'teams'
     const [showResetConfirmation, setShowResetConfirmation] = useState(false);
     const [showWhatsAppSettings, setShowWhatsAppSettings] = useState(false);
-    
     // Refs
     const auctionInterfaceRef = useRef(null);
-
     // Navigation functions
     const goToTeamsPage = () => setCurrentPage('teams');
     const goToAuctionPage = () => setCurrentPage('auction');
-
     // Custom hooks
     const { showManagedToast, showFancyError } = useToastManager();
     const { whatsappSettings, setWhatsappSettings, sendWhatsAppNotification, handleWhatsAppTest, handleTeamWhatsAppShare } = useWhatsAppIntegration(showManagedToast);
     const auction = useAuction(players, showManagedToast);
     const persistence = usePersistence(showManagedToast);
-    
     // Auction business logic
     const { handleMarkSold, handleMarkUnsold } = useAuctionBusinessLogic(
         players, 
@@ -58,12 +56,15 @@ export default function CricketAuctionTool() {
         tournamentName,
         auctionInterfaceRef
     );
-
     // Auto-save functionality
     useAutoSave(players, teams, tournamentName, isTournamentNameSet, whatsappSettings, auction, persistence);
-    
     // Startup restore logic
     const { showStartupRestore, startupRestoreData, handleStartupRestoreConfirm, handleStartupRestoreCancel } = useStartupRestore(persistence, showManagedToast);
+
+    // Show login if not authenticated
+    if (!authUser) {
+        return <AuthPage onAuthSuccess={setAuthUser} />;
+    }
 
     // Manual save function
     const handleManualSave = () => {
@@ -494,8 +495,8 @@ export default function CricketAuctionTool() {
             </div>
             
             {/* Footer */}
-            <footer className="w-full text-center py-4 mt-8 text-white bg-black bg-opacity-60 text-lg font-semibold tracking-wide fixed bottom-0 left-0 z-50">
-                Product by Amit Gandhi
+            <footer className="fixed bottom-0 left-0 w-full text-center text-base font-semibold text-white py-3 bg-black shadow z-50" style={{letterSpacing: '1px', textShadow: '0 1px 8px #111'}}>
+              Powered by <a href="https://www.linkedin.com/in/amitajitgandhi/" className="underline hover:text-yellow-400" target="_blank" rel="noopener noreferrer">Amit Gandhi</a>
             </footer>
         </>
     );

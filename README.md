@@ -71,3 +71,40 @@ A web-based tool for managing cricket team auctions, including player and team m
 - JavaScript (ES6+)
 - LocalStorage API
 - WhatsApp Web integration
+
+## Supabase Integration
+
+This project uses [Supabase](https://supabase.com/) for authentication and backend data storage.
+
+### Supabase Setup Steps
+
+1. **Create a Supabase Project**
+   - Go to https://app.supabase.com/ and create a new project.
+   - Note your Project URL and anon/public API key.
+
+2. **Install Supabase Client**
+   - In your project directory, run:
+     ```sh
+     npm install @supabase/supabase-js
+     ```
+
+3. **Initialize Supabase in Your App**
+   - Create a file at `src/supabaseClient.js` with the following content:
+     ```js
+     import { createClient } from '@supabase/supabase-js';
+     const supabaseUrl = 'https://YOUR_PROJECT_ID.supabase.co';
+     const supabaseAnonKey = 'YOUR_ANON_KEY';
+     export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+     ```
+   - Replace the placeholders with your actual Supabase credentials.
+
+4. **Set Up Authentication and Tables in Supabase**
+   - In the Supabase dashboard, enable Email sign-in under Authentication.
+   - In the Table Editor, create tables for users, organizers, and auctions as needed.
+   - Add a `role` column to the users table (e.g., 'admin', 'organizer').
+
+5. **Next Steps**
+   - Use Supabase Auth for login/signup in your React app.
+   - Use Supabase client to read/write auction and organizer data.
+
+See the [Supabase documentation](https://supabase.com/docs) for more details.

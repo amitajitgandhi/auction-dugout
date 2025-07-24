@@ -27,7 +27,14 @@ export const EMOJIS = {
     MOBILE: String.fromCodePoint(0x1F4F1), // Mobile phone emoji
     DOWNLOAD: String.fromCodePoint(0x1F4E5), // Download emoji
     BACKUP: String.fromCodePoint(0x1F4BE), // Backup/Save emoji
-    RESTORE: String.fromCodePoint(0x1F504) // Restore/Refresh emoji
+    RESTORE: String.fromCodePoint(0x1F504), // Restore/Refresh emoji
+    VIDEO: String.fromCodePoint(0x1F4FA), // Video camera emoji
+    TEAMOWNERVIEW: String.fromCodePoint(0x1F465), // People emoji,
+    WHATSAPPLOGO: String.fromCodePoint(0x1F4F1, 0xFE0F), // WhatsApp logo emoji
+    SMARTUI: String.fromCodePoint(0x1F4BB), // Laptop emoji
+    EXPORTTEAMS: String.fromCodePoint(0x1F4C8), // Export teams emoji
+    NODATALOSS: String.fromCodePoint(0x1F6A8), // No data loss warning emoji
+    HEART: String.fromCodePoint(0x2764, 0xFE0F)// Heart emoji 
 };
 
 // Helper to shuffle an array
