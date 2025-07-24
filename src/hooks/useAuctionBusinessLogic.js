@@ -9,10 +9,55 @@ export const useAuctionBusinessLogic = (
     showFancyError, 
     sendWhatsAppNotification, 
     tournamentName,
-    auctionInterfaceRef
+    auctionInterfaceRef,
+    persistence = null,
+    authUser = null,
+    isTournamentNameSet = false,
+    whatsappSettings = {}
 ) => {
+    // Helper function to trigger immediate save after auction actions
+    const triggerAuctionSave = async (actionType, playerName, teamName = null, price = null) => {
+        if (!persistence || !authUser?.id || !isTournamentNameSet) {
+            console.log('?? Skipping auction save - conditions not met:', {
+                hasPersistence: !!persistence,
+                hasUser: !!authUser?.id,
+                tournamentSet: isTournamentNameSet
+            });
+            return;
+        }
+
+        try {
+            const currentState = {
+                players,
+                teams,
+                tournamentName,
+                isTournamentNameSet,
+                whatsappSettings,
+                auctionStarted: auction.auctionStarted,
+                selectedCategory: auction.selectedCategory,
+                completedCategories: Array.from(auction.completedCategories || [])
+            };
+
+            console.log(`?? Triggering immediate save after ${actionType}:`, {
+                player: playerName,
+                team: teamName,
+                price: price
+            });
+
+            const success = await persistence.saveState(currentState);
+            
+            if (success) {
+                console.log(`? Auction progress saved after ${actionType}`);
+            } else {
+                console.error(`? Failed to save auction progress after ${actionType}`);
+            }
+        } catch (error) {
+            console.error(`? Error saving auction progress after ${actionType}:`, error);
+        }
+    };
+
     // Sell player logic - Modified to return success/failure status and send WhatsApp notification
-    const sellPlayer = (teamName, price) => {
+    const sellPlayer = async (teamName, price) => {
         if (!auction.currentPlayer) return false;
         if (!teamName || isNaN(price) || price <= 0) {
             showFancyError("Please enter a valid team name and bid amount.");
@@ -31,6 +76,8 @@ export const useAuctionBusinessLogic = (
             showFancyError("This team cannot buy more players. Player limit reached. Please select a different team.");
             return false;
         }
+        
+        const playerName = auction.currentPlayer.name;
         
         const updated = players.map((p) =>
             p.id === auction.currentPlayer.id
@@ -66,15 +113,20 @@ export const useAuctionBusinessLogic = (
         // Send WhatsApp notification for sold player
         sendWhatsAppNotification(auction.currentPlayer, teamName, price, tournamentName, false);
         
+        // Trigger immediate save after successful sale
+        setTimeout(async () => {
+            await triggerAuctionSave('SOLD', playerName, teamName, price);
+        }, 100); // Small delay to ensure state updates are reflected
+        
         return true; // Sale successful
     };
 
     // Mark as Sold - Modified to only process player if sale is successful and trigger animation
-    const handleMarkSold = (teamName, price) => {
+    const handleMarkSold = async (teamName, price) => {
         if (!auction.currentPlayer) return;
         
         // Attempt to sell the player
-        const saleSuccessful = sellPlayer(teamName, price);
+        const saleSuccessful = await sellPlayer(teamName, price);
         
         // Only proceed with processing if the sale was successful
         if (saleSuccessful) {
@@ -109,8 +161,10 @@ export const useAuctionBusinessLogic = (
     };
 
     // Mark as Unsold - Modified to trigger animation after processing and send WhatsApp notification
-    const handleMarkUnsold = () => {
+    const handleMarkUnsold = async () => {
         if (!auction.currentPlayer) return;
+        
+        const playerName = auction.currentPlayer.name;
         
         // Trigger UNSOLD stamp animation
         if (auctionInterfaceRef.current) {
@@ -130,6 +184,11 @@ export const useAuctionBusinessLogic = (
         
         // Send WhatsApp notification for unsold player
         sendWhatsAppNotification(auction.currentPlayer, '', 0, tournamentName, true);
+        
+        // Trigger immediate save after marking as unsold
+        setTimeout(async () => {
+            await triggerAuctionSave('UNSOLD', playerName);
+        }, 100); // Small delay to ensure state updates are reflected
         
         // Check if category is complete after marking this player as unsold
         setTimeout(() => {

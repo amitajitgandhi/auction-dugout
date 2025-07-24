@@ -13,6 +13,7 @@ import WhatsAppSettings from "./components/WhatsAppSettings";
 import AuthPage from "./components/AuthPage";
 
 // Hooks
+import { useAuth } from "./hooks/useAuth";
 import { useAuction } from "./hooks/useAuction";
 import { usePersistence } from "./hooks/usePersistence";
 import { useToastManager } from "./hooks/useToastManager";
@@ -25,7 +26,9 @@ import { useStartupRestore } from "./hooks/useStartupRestore";
 import { TOAST_STYLES, EMOJIS } from "./utils/constants";
 
 export default function CricketAuctionTool() {
-    const [authUser, setAuthUser] = useState(null);
+    // Use the auth hook
+    const { user: authUser, loading: authLoading } = useAuth();
+    
     // Main app state
     const [players, setPlayers] = useState([]);
     const [teams, setTeams] = useState({});
@@ -34,16 +37,20 @@ export default function CricketAuctionTool() {
     const [currentPage, setCurrentPage] = useState('auction'); // 'auction' or 'teams'
     const [showResetConfirmation, setShowResetConfirmation] = useState(false);
     const [showWhatsAppSettings, setShowWhatsAppSettings] = useState(false);
+    
     // Refs
     const auctionInterfaceRef = useRef(null);
+    
     // Navigation functions
     const goToTeamsPage = () => setCurrentPage('teams');
     const goToAuctionPage = () => setCurrentPage('auction');
+    
     // Custom hooks
     const { showManagedToast, showFancyError } = useToastManager();
     const { whatsappSettings, setWhatsappSettings, sendWhatsAppNotification, handleWhatsAppTest, handleTeamWhatsAppShare } = useWhatsAppIntegration(showManagedToast);
     const auction = useAuction(players, showManagedToast);
-    const persistence = usePersistence(showManagedToast);
+    const persistence = usePersistence(showManagedToast, authUser);
+    
     // Auction business logic
     const { handleMarkSold, handleMarkUnsold } = useAuctionBusinessLogic(
         players, 
@@ -54,126 +61,35 @@ export default function CricketAuctionTool() {
         showFancyError, 
         sendWhatsAppNotification, 
         tournamentName,
-        auctionInterfaceRef
+        auctionInterfaceRef,
+        persistence,
+        authUser,
+        isTournamentNameSet,
+        whatsappSettings
     );
+    
     // Auto-save functionality
-    useAutoSave(players, teams, tournamentName, isTournamentNameSet, whatsappSettings, auction, persistence);
+    useAutoSave(players, teams, tournamentName, isTournamentNameSet, whatsappSettings, auction, persistence, authUser);
+    
     // Startup restore logic
-    const { showStartupRestore, startupRestoreData, handleStartupRestoreConfirm, handleStartupRestoreCancel } = useStartupRestore(persistence, showManagedToast);
+    const { showStartupRestore, startupRestoreData, handleStartupRestoreConfirm, handleStartupRestoreCancel } = useStartupRestore(persistence, showManagedToast, authUser);
+
+    // Show loading spinner while checking authentication
+    if (authLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-yellow-400 mx-auto mb-4"></div>
+                    <div className="text-white text-lg font-semibold">Loading...</div>
+                </div>
+            </div>
+        );
+    }
 
     // Show login if not authenticated
     if (!authUser) {
-        return <AuthPage onAuthSuccess={setAuthUser} />;
+        return <AuthPage />;
     }
-
-    // Manual save function
-    const handleManualSave = () => {
-        const hasProgress = players.some(p => p.sold || p.soldTo === "Unsold") || auction.auctionStarted;
-        
-        if (!hasProgress) {
-            showManagedToast('error', 'No auction progress to save yet. Start the auction first!', {
-                style: TOAST_STYLES.error,
-                icon: EMOJIS.CROSS_MARK,
-                duration: 3000,
-            });
-            return;
-        }
-        
-        const currentState = {
-            players,
-            teams,
-            tournamentName,
-            isTournamentNameSet,
-            whatsappSettings,
-            auctionStarted: auction.auctionStarted,
-            selectedCategory: auction.selectedCategory,
-            completedCategories: Array.from(auction.completedCategories || [])
-        };
-        
-        const success = persistence.saveState(currentState);
-        if (success) {
-            showManagedToast('success', 'Progress saved to browser! Will auto-restore on page reload.', {
-                style: TOAST_STYLES.success,
-                icon: EMOJIS.CHECK_MARK,
-                duration: 3000,
-            });
-        } else {
-            showManagedToast('error', 'Failed to save auction progress', {
-                style: TOAST_STYLES.error,
-                icon: EMOJIS.CROSS_MARK,
-                duration: 4000,
-            });
-        }
-    };
-
-    // Export backup function
-    const handleExportBackup = () => {
-        const hasProgress = players.some(p => p.sold || p.soldTo === "Unsold") || auction.auctionStarted;
-        
-        if (!hasProgress) {
-            showManagedToast('error', 'No auction progress to export yet. Start the auction first!', {
-                style: TOAST_STYLES.error,
-                icon: EMOJIS.CROSS_MARK,
-                duration: 3000,
-            });
-            return;
-        }
-        
-        const currentState = {
-            players,
-            teams,
-            tournamentName,
-            isTournamentNameSet,
-            whatsappSettings,
-            auctionStarted: auction.auctionStarted,
-            selectedCategory: auction.selectedCategory,
-            completedCategories: Array.from(auction.completedCategories || [])
-        };
-        
-        const success = persistence.exportBackup(currentState, tournamentName);
-        if (success) {
-            showManagedToast('success', `Backup file downloaded to your Downloads folder! File: ${tournamentName}_Complete_${new Date().toISOString().split('T')[0]}.json`, {
-                style: TOAST_STYLES.success,
-                icon: EMOJIS.DOWNLOAD,
-                duration: 5000,
-            });
-        } else {
-            showManagedToast('error', 'Failed to export backup file', {
-                style: TOAST_STYLES.error,
-                icon: EMOJIS.CROSS_MARK,
-                duration: 4000,
-            });
-        }
-    };
-
-    // Import backup function
-    const handleImportBackup = (file, backupData = null) => {
-        if (backupData) {
-            try {
-                auction.resetAuction();
-                
-                setPlayers(backupData.players || []);
-                setTeams(backupData.teams || {});
-                setTournamentName(backupData.tournamentName || '');
-                setIsTournamentNameSet(backupData.isTournamentNameSet || false);
-                setWhatsappSettings(backupData.whatsappSettings || whatsappSettings);
-                
-                persistence.saveState(backupData);
-                
-                showManagedToast('success', 'Backup imported successfully!', {
-                    style: TOAST_STYLES.success,
-                    icon: EMOJIS.CHECK_MARK,
-                    duration: 4000,
-                });
-            } catch (error) {
-                showManagedToast('error', `Failed to import backup: ${error.message}`, {
-                    style: TOAST_STYLES.error,
-                    icon: EMOJIS.CROSS_MARK,
-                    duration: 4000,
-                });
-            }
-        }
-    };
 
     // Handle tournament name submission
     const handleTournamentNameSubmit = () => {
@@ -374,7 +290,7 @@ export default function CricketAuctionTool() {
                                         <div className="space-y-2 text-sm">
                                             <div className="flex justify-between">
                                                 <span className="font-medium text-blue-800">Tournament:</span>
-                                                <span className="text-blue-700">{startupRestoreData.tournamentName}</span>
+                                                <span className="text-blue-700">{startupRestoreData.tournamentName || 'Untitled Tournament'}</span>
                                             </div>
                                             <div className="flex justify-between">
                                                 <span className="font-medium text-blue-800">Players:</span>
@@ -387,9 +303,21 @@ export default function CricketAuctionTool() {
                                             <div className="flex justify-between">
                                                 <span className="font-medium text-blue-800">Saved:</span>
                                                 <span className="text-blue-700 text-xs">
-                                                    {new Date(startupRestoreData.timestamp).toLocaleString()}
+                                                    {startupRestoreData.timestamp || startupRestoreData.updated_at ? 
+                                                        new Date(startupRestoreData.timestamp || startupRestoreData.updated_at).toLocaleString() : 
+                                                        'Recently'
+                                                    }
                                                 </span>
                                             </div>
+                                            {startupRestoreData.source && (
+                                                <div className="flex justify-between">
+                                                    <span className="font-medium text-blue-800">Source:</span>
+                                                    <span className="text-blue-700 text-xs capitalize">
+                                                        {startupRestoreData.source === 'supabase' ? `${EMOJIS.BACKUP} Cloud` : 
+                                                         startupRestoreData.source === 'localStorage' ? `${EMOJIS.FOLDER} Local` : `${EMOJIS.FOLDER} Storage`}
+                                                    </span>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                     <p className="text-gray-600 mt-3 text-sm">
@@ -456,7 +384,6 @@ export default function CricketAuctionTool() {
                                 onError={showFancyError}
                                 onStartAuction={handleStartAuction}
                                 onWhatsAppSettings={handleWhatsAppSettings}
-                                onImportBackup={handleImportBackup}
                             />
                         )}
 
@@ -486,8 +413,6 @@ export default function CricketAuctionTool() {
                                 isLastPlayerInQueue={auction.isLastPlayerInQueue}
                                 categoryStarted={auction.categoryStarted}
                                 onStartCategory={auction.startCategoryAuction}
-                                onManualSave={handleManualSave}
-                                onExportBackup={handleExportBackup}
                             />
                         )}
                     </div>

@@ -7,20 +7,29 @@ export const useAutoSave = (
     isTournamentNameSet,
     whatsappSettings,
     auction,
-    persistence
+    persistence,
+    user = null
 ) => {
     // Auto-save interval ref
     const autoSaveIntervalRef = useRef(null);
 
-    // Auto-save functionality - save state every 3 minutes
+    // Auto-save functionality - save state every 2-3 minutes after tournament is created
     useEffect(() => {
         const startAutoSave = () => {
             if (autoSaveIntervalRef.current) {
                 clearInterval(autoSaveIntervalRef.current);
             }
             
-            autoSaveIntervalRef.current = setInterval(() => {
-                // Only auto-save if there's meaningful progress (not just uploaded files)
+            // Only start auto-save if user is authenticated and tournament is set
+            if (!user?.id || !isTournamentNameSet) {
+                console.log('?? Auto-save not started: waiting for authentication and tournament setup');
+                return;
+            }
+            
+            console.log('?? Starting auto-save for authenticated user:', user.email);
+            
+            autoSaveIntervalRef.current = setInterval(async () => {
+                // Only auto-save if there's meaningful progress
                 const hasProgress = isTournamentNameSet && 
                     (players.length > 0 || Object.keys(teams).length > 0) &&
                     (auction.auctionStarted || players.some(p => p.sold || p.soldTo === "Unsold"));
@@ -37,26 +46,45 @@ export const useAutoSave = (
                         completedCategories: Array.from(auction.completedCategories || [])
                     };
                     
-                    persistence.autoSave(currentState);
+                    try {
+                        await persistence.autoSave(currentState);
+                        console.log('? Auto-save completed successfully');
+                    } catch (error) {
+                        console.error('? Auto-save failed:', error);
+                    }
+                } else {
+                    console.log('?? Skipping auto-save: no meaningful progress to save');
                 }
-            }, 3 * 60 * 1000); // Every 3 minutes
+            }, 2 * 60 * 1000); // Every 2 minutes
         };
 
         startAutoSave();
 
-        // Cleanup interval on component unmount
+        // Cleanup interval on component unmount or dependency change
         return () => {
             if (autoSaveIntervalRef.current) {
                 clearInterval(autoSaveIntervalRef.current);
+                console.log('?? Auto-save interval cleared');
             }
         };
-    }, [players, teams, tournamentName, isTournamentNameSet, whatsappSettings, auction.auctionStarted, auction.selectedCategory, auction.completedCategories, persistence]);
+    }, [
+        players, 
+        teams, 
+        tournamentName, 
+        isTournamentNameSet, 
+        whatsappSettings, 
+        auction.auctionStarted, 
+        auction.selectedCategory, 
+        auction.completedCategories, 
+        persistence, 
+        user?.id
+    ]);
 
     // Save on page unload/close
     useEffect(() => {
-        const handleBeforeUnload = (e) => {
-            // Only prompt to save if there's meaningful progress (auction started or players sold/unsold)
-            const hasProgress = isTournamentNameSet && 
+        const handleBeforeUnload = async (e) => {
+            // Only save if user is authenticated and there's meaningful progress
+            const hasProgress = user?.id && isTournamentNameSet && 
                 (players.length > 0 || Object.keys(teams).length > 0) &&
                 (auction.auctionStarted || players.some(p => p.sold || p.soldTo === "Unsold"));
                 
@@ -72,12 +100,17 @@ export const useAutoSave = (
                     completedCategories: Array.from(auction.completedCategories || [])
                 };
                 
-                // Force save without toast notification (browser closing)
-                persistence.saveState(currentState);
+                try {
+                    // Force save without toast notification (browser closing)
+                    await persistence.saveState(currentState);
+                    console.log('?? Final save completed before page unload');
+                } catch (error) {
+                    console.error('? Failed to save on page unload:', error);
+                }
                 
                 // Show browser confirmation dialog
                 e.preventDefault();
-                e.returnValue = 'Your auction progress will be saved. Are you sure you want to leave?';
+                e.returnValue = 'Your auction progress will be auto-saved to the cloud. Are you sure you want to leave?';
                 return e.returnValue;
             }
         };
@@ -87,7 +120,18 @@ export const useAutoSave = (
         return () => {
             window.removeEventListener('beforeunload', handleBeforeUnload);
         };
-    }, [players, teams, tournamentName, isTournamentNameSet, whatsappSettings, auction.auctionStarted, auction.selectedCategory, auction.completedCategories, persistence]);
+    }, [
+        players, 
+        teams, 
+        tournamentName, 
+        isTournamentNameSet, 
+        whatsappSettings, 
+        auction.auctionStarted, 
+        auction.selectedCategory, 
+        auction.completedCategories, 
+        persistence, 
+        user?.id
+    ]);
 
     return {
         // This hook only handles auto-save, no return values needed

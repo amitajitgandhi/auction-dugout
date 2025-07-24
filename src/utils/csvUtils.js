@@ -1,5 +1,6 @@
 import React from "react";
 import Papa from "papaparse";
+import { EMOJIS } from "./constants";
 
 // Helper function to check if a row is mostly empty (for lenient validation)
 export const isRowMostlyEmpty = (row, requiredFields) => {
@@ -27,7 +28,7 @@ export const formatDriveLink = (link) => {
         trimmedLink.includes('imgur.com') || 
         trimmedLink.includes('dropbox.com') ||
         trimmedLink.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
-        console.log('? Using link as-is (already proper format):', trimmedLink);
+        console.log(`${EMOJIS.CHECK_MARK} Using link as-is (already proper format):`, trimmedLink);
         return trimmedLink;
     }
     
@@ -37,12 +38,12 @@ export const formatDriveLink = (link) => {
         if (fileIdMatch) {
             const fileId = fileIdMatch[1];
             const viewUrl = `https://drive.google.com/uc?export=view&id=${fileId}`;
-            console.log('? Converted uc URL to view URL:', viewUrl);
+            console.log(`${EMOJIS.CHECK_MARK} Converted uc URL to view URL:`, viewUrl);
             return viewUrl;
         }
     }
     
-    console.warn('?? Could not format Google Drive link for image display:', trimmedLink);
+    console.warn(`${EMOJIS.WARNING} Could not format Google Drive link for image display:`, trimmedLink);
     return trimmedLink; // Return original if we can't format it
 };
 
@@ -58,10 +59,23 @@ export const parseCSV = (file, callback, onError) => {
     });
 };
 
-// CSV Validation Functions - Enhanced to handle blank rows and empty cells with better error reporting
+// Helper function to detect what type of CSV was uploaded
+const detectCSVType = (columns) => {
+    const playerColumns = ["Name", "Skillset", "Photo Link", "Category"];
+    const teamColumns = ["Team Name", "Owner Name", "Purse", "Players to Buy"];
+    
+    const playerMatches = playerColumns.filter(col => columns.includes(col)).length;
+    const teamMatches = teamColumns.filter(col => columns.includes(col)).length;
+    
+    if (teamMatches >= 3) return 'teams';
+    if (playerMatches >= 2) return 'players';
+    return 'unknown';
+};
+
+// CSV Validation Functions - Enhanced with better error messages using EMOJIS constants
 export const validatePlayerCSV = (data) => {
     if (!data || data.length === 0) {
-        throw new Error("Player CSV file is empty.");
+        throw new Error(`${EMOJIS.CROSS_MARK} Player CSV file is empty. Please check your file and try again.`);
     }
 
     const requiredColumns = ["Name", "Skillset", "Photo Link", "Category"];
@@ -73,24 +87,25 @@ export const validatePlayerCSV = (data) => {
     console.log('Required columns:', requiredColumns);
     console.log('Actual columns found:', actualColumns);
     console.log('Missing columns:', missingColumns);
-    console.log('First row data:', firstRow);
     
     if (missingColumns.length > 0) {
-        throw new Error(`Player CSV is missing required columns: ${missingColumns.join(', ')}. 
+        // Detect if they uploaded the wrong type of CSV
+        const csvType = detectCSVType(actualColumns);
         
-Found columns: ${actualColumns.join(', ')}
-        
-Please ensure your CSV has these exact column headers:
-Name, Skillset, Photo Link, Category
-
-Your CSV appears to have: ${actualColumns.join(', ')}`);
+        if (csvType === 'teams') {
+            throw new Error(`${EMOJIS.CROSS_MARK} Wrong file type! You uploaded a Teams CSV file.\n\n${EMOJIS.CLIPBOARD} Please upload a Players CSV file with columns: Name, Skillset, Photo Link, Category\n\n${EMOJIS.SPARKLES} Tip: Use the 'Download Sample Players CSV' button for the correct format.`);
+        } else if (csvType === 'unknown') {
+            throw new Error(`${EMOJIS.CROSS_MARK} Invalid CSV format!\n\n${EMOJIS.CLIPBOARD} Required columns: Name, Skillset, Photo Link, Category\n\n${EMOJIS.FOLDER} Your file has: ${actualColumns.join(', ')}\n\n${EMOJIS.SPARKLES} Tip: Download the sample file to see the correct format.`);
+        } else {
+            throw new Error(`${EMOJIS.CROSS_MARK} Missing required columns: ${missingColumns.join(', ')}\n\n${EMOJIS.SPARKLES} Please ensure your CSV has the exact column headers shown in the sample file.`);
+        }
     }
 
     // Filter out completely empty rows first
     const validRows = data.filter(row => !isRowMostlyEmpty(row, requiredColumns));
     
     if (validRows.length === 0) {
-        throw new Error("Player CSV contains no valid data rows.");
+        throw new Error(`${EMOJIS.CROSS_MARK} No valid data found in the Players CSV file.\n\n${EMOJIS.SPARKLES} Please check that your file contains player data.`);
     }
 
     // Basic validation - only count rows with missing essential data
@@ -100,7 +115,7 @@ Your CSV appears to have: ${actualColumns.join(', ')}`);
         const hasName = row.Name && row.Name.trim() !== "";
         
         if (!hasName) {
-            console.log(`?? Row ${index + 2} missing essential data:`, {
+            console.log(`${EMOJIS.WARNING} Row ${index + 2} missing essential data:`, {
                 name: row.Name,
                 category: row.Category,
                 skillset: row.Skillset,
@@ -112,31 +127,41 @@ Your CSV appears to have: ${actualColumns.join(', ')}`);
 
     // Be more lenient - only throw error if more than 50% of rows have issues
     if (errorCount > validRows.length * 0.5) {
-        throw new Error(`Player CSV has too many validation errors (${errorCount}/${validRows.length} rows). Please check your data format.`);
+        throw new Error(`${EMOJIS.CROSS_MARK} Too many validation errors (${errorCount}/${validRows.length} rows).\n\n${EMOJIS.SPARKLES} Please ensure each player has at least a Name. Other fields can be empty.`);
     }
 
-    console.log(`? CSV validation passed: ${validRows.length} valid rows found`);
+    console.log(`${EMOJIS.CHECK_MARK} CSV validation passed: ${validRows.length} valid rows found`);
     return true;
 };
 
 export const validateTeamCSV = (data) => {
     if (!data || data.length === 0) {
-        throw new Error("Team CSV file is empty.");
+        throw new Error(`${EMOJIS.CROSS_MARK} Team CSV file is empty. Please check your file and try again.`);
     }
 
     const requiredColumns = ["Team Name", "Owner Name", "Purse", "Players to Buy"];
     const firstRow = data[0];
+    const actualColumns = Object.keys(firstRow);
     const missingColumns = requiredColumns.filter(col => !(col in firstRow));
     
     if (missingColumns.length > 0) {
-        throw new Error("Team CSV is missing required columns. Please check the format.");
+        // Detect if they uploaded the wrong type of CSV
+        const csvType = detectCSVType(actualColumns);
+        
+        if (csvType === 'players') {
+            throw new Error(`${EMOJIS.CROSS_MARK} Wrong file type! You uploaded a Players CSV file.\n\n${EMOJIS.CLIPBOARD} Please upload a Teams CSV file with columns: Team Name, Owner Name, Purse, Players to Buy\n\n${EMOJIS.SPARKLES} Tip: Use the 'Download Sample Teams CSV' button for the correct format.`);
+        } else if (csvType === 'unknown') {
+            throw new Error(`${EMOJIS.CROSS_MARK} Invalid CSV format!\n\n${EMOJIS.CLIPBOARD} Required columns: Team Name, Owner Name, Purse, Players to Buy\n\n${EMOJIS.FOLDER} Your file has: ${actualColumns.join(', ')}\n\n${EMOJIS.SPARKLES} Tip: Download the sample file to see the correct format.`);
+        } else {
+            throw new Error(`${EMOJIS.CROSS_MARK} Missing required columns: ${missingColumns.join(', ')}\n\n${EMOJIS.SPARKLES} Please ensure your CSV has the exact column headers shown in the sample file.`);
+        }
     }
 
     // Filter out completely empty rows first
     const validRows = data.filter(row => !isRowMostlyEmpty(row, requiredColumns));
     
     if (validRows.length === 0) {
-        throw new Error("Team CSV contains no valid data rows.");
+        throw new Error(`${EMOJIS.CROSS_MARK} No valid data found in the Teams CSV file.\n\n${EMOJIS.SPARKLES} Please check that your file contains team data.`);
     }
 
     // Basic validation - only count significant errors
@@ -166,8 +191,9 @@ export const validateTeamCSV = (data) => {
 
     // Be more lenient - only throw error if more than 50% of rows have issues
     if (errorCount > validRows.length * 0.5) {
-        throw new Error(`Team CSV has too many validation errors. Please check your data.`);
+        throw new Error(`${EMOJIS.CROSS_MARK} Too many validation errors in Teams CSV.\n\n${EMOJIS.SPARKLES} Please ensure each team has a Team Name, Owner Name, valid Purse amount, and Players to Buy count.`);
     }
 
+    console.log(`${EMOJIS.CHECK_MARK} Team CSV validation passed: ${validRows.length} valid teams found`);
     return true;
 };

@@ -56,19 +56,15 @@ const Logo = () => (
     />
 );
 
-export default function AuthPage({ onAuthSuccess }) {
+export default function AuthPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const { signIn, loading, error } = useAuth();
-    const [showPage, setShowPage] = useState(true);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const result = await signIn(email, password);
-        if (result.user && onAuthSuccess) {
-            setShowPage(false);
-            setTimeout(() => onAuthSuccess(result.user), 500);
-        }
+        await signIn(email, password);
+        // The auth state change will be handled by the useAuth hook
     };
 
     useEffect(() => {
@@ -77,7 +73,7 @@ export default function AuthPage({ onAuthSuccess }) {
 
     return (
         <AnimatePresence>
-            {showPage && (
+            {true && (
                 <motion.div
                     key="auth-page"
                     initial={{ opacity: 0, y: 40 }}

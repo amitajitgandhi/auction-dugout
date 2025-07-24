@@ -26,9 +26,7 @@ const AuctionInterface = forwardRef(({
     showManagedToast,
     isLastPlayerInQueue,
     categoryStarted,
-    onStartCategory,
-    onManualSave,
-    onExportBackup
+    onStartCategory
 }, ref) => {
     const [isTransitioning, setIsTransitioning] = useState(false);
     const [countdown, setCountdown] = useState(null);
@@ -48,12 +46,40 @@ const AuctionInterface = forwardRef(({
         if (currentPlayer) {
             console.log('=== PLAYER CHANGE DEBUG ===');
             console.log('Current player:', currentPlayer.name);
+            console.log('Player sold:', currentPlayer.sold);
+            console.log('Player soldTo:', currentPlayer.soldTo);
             
             setImageKey(prev => prev + 1);
             setShowSoldStamp(false);
             setShowUnsoldStamp(false);
+            
+            // Check if player is already sold/unsold (restoration scenario)
+            const isPlayerSold = currentPlayer.sold && currentPlayer.soldTo !== "Unsold";
+            const isPlayerUnsold = currentPlayer.soldTo === "Unsold";
+            
+            if (isPlayerSold || isPlayerUnsold) {
+                // Show notification that player is already processed
+                const statusText = isPlayerSold ? 
+                    `already sold to ${currentPlayer.soldTo} for ?${currentPlayer.soldPrice?.toLocaleString()}` :
+                    'already marked as unsold';
+                    
+                showManagedToast && showManagedToast('info', 
+                    `${currentPlayer.name} is ${statusText}. Showing next available player...`, {
+                    style: {
+                        border: '2px solid #0ea5e9',
+                        padding: '16px',
+                        color: '#0c4a6e',
+                        fontWeight: 'bold',
+                        fontSize: '1.05rem',
+                        background: 'linear-gradient(90deg, #e0f7ff 0%, #f0f9ff 100%)',
+                        boxShadow: '0 4px 24px 0 #0ea5e9',
+                    },
+                    icon: EMOJIS.RESTORE,
+                    duration: 4000,
+                });
+            }
         }
-    }, [currentPlayer]);
+    }, [currentPlayer, showManagedToast]);
 
     // Bidding handlers
     const handleMarkSold = () => {
@@ -181,29 +207,6 @@ const AuctionInterface = forwardRef(({
                             >
                                 {EMOJIS.REFRESH} Change Category
                             </button>
-                        </>
-                    )}
-                    
-                    {/* Save Progress and Export Backup buttons */}
-                    {categoryStarted && onManualSave && (
-                        <>
-                            <div className="w-px h-6 bg-white opacity-30"></div>
-                            <button
-                                onClick={onManualSave}
-                                className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 border border-white border-opacity-30 hover:border-opacity-50"
-                                title="Save current auction progress to browser storage (will restore on page reload)"
-                            >
-                                {EMOJIS.BACKUP} Quick Save
-                            </button>
-                            {onExportBackup && (
-                                <button
-                                    onClick={onExportBackup}
-                                    className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 border border-white border-opacity-30 hover:border-opacity-50"
-                                    title="Download backup file to your computer (for sharing/permanent storage)"
-                                >
-                                    {EMOJIS.DOWNLOAD} Download Backup
-                                </button>
-                            )}
                         </>
                     )}
                 </div>
