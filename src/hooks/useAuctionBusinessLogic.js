@@ -1,4 +1,5 @@
 import { useRef, useEffect } from 'react';
+import { EMOJIS } from '../utils/constants';
 
 export const useAuctionBusinessLogic = (
     players, 
@@ -7,6 +8,7 @@ export const useAuctionBusinessLogic = (
     setTeams, 
     auction, 
     showFancyError, 
+    showManagedToast, // Added missing parameter
     sendWhatsAppNotification, 
     tournamentName,
     auctionInterfaceRef,
@@ -112,7 +114,7 @@ export const useAuctionBusinessLogic = (
         
         // Add toast notification for sale announcement
         showManagedToast('success', 
-            `${currentPlayer.name} sold to ${teamName} for ?${price.toLocaleString()}!`, {
+            `${auction.currentPlayer.name} sold to ${teamName} for ?${price.toLocaleString()}!`, {
             style: {
                 border: '2px solid #10b981',
                 padding: '16px',

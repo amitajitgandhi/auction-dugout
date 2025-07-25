@@ -59,6 +59,7 @@ export default function CricketAuctionTool() {
         setTeams, 
         auction, 
         showFancyError, 
+        showManagedToast, // Added missing parameter
         sendWhatsAppNotification, 
         tournamentName,
         auctionInterfaceRef,
