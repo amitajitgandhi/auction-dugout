@@ -10,7 +10,7 @@ const titleFont = {
     fontFamily: "'Orbitron', sans-serif",
 };
 
-// Feature List
+// Feature List - Updated with 8 features including Spin Wheel and Jersey Color
 const features = [
     {
         label: 'Live Streaming',
@@ -24,7 +24,7 @@ const features = [
     },
     {
         label: 'Whatsapp',
-        icon: <img src={whatsappLogo} alt="WhatsApp" style={{ width: 44, height: 44, marginBottom: 0, marginTop: 20, display: 'block' }} />,
+        icon: <img src={whatsappLogo} alt="WhatsApp" style={{ width: 44, height: 44, marginBottom: 0, marginTop: 13, display: 'block' }} />,
         desc: 'Instant notifications and updates directly to your WhatsApp.'
     },
     {
@@ -41,6 +41,16 @@ const features = [
         label: 'No Data Loss',
         icon: EMOJIS.NODATALOSS,
         desc: 'Automatic backups ensure your auction progress is always safe.'
+    },
+    {
+        label: 'Spin Wheel',
+        icon: EMOJIS.SPINWHEEL,
+        desc: 'Interactive spin wheel for random team selection'
+    },
+    {
+        label: 'Jersey Color',
+        icon: EMOJIS.JERSEY,
+        desc: 'Randomly assign jersey colors to each team'
     },
 ];
 
@@ -153,10 +163,10 @@ export default function AuthPage() {
                         justifyContent: 'center',
                         alignItems: 'center',
                         flexWrap: 'wrap',
-                        gap: 48,
+                        gap: 32, // Reduced gap
                         padding: '0 24px',
                     }}>
-                        {/* Login Card */}
+                        {/* Login Card - Moved more to the left */}
                         <motion.div
                             initial={{ opacity: 0, x: -30 }}
                             animate={{ opacity: 1, x: 0 }}
@@ -164,17 +174,18 @@ export default function AuthPage() {
                             style={{
                                 background: 'rgba(255, 255, 255, 0.85)',
                                 borderRadius: 20,
-                                padding: 48,
+                                padding: 40, // Reduced padding
                                 boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
-                                minWidth: 340,
-                                maxWidth: 480,
-                                minHeight: 480,
+                                minWidth: 320, // Reduced minimum width
+                                maxWidth: 420, // Reduced maximum width
+                                minHeight: 460, // Reduced height
                                 width: '100%',
                                 backdropFilter: 'blur(10px)',
                                 border: '1.5px solid #fbbf24',
                                 display: 'flex',
                                 flexDirection: 'column',
                                 justifyContent: 'center',
+                                marginRight: 20, // Push login more to the left
                             }}
                         >
                             <h2 style={{
@@ -182,7 +193,7 @@ export default function AuthPage() {
                                 fontWeight: 800,
                                 textAlign: 'center',
                                 marginBottom: 24,
-                                fontSize: 28,
+                                fontSize: 26, // Slightly smaller
                             }}>
                                 Login to the World of Auction
                             </h2>
@@ -225,20 +236,21 @@ export default function AuthPage() {
                         {/* Vertical Separator */}
                         <div style={{
                             width: 1,
-                            minHeight: 500,
+                            minHeight: 480, // Reduced height
                             height: '60%',
-                            background: 'linear-gradient(180deg, #fbbf24 0%, #fde68a 100%)', // Softer orange gradient
+                            background: 'linear-gradient(180deg, #fbbf24 0%, #fde68a 100%)',
                             borderRadius: 12,
-                            boxShadow: '0 0 4px #fbbf24', // Reduced shadow for less shine
+                            boxShadow: '0 0 4px #fbbf24',
                             border: '1px solid #fde68a',
                         }} />
 
-                        {/* Features Grid */}
-                        <div style={{ minWidth: 540, maxWidth: 900 }}>
+                        {/* Features Grid - Updated for 4x2 layout */}
+                        <div style={{ minWidth: 720, maxWidth: 1000 }}>
                             <div style={{
                                 display: 'grid',
-                                gridTemplateColumns: 'repeat(3, 1fr)',
-                                gap: 32,
+                                gridTemplateColumns: 'repeat(4, 1fr)', // 4 columns instead of 3
+                                gridTemplateRows: 'repeat(2, 1fr)', // 2 rows
+                                gap: 24, // Reduced gap
                             }}>
                                 {features.map(({ icon, label, desc }) => (
                                     <motion.div
@@ -247,25 +259,25 @@ export default function AuthPage() {
                                         transition={{ type: 'spring', stiffness: 300 }}
                                         style={{
                                             background: '#fff',
-                                            borderRadius: 28,
-                                            width: 230,
-                                            height: 230,
-                                            padding: 22,
+                                            borderRadius: 24, // Slightly smaller
+                                            width: 200, // Reduced width to fit 4 in a row
+                                            height: 200, // Reduced height
+                                            padding: 18, // Reduced padding
                                             textAlign: 'center',
                                             boxShadow: '0 8px 24px rgba(0,0,0,0.11)',
                                             fontWeight: 700,
-                                            fontSize: 17,
+                                            fontSize: 16, // Slightly smaller
                                             color: '#1f2937',
                                             cursor: 'default',
                                             display: 'flex',
                                             flexDirection: 'column',
-                                            justifyContent: 'flex-start', // Consistent start
+                                            justifyContent: 'flex-start',
                                             alignItems: 'center',
                                         }}
                                     >
-                                        <div style={{ fontSize: 44, marginBottom: 10, marginTop: 8 }}>{icon}</div>
-                                        <div style={{ fontWeight: 900, fontSize: 20, color: '#ef4444', marginBottom: 6, marginTop: 0 }}>{label}</div>
-                                        <div style={{ fontWeight: 500, fontSize: 14, color: '#374151', marginTop: 0 }}>{desc}</div>
+                                        <div style={{ fontSize: 38, marginBottom: 8, marginTop: 6 }}>{icon}</div>
+                                        <div style={{ fontWeight: 900, fontSize: 18, color: '#ef4444', marginBottom: 6, marginTop: 0 }}>{label}</div>
+                                        <div style={{ fontWeight: 500, fontSize: 12, color: '#374151', marginTop: 0, lineHeight: '1.3' }}>{desc}</div>
                                     </motion.div>
                                 ))}
                             </div>

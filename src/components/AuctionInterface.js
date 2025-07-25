@@ -53,33 +53,10 @@ const AuctionInterface = forwardRef(({
             setShowSoldStamp(false);
             setShowUnsoldStamp(false);
             
-            // Check if player is already sold/unsold (restoration scenario)
-            const isPlayerSold = currentPlayer.sold && currentPlayer.soldTo !== "Unsold";
-            const isPlayerUnsold = currentPlayer.soldTo === "Unsold";
-            
-            if (isPlayerSold || isPlayerUnsold) {
-                // Show notification that player is already processed
-                const statusText = isPlayerSold ? 
-                    `already sold to ${currentPlayer.soldTo} for ?${currentPlayer.soldPrice?.toLocaleString()}` :
-                    'already marked as unsold';
-                    
-                showManagedToast && showManagedToast('info', 
-                    `${currentPlayer.name} is ${statusText}. Showing next available player...`, {
-                    style: {
-                        border: '2px solid #0ea5e9',
-                        padding: '16px',
-                        color: '#0c4a6e',
-                        fontWeight: 'bold',
-                        fontSize: '1.05rem',
-                        background: 'linear-gradient(90deg, #e0f7ff 0%, #f0f9ff 100%)',
-                        boxShadow: '0 4px 24px 0 #0ea5e9',
-                    },
-                    icon: EMOJIS.RESTORE,
-                    duration: 4000,
-                });
-            }
+            // Note: Removed toast notification for already processed players
+            // The auction logic will handle skipping these players automatically
         }
-    }, [currentPlayer, showManagedToast]);
+    }, [currentPlayer]); // Removed showManagedToast from dependencies to prevent infinite loops
 
     // Bidding handlers
     const handleMarkSold = () => {

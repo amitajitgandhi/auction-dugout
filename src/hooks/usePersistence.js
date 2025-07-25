@@ -293,10 +293,10 @@ export const usePersistence = (showManagedToast, user = null) => {
             if (success) {
                 localStorage.setItem(`lastAutoSave_${user.email}`, now.toString());
                 if (showManagedToast) {
-                    showManagedToast('success', '?? Auto-saved to cloud & local storage', {
+                    showManagedToast('success', 'Auto-saved to cloud & local storage', {
                         style: TOAST_STYLES.success,
                         icon: EMOJIS.BACKUP,
-                        duration: 3000,
+                        duration: 5000,
                     });
                 }
             }

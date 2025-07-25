@@ -400,13 +400,14 @@ export const useAuction = (players, showManagedToast) => {
                 return false; // No players in category
             }
             
-            // A player is considered "processed" if they are sold to a team OR marked as unsold
-            const processedPlayers = categoryPlayers.filter(p => 
-                (p.sold && p.soldTo !== "Unsold") || p.soldTo === "Unsold"
-            );
+            // FIXED: A player is considered "fully processed" only if they are sold to a team
+            // Players marked as "Unsold" should still be available for unsold rounds
+            const soldToTeamPlayers = categoryPlayers.filter(p => p.sold && p.soldTo !== "Unsold");
+            const totalPlayers = categoryPlayers.length;
             
-            // If all players are processed, don't show this category
-            return processedPlayers.length < categoryPlayers.length;
+            // Category should only be hidden if ALL players are sold to teams
+            // Players marked as "Unsold" should keep the category available for unsold rounds
+            return soldToTeamPlayers.length < totalPlayers;
         });
     };
 

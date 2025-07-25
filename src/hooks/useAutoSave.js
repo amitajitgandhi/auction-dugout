@@ -68,16 +68,10 @@ export const useAutoSave = (
             }
         };
     }, [
-        players, 
-        teams, 
-        tournamentName, 
-        isTournamentNameSet, 
-        whatsappSettings, 
-        auction.auctionStarted, 
-        auction.selectedCategory, 
-        auction.completedCategories, 
-        persistence, 
-        user?.id
+        // Only restart auto-save when these essential conditions change
+        user?.id,                    // User authentication changes
+        isTournamentNameSet,         // Tournament setup changes
+        // Remove frequently changing dependencies to prevent restart loops
     ]);
 
     // Save on page unload/close

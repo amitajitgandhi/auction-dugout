@@ -110,6 +110,22 @@ export const useAuctionBusinessLogic = (
         auction.setShowConfetti(true);
         setTimeout(() => auction.setShowConfetti(false), 4000);
         
+        // Add toast notification for sale announcement
+        showManagedToast('success', 
+            `${currentPlayer.name} sold to ${teamName} for ?${price.toLocaleString()}!`, {
+            style: {
+                border: '2px solid #10b981',
+                padding: '16px',
+                color: '#047857',
+                fontWeight: 'bold',
+                fontSize: '1.1rem',
+                background: 'linear-gradient(90deg, #d1fae5 0%, #ecfdf5 100%)',
+                boxShadow: '0 4px 24px 0 #10b981',
+            },
+            icon: EMOJIS.PARTY,
+            duration: 4000,
+        });
+        
         // Send WhatsApp notification for sold player
         sendWhatsAppNotification(auction.currentPlayer, teamName, price, tournamentName, false);
         

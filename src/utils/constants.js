@@ -34,7 +34,9 @@ export const EMOJIS = {
     SMARTUI: String.fromCodePoint(0x1F4BB), // Laptop emoji
     EXPORTTEAMS: String.fromCodePoint(0x1F4C8), // Export teams emoji
     NODATALOSS: String.fromCodePoint(0x1F6A8), // No data loss warning emoji
-    HEART: String.fromCodePoint(0x2764, 0xFE0F)// Heart emoji 
+    HEART: String.fromCodePoint(0x2764, 0xFE0F),// Heart emoji 
+    SPINWHEEL: String.fromCodePoint(0x1F3A1), // Ferris wheel emoji for spin wheel
+    JERSEY: String.fromCodePoint(0x1F455) // Shirt emoji for jersey
 };
 
 // Helper to shuffle an array

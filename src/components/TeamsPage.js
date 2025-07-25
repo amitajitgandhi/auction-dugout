@@ -1,6 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import { exportTeamsData, EMOJIS } from "../utils/constants";
 import { WHATSAPP_EMOJIS } from "../utils/whatsappUtils";
+import PlayerSpinWheel from "./PlayerSpinWheel";
+import JerseyColorAssignment from "./JerseyColorAssignment";
 
 const TeamsPage = ({ 
     teams, 
@@ -14,6 +16,10 @@ const TeamsPage = ({
     onTeamWhatsAppShare,
     whatsappSettings
 }) => {
+    const [showMenu, setShowMenu] = useState(false);
+    const [showPlayerSpin, setShowPlayerSpin] = useState(false);
+    const [showJerseyColor, setShowJerseyColor] = useState(false);
+
     const handleExportTeams = () => {
         try {
             exportTeamsData(teams, tournamentName);
@@ -30,6 +36,7 @@ const TeamsPage = ({
                 icon: EMOJIS.CHART,
                 duration: 4000,
             });
+            setShowMenu(false);
         } catch (error) {
             showManagedToast('error', 'Failed to export teams data. Please try again.', {
                 style: {
@@ -47,6 +54,62 @@ const TeamsPage = ({
         }
     };
 
+    const handlePlayerSpin = () => {
+        if (Object.keys(teams).length === 0) {
+            showManagedToast('error', 'No teams available for Player Spin! Please add teams first.', {
+                style: {
+                    border: '2px solid #f59e42',
+                    padding: '16px',
+                    color: '#b91c1c',
+                    fontWeight: 'bold',
+                    fontSize: '1.1rem',
+                    background: 'linear-gradient(90deg, #fffbe6 0%, #ffe4e6 100%)',
+                    boxShadow: '0 4px 24px 0 #fbbf24',
+                },
+                icon: EMOJIS.WARNING,
+                duration: 4000,
+            });
+            setShowMenu(false);
+            return;
+        }
+        
+        setShowPlayerSpin(true);
+        setShowMenu(false);
+    };
+
+    const handleJerseyColor = () => {
+        if (Object.keys(teams).length === 0) {
+            showManagedToast('error', 'No teams available for Jersey Color assignment! Please add teams first.', {
+                style: {
+                    border: '2px solid #f59e42',
+                    padding: '16px',
+                    color: '#b91c1c',
+                    fontWeight: 'bold',
+                    fontSize: '1.1rem',
+                    background: 'linear-gradient(90deg, #fffbe6 0%, #ffe4e6 100%)',
+                    boxShadow: '0 4px 24px 0 #fbbf24',
+                },
+                icon: EMOJIS.WARNING,
+                duration: 4000,
+            });
+            setShowMenu(false);
+            return;
+        }
+        
+        setShowJerseyColor(true);
+        setShowMenu(false);
+    };
+
+    const handleWhatsAppSettings = () => {
+        onWhatsAppSettings();
+        setShowMenu(false);
+    };
+
+    const handleResetAuction = () => {
+        onResetAuction();
+        setShowMenu(false);
+    };
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-800 to-gray-900 bg-fixed relative overflow-x-hidden">
             {/* Tournament Name Ticker */}
@@ -58,6 +121,108 @@ const TeamsPage = ({
                 </div>
             </div>
 
+            {/* Hamburger Menu - Top Right Corner */}
+            <div className="fixed top-16 right-4 z-50">
+                <button
+                    onClick={() => setShowMenu(!showMenu)}
+                    className="bg-gradient-to-r from-gray-600 to-gray-700 text-white p-3 rounded-lg shadow-md hover:from-gray-700 hover:to-gray-800 hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                    title="More Options"
+                >
+                    <div className="w-6 h-6 flex flex-col justify-center space-y-1">
+                        <div className="w-6 h-0.5 bg-white rounded"></div>
+                        <div className="w-6 h-0.5 bg-white rounded"></div>
+                        <div className="w-6 h-0.5 bg-white rounded"></div>
+                    </div>
+                </button>
+
+                {/* Dropdown Menu */}
+                {showMenu && (
+                    <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-lg shadow-xl border border-gray-200 z-50 animate-fade-in">
+                        <div className="py-2">
+                            {/* Export Teams */}
+                            <button
+                                onClick={handleExportTeams}
+                                className={`w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors duration-200 flex items-center gap-3 ${
+                                    Object.keys(teams).length === 0 || Object.values(teams).every(team => team.players.length === 0) 
+                                    ? 'opacity-50 cursor-not-allowed' 
+                                    : ''
+                                }`}
+                                disabled={Object.keys(teams).length === 0 || Object.values(teams).every(team => team.players.length === 0)}
+                            >
+                                <span className="text-blue-500">{EMOJIS.CHART}</span>
+                                <span className="text-gray-700 font-medium">Export Teams</span>
+                            </button>
+
+                            {/* Player Spin */}
+                            <button
+                                onClick={handlePlayerSpin}
+                                className="w-full text-left px-4 py-3 hover:bg-purple-50 transition-colors duration-200 flex items-center gap-3"
+                            >
+                                <span className="text-purple-500">{EMOJIS.SPINWHEEL}</span>
+                                <span className="text-gray-700 font-medium">Player Spin</span>
+                            </button>
+
+                            {/* Jersey Color */}
+                            <button
+                                onClick={handleJerseyColor}
+                                className="w-full text-left px-4 py-3 hover:bg-indigo-50 transition-colors duration-200 flex items-center gap-3"
+                            >
+                                <span className="text-indigo-500">{EMOJIS.JERSEY}</span>
+                                <span className="text-gray-700 font-medium">Jersey Color</span>
+                            </button>
+
+                            {/* WhatsApp Settings */}
+                            <button
+                                onClick={handleWhatsAppSettings}
+                                className="w-full text-left px-4 py-3 hover:bg-green-50 transition-colors duration-200 flex items-center gap-3"
+                            >
+                                <span className="text-green-500">{EMOJIS.MOBILE}</span>
+                                <span className="text-gray-700 font-medium">WhatsApp Settings</span>
+                            </button>
+
+                            {/* Divider */}
+                            <div className="border-t border-gray-200 my-2"></div>
+
+                            {/* Reset Auction */}
+                            <button
+                                onClick={handleResetAuction}
+                                className="w-full text-left px-4 py-3 hover:bg-red-50 transition-colors duration-200 flex items-center gap-3"
+                            >
+                                <span className="text-red-500">{EMOJIS.REFRESH}</span>
+                                <span className="text-gray-700 font-medium">Reset Auction</span>
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Click outside to close menu */}
+            {showMenu && (
+                <div 
+                    className="fixed inset-0 z-40" 
+                    onClick={() => setShowMenu(false)}
+                ></div>
+            )}
+
+            {/* Player Spin Wheel Modal */}
+            <PlayerSpinWheel
+                teams={teams}
+                isOpen={showPlayerSpin}
+                onClose={() => setShowPlayerSpin(false)}
+                showManagedToast={showManagedToast}
+            />
+
+            {/* Jersey Color Assignment Modal */}
+            <JerseyColorAssignment
+                teams={teams}
+                isOpen={showJerseyColor}
+                onClose={() => setShowJerseyColor(false)}
+                showManagedToast={showManagedToast}
+                whatsappSettings={whatsappSettings}
+                onTeamWhatsAppShare={onTeamWhatsAppShare}
+                tournamentName={tournamentName}
+            />
+
             <div className="pt-16 pb-20 px-4">
                 <div className="w-full max-w-6xl mx-auto">
                     {/* Header Section */}
@@ -65,43 +230,15 @@ const TeamsPage = ({
                         <h1 className="text-4xl md:text-5xl font-extrabold mb-4 text-white drop-shadow-lg bg-gradient-to-r from-emerald-400 via-cyan-500 to-blue-500 bg-clip-text text-transparent">
                             {EMOJIS.TROPHY} Teams Summary
                         </h1>
-                        <p className="text-gray-300 text-lg">Complete overview of all teams squad and budget</p>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="mb-8 flex flex-col sm:flex-row justify-center gap-3 max-w-2xl mx-auto">
+                        <p className="text-gray-300 text-lg mb-6">Complete overview of all teams squad and budget</p>
+                        
+                        {/* Back to Auction Button - Centered below header */}
                         <button
                             onClick={onBackToAuction}
-                            className="flex-1 bg-gradient-to-r from-violet-500 to-purple-600 text-white px-3 py-3 rounded-lg font-semibold shadow-md hover:from-violet-600 hover:to-purple-700 hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-violet-400 flex items-center justify-center gap-2 text-sm min-h-[44px]"
+                            className="bg-gradient-to-r from-violet-500 to-purple-600 text-white px-8 py-4 rounded-lg font-bold shadow-lg hover:from-violet-600 hover:to-purple-700 hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-violet-400 flex items-center gap-3 mx-auto text-lg"
                         >
-                            <span>{EMOJIS.BACK_ARROW}</span>
+                            <span className="text-xl">{EMOJIS.BACK_ARROW}</span>
                             Back to Auction
-                        </button>
-                        <button
-                            onClick={handleExportTeams}
-                            className={`flex-1 bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-3 py-3 rounded-lg font-semibold shadow-md hover:from-blue-600 hover:to-cyan-700 hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400 flex items-center justify-center gap-2 text-sm min-h-[44px] ${
-                                Object.keys(teams).length === 0 || Object.values(teams).every(team => team.players.length === 0) 
-                                ? 'export-button-disabled' 
-                                : ''
-                            }`}
-                            disabled={Object.keys(teams).length === 0 || Object.values(teams).every(team => team.players.length === 0)}
-                        >
-                            <span>{EMOJIS.CHART}</span>
-                            Export Teams
-                        </button>
-                        <button
-                            onClick={onWhatsAppSettings}
-                            className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 py-3 rounded-lg font-semibold shadow-md hover:from-green-600 hover:to-emerald-700 hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-400 flex items-center justify-center gap-2 text-sm min-h-[44px]"
-                        >
-                            <span>{EMOJIS.MOBILE}</span>
-                            WhatsApp
-                        </button>
-                        <button
-                            onClick={onResetAuction}
-                            className="flex-1 bg-gradient-to-r from-red-500 to-red-600 text-white px-3 py-3 rounded-lg font-semibold shadow-md hover:from-red-600 hover:to-red-700 hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-400 flex items-center justify-center gap-2 text-sm min-h-[44px]"
-                        >
-                            <span>{EMOJIS.REFRESH}</span>
-                            Reset Auction
                         </button>
                     </div>
 
@@ -260,6 +397,42 @@ const TeamsPage = ({
             <footer className="w-full text-center py-4 mt-8 text-white bg-black bg-opacity-60 text-lg font-semibold tracking-wide fixed bottom-0 left-0 z-50">
                 Product by Amit Gandhi
             </footer>
+
+            {/* Custom CSS for animations */}
+            <style jsx>{`
+                .animate-fade-in {
+                    animation: fadeIn 0.2s ease-out;
+                }
+                
+                @keyframes fadeIn {
+                    from {
+                        opacity: 0;
+                        transform: translateY(-10px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+                
+                .custom-scrollbar::-webkit-scrollbar {
+                    width: 4px;
+                }
+                
+                .custom-scrollbar::-webkit-scrollbar-track {
+                    background: #f1f5f9;
+                    border-radius: 2px;
+                }
+                
+                .custom-scrollbar::-webkit-scrollbar-thumb {
+                    background: #cbd5e1;
+                    border-radius: 2px;
+                }
+                
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                    background: #94a3b8;
+                }
+            `}</style>
         </div>
     );
 };
