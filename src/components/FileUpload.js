@@ -14,6 +14,7 @@ const FileUpload = ({
 }) => {
     const [isUploadingPlayers, setIsUploadingPlayers] = useState(false);
     const [isUploadingTeams, setIsUploadingTeams] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
 
     // Handle player file upload
     const handlePlayerUpload = async (e) => {
@@ -27,12 +28,14 @@ const FileUpload = ({
         }
 
         setIsUploadingPlayers(true);
+        setUploadProgress(0);
 
         parseCSV(file, async (data) => {
             try {
                 validatePlayerCSV(data);
 
                 const enrichedPlayers = [];
+                const totalPlayers = data.length;
 
                 for (const [index, row] of data.entries()) {
                     const name = row["Name"]?.trim() || "";
@@ -40,7 +43,11 @@ const FileUpload = ({
                     const category = row["Category"]?.trim() || "OPEN";
                     const rawPhotoUrl = formatDriveLink(row["Photo Link"] || "");
 
-                    if (!name || !rawPhotoUrl) continue;
+                    if (!name || !rawPhotoUrl) {
+                        // Update progress even for skipped players
+                        setUploadProgress(Math.round(((index + 1) / totalPlayers) * 100));
+                        continue;
+                    }
 
                     try {
                         const response = await fetch("http://localhost:5000/api/upload-player", {
@@ -73,21 +80,26 @@ const FileUpload = ({
 
                     } catch (err) {
                         console.warn(`Server upload failed for ${name}:`, err.message);
-                        continue;
                     }
+
+                    // Update progress after each player
+                    setUploadProgress(Math.round(((index + 1) / totalPlayers) * 100));
                 }
 
                 onPlayersLoad(enrichedPlayers);
                 setIsUploadingPlayers(false);
+                setUploadProgress(0);
             } catch (err) {
                 onError(err.message);
                 e.target.value = '';
                 setIsUploadingPlayers(false);
+                setUploadProgress(0);
             }
         }, (err) => {
             onError(`${EMOJIS.CROSS_MARK} Failed to read CSV file: ${err}`);
             e.target.value = '';
             setIsUploadingPlayers(false);
+            setUploadProgress(0);
         });
     };
 
@@ -217,9 +229,17 @@ const FileUpload = ({
                         />
                         
                         {isUploadingPlayers && (
-                            <div className="flex items-center text-sm text-blue-700 bg-blue-100 rounded-lg p-3">
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-                                Processing players CSV...
+                            <div className="space-y-2">
+                                <div className="flex items-center text-sm text-blue-700 bg-blue-100 rounded-lg p-3">
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                                    Processing players CSV... {uploadProgress}%
+                                </div>
+                                <div className="w-full bg-blue-200 rounded-full h-2.5">
+                                    <div 
+                                        className="bg-blue-600 h-2.5 rounded-full transition-all duration-300 ease-out"
+                                        style={{ width: `${uploadProgress}%` }}
+                                    ></div>
+                                </div>
                             </div>
                         )}
                         
