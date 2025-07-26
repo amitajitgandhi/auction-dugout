@@ -18,7 +18,7 @@ export const EMOJIS = {
     CROSS_MARK: String.fromCodePoint(0x274C),
     PARTY: String.fromCodePoint(0x1F389),
     BULLET: String.fromCodePoint(0x2022),
-    CURRENCY_RUPEE: String.fromCodePoint(0x20B9),
+    CURRENCY_RUPEE: String.fromCodePoint(0x1F4B0), // ?? Money bag emoji
     SPARKLES: String.fromCodePoint(0x2728),
     STAR: String.fromCodePoint(0x2B50),
     DIZZY: String.fromCodePoint(0x1F4AB),

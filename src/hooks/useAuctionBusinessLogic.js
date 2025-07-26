@@ -114,7 +114,7 @@ export const useAuctionBusinessLogic = (
         
         // Add toast notification for sale announcement
         showManagedToast('success', 
-            `${auction.currentPlayer.name} sold to ${teamName} for ?${price.toLocaleString()}!`, {
+            `${auction.currentPlayer.name} sold to ${teamName} for ${EMOJIS.CURRENCY_RUPEE}${price.toLocaleString()}!`, {
             style: {
                 border: '2px solid #10b981',
                 padding: '16px',

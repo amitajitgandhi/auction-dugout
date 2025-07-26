@@ -11,33 +11,32 @@ A web-based tool for managing cricket team auctions, including player and team m
 - **WhatsApp Integration:** Send auction updates and team summaries directly to WhatsApp groups.
 - **User-Friendly Interface:** Modern UI with confirmation dialogs, toasts, and emoji support.
 
-## Getting Started
+## User Guide
 
-### Prerequisites
+### Getting Started
 
-- Node.js (v14 or higher recommended)
-- npm or yarn
+1. **Authentication**
+   - Access the application through your web browser
+   - Sign in using your email and password
+   - New users can sign up for an account
 
-### Installation
+2. **Tournament Setup**
+   - Enter a tournament name (minimum 3 characters)
+   - The tournament name will appear in the ticker at the top of the screen
 
-1. Clone the repository:
-   ```sh
-   git clone <repository-url>
-   cd cricket-auction-tool
-   ```
-2. Install dependencies:
-   ```sh
-   npm install
-   # or
-   yarn install
-   ```
-3. Start the development server:
-   ```sh
-   npm start
-   # or
-   yarn start
-   ```
-4. Open your browser and navigate to `http://localhost:3000`
+3. **Upload Data**
+   - **Players CSV**: Upload a CSV file containing player information
+     - Required columns: Name, Skillset, Photo Link, Category
+     - Download sample CSV template from the interface
+   - **Teams CSV**: Upload a CSV file containing team information
+     - Required columns: Team Name, Owner Name, Purse, Players to Buy
+     - Download sample CSV template from the interface
+
+4. **Start Auction**
+   - Once both players and teams are loaded, click "Start Auction"
+   - Select a category from the available player categories
+   - The auction interface will display the current player
+
 
 ## Usage
 
@@ -53,7 +52,7 @@ A web-based tool for managing cricket team auctions, including player and team m
 
 | Name           | Skillset      | Photo Link                | Category      |
 |----------------|---------------|---------------------------|--------------|
-| Virat Kohli    | Batsman       | https://.../virat.jpg     | BATSMEN      |
+| Virat Kohli    | Batsman       | https://.../virat.jpg  | BATSMEN      |
 
 ### Teams CSV
 
@@ -75,36 +74,3 @@ A web-based tool for managing cricket team auctions, including player and team m
 ## Supabase Integration
 
 This project uses [Supabase](https://supabase.com/) for authentication and backend data storage.
-
-### Supabase Setup Steps
-
-1. **Create a Supabase Project**
-   - Go to https://app.supabase.com/ and create a new project.
-   - Note your Project URL and anon/public API key.
-
-2. **Install Supabase Client**
-   - In your project directory, run:
-     ```sh
-     npm install @supabase/supabase-js
-     ```
-
-3. **Initialize Supabase in Your App**
-   - Create a file at `src/supabaseClient.js` with the following content:
-     ```js
-     import { createClient } from '@supabase/supabase-js';
-     const supabaseUrl = 'https://YOUR_PROJECT_ID.supabase.co';
-     const supabaseAnonKey = 'YOUR_ANON_KEY';
-     export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-     ```
-   - Replace the placeholders with your actual Supabase credentials.
-
-4. **Set Up Authentication and Tables in Supabase**
-   - In the Supabase dashboard, enable Email sign-in under Authentication.
-   - In the Table Editor, create tables for users, organizers, and auctions as needed.
-   - Add a `role` column to the users table (e.g., 'admin', 'organizer').
-
-5. **Next Steps**
-   - Use Supabase Auth for login/signup in your React app.
-   - Use Supabase client to read/write auction and organizer data.
-
-See the [Supabase documentation](https://supabase.com/docs) for more details.

@@ -108,18 +108,29 @@ export const usePersistence = (showManagedToast, user = null) => {
             try {
                 console.log('?? Attempting to load from Supabase for user:', user.id);
                 
+                // Check if user session is valid before making the request
+                const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+                
+                if (sessionError || !session) {
+                    console.log('? No valid session found, falling back to localStorage');
+                    // Fallback to localStorage immediately
+                    return await loadFromLocalStorage();
+                }
+                
                 const { data, error } = await supabase
                     .from('auction_data')
                     .select('*')
                     .eq('user_id', user.id)
                     .order('updated_at', { ascending: false })
                     .limit(1)
-                    .single();
+                    .maybeSingle(); // Use maybeSingle() instead of single()
 
                 if (error) {
                     console.log('?? Supabase load error:', error.message);
+                    // Fallback to localStorage on error
+                    return await loadFromLocalStorage();
                 } else if (data?.data) {
-                    console.log('?? Auction state loaded from Supabase', {
+                    console.log('? Auction state loaded from Supabase', {
                         timestamp: data.updated_at,
                         playersCount: data.data.players?.length || 0,
                         teamsCount: Object.keys(data.data.teams || {}).length
@@ -135,7 +146,11 @@ export const usePersistence = (showManagedToast, user = null) => {
             }
         }
 
-        // Fallback to localStorage
+        return await loadFromLocalStorage();
+    }, [user, getLocalStorageKey]);
+
+    // Helper function to load from localStorage
+    const loadFromLocalStorage = useCallback(async () => {
         if (user?.email) {
             try {
                 const savedData = localStorage.getItem(getLocalStorageKey(user.email));

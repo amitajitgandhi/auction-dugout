@@ -283,7 +283,7 @@ const AuctionInterface = forwardRef(({
                                         </select>
                                     </div>
                                     <div className="flex flex-col gap-2">
-                                        <label className="font-semibold text-gray-700">Bid Amount ({EMOJIS.CURRENCY_RUPEE})</label>
+                                        <label className="font-semibold text-gray-700">Bid Amount</label>
                                         <input
                                             type="number"
                                             min="1"

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { parseCSV, validatePlayerCSV, validateTeamCSV, formatDriveLink } from "../utils/csvUtils";
 import { EMOJIS } from "../utils/constants";
+import { supabase } from "../supabaseClient"; // Make sure this is correct
 
 const FileUpload = ({ 
     players, 
@@ -15,45 +16,76 @@ const FileUpload = ({
     const [isUploadingTeams, setIsUploadingTeams] = useState(false);
 
     // Handle player file upload
-    const handlePlayerUpload = (e) => {
+    const handlePlayerUpload = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
-        // Validate file type
         if (!file.name.toLowerCase().endsWith('.csv')) {
             onError(`${EMOJIS.CROSS_MARK} Invalid file type! Please select a CSV file (.csv extension required).`);
-            e.target.value = ''; // Clear the input
+            e.target.value = '';
             return;
         }
 
         setIsUploadingPlayers(true);
-        
-        parseCSV(file, (data) => {
+
+        parseCSV(file, async (data) => {
             try {
                 validatePlayerCSV(data);
-                
-                const enriched = data
-                    .filter(row => row.Name && row.Name.trim() !== '') // Filter out empty rows
-                    .map((row, index) => ({
-                        id: index,
-                        name: row["Name"]?.trim() || "",
-                        skill: row["Skillset"]?.trim() || "",
-                        photo: formatDriveLink(row["Photo Link"] || ""),
-                        category: row["Category"]?.trim() || "OPEN", // Default to "OPEN" if category is empty
-                        sold: false,
-                        soldTo: null,
-                        soldPrice: null,
-                    }));
-                
-                onPlayersLoad(enriched);
+
+                const enrichedPlayers = [];
+
+                for (const [index, row] of data.entries()) {
+                    const name = row["Name"]?.trim() || "";
+                    const skill = row["Skillset"]?.trim() || "";
+                    const category = row["Category"]?.trim() || "OPEN";
+                    const rawPhotoUrl = formatDriveLink(row["Photo Link"] || "");
+
+                    if (!name || !rawPhotoUrl) continue;
+
+                    try {
+                        const response = await fetch("http://localhost:5000/api/upload-player", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify({
+                                name,
+                                skill,
+                                category,
+                                photoUrl: rawPhotoUrl
+                            })
+                        });
+
+                        const result = await response.json();
+
+                        if (!response.ok) throw new Error(result.message);
+
+                        enrichedPlayers.push({
+                            id: index,
+                            name,
+                            skill,
+                            category,
+                            photo: result.image_url,
+                            sold: false,
+                            soldTo: null,
+                            soldPrice: null,
+                        });
+
+                    } catch (err) {
+                        console.warn(`Server upload failed for ${name}:`, err.message);
+                        continue;
+                    }
+                }
+
+                onPlayersLoad(enrichedPlayers);
                 setIsUploadingPlayers(false);
-            } catch (error) {
-                onError(error.message);
-                e.target.value = ''; // Clear the input on error
+            } catch (err) {
+                onError(err.message);
+                e.target.value = '';
                 setIsUploadingPlayers(false);
             }
-        }, (error) => {
-            onError(`${EMOJIS.CROSS_MARK} Failed to read CSV file: ${error}\n\n${EMOJIS.SPARKLES} Please ensure your file is a valid CSV format.`);
+        }, (err) => {
+            onError(`${EMOJIS.CROSS_MARK} Failed to read CSV file: ${err}`);
             e.target.value = '';
             setIsUploadingPlayers(false);
         });
