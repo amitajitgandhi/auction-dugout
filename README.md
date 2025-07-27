@@ -5,9 +5,8 @@ A web-based tool for managing cricket team auctions, including player and team m
 ## Features
 
 - **Player & Team Management:** Upload CSV files to quickly add players and teams.
-- **Auction State Persistence:** Automatically saves and restores auction progress using local storage.
-- **Auto-Backup:** Periodically auto-saves auction state and allows manual backup/export as JSON.
-- **Restore Functionality:** Restore previous sessions from backup files.
+- **Auto-Backup:** Periodically auto-saves auction state locally as well as over cloud<Supabase>
+- **Restore Functionality:** Restore previous sessions from backups.
 - **WhatsApp Integration:** Send auction updates and team summaries directly to WhatsApp groups.
 - **User-Friendly Interface:** Modern UI with confirmation dialogs, toasts, and emoji support.
 
@@ -42,8 +41,7 @@ A web-based tool for managing cricket team auctions, including player and team m
 
 - **Upload Players/Teams:** Use the UI to upload CSV files for players and teams. Sample CSVs can be downloaded from the interface.
 - **Start Auction:** Once players and teams are loaded, start the auction.
-- **Auto-Backup:** The app auto-saves progress every few minutes. Manual backup/export is also available.
-- **Restore:** Import a backup JSON file to restore a previous auction session.
+- **Auto-Backup:** The app auto-saves progress every few minutes. 
 - **WhatsApp Integration:** Configure WhatsApp settings to send updates to your group.
 
 ## File Formats
@@ -60,9 +58,6 @@ A web-based tool for managing cricket team auctions, including player and team m
 |--------------------------|-----------------|-----------|----------------|
 | Mumbai Indians           | Mukesh Ambani   | 80000000  | 25             |
 
-### Backup JSON
-
-- Exported backups are named `<TournamentName>_Backup_<Timestamp>.json` and contain the full auction state.
 
 ## Technologies Used
 
