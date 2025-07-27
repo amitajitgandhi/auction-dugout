@@ -149,6 +149,7 @@ auction-dugout/
 ├── tailwind.config.js              # Tailwind CSS configuration
 ├── .env                            # Environment variables (not in repo)
 └── README.md                       # Project documentation
+```
 
 ### Key Architecture Patterns
 
