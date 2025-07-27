@@ -162,4 +162,4 @@ auction-dugout/
 ## Supabase Integration
 
 This project uses [Supabase](https://supabase.com/) for user authentication and data storage. 
-Ensure you have a Supabase project set up and the environment variables configured in `.env`.
+Supabase environment variables are configured in `.env`.
