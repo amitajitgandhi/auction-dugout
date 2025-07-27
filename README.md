@@ -93,7 +93,7 @@ A web-based tool for managing cricket team auctions, including player and team m
 - **WhatsApp Web Integration** - Direct messaging capabilities
 - **File API** - CSV file upload and processing
 
-## Project Structure
+### Project Structure
 ```plaintext
 auction-dugout/
 ├── public/                         # Static assets
@@ -155,7 +155,7 @@ auction-dugout/
 - **API Integration**: RESTful communication with Express.js backend
 - **Real-time Updates**: LocalStorage-based state synchronization
 
-## Supabase Integration
+### Supabase Integration
 
 This project uses [Supabase](https://supabase.com/) for user authentication and data storage. 
 Supabase environment variables are configured in `.env`.
