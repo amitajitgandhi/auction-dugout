@@ -16,11 +16,11 @@ app.use(express.json({ limit: '10mb' })); // support large image URLs
 
 // Supabase setup
 const supabase = createClient(
-    process.env.REACT_APP_SUPABASE_URL,
-    process.env.REACT_APP_SUPABASE_SERVICE_ROLE_KEY
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const BUCKET_NAME = process.env.REACT_APP_SUPABASE_BUCKET_NAME || 'player-images';
+const BUCKET_NAME = process.env.SUPABASE_BUCKET_NAME || 'player-images';
 const IMAGE_FOLDER = './player-images';
 
 // Ensure temp folder exists
