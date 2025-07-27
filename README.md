@@ -99,7 +99,56 @@ A web-based tool for managing cricket team auctions, including player and team m
 - **File API** - CSV file upload and processing
 
 ## Project Structure
- ```plaintext auction-dugout/ ??? public/ # Static assets ? ??? index.html # Main HTML template ? ??? favicon.ico # App favicon ? ??? src/ # Source code ? ??? components/ # React components ? ? ??? AuctionInterface.js # Main auction bidding interface ? ? ??? AuthPage.js # User authentication page ? ? ??? ConfirmationDialogs.js # Modal confirmation dialogs ? ? ??? FileUpload.js # CSV file upload component ? ? ??? JerseyColorAssignment.js # Team jersey color assignment ? ? ??? PlayerImage.js # Player photo display component ? ? ??? PlayerInfo.js # Player details display ? ? ??? SpinWheel.js # Random team selection wheel ? ? ??? TeamManagement.js # Team overview and management ? ? ??? TeamOwnerView.js # Team owner dashboard ? ? ??? ToastManager.js # Toast notification manager ? ? ? ??? hooks/ # Custom React hooks ? ? ??? useAuth.js # Authentication logic ? ? ??? useAuction.js # Auction state management ? ? ??? useAuctionBusinessLogic.js # Core auction business rules ? ? ??? useAutoSave.js # Automatic data persistence ? ? ??? usePersistence.js # Data backup and restore ? ? ??? useStartupRestore.js # Session restoration on startup ? ? ??? useToastManager.js # Toast notification management ? ? ??? useWhatsAppIntegration.js # WhatsApp messaging integration ? ? ? ??? utils/ # Utility functions ? ? ??? constants.js # App constants and emojis ? ? ??? csvUtils.js # CSV parsing and validation ? ? ??? supabaseClient.js # Supabase client configuration ? ? ? ??? assets/ # Static assets (images, logos) ? ? ??? ad.png # App logo ? ? ??? Whatsapp.png # WhatsApp integration icon ? ? ? ??? App.js # Main application component ? ??? index.js # React app entry point ? ??? index.css # Global styles and Tailwind imports ? ??? server.js # Express.js backend server ??? download_player_images.js # Player image processing script ??? package.json # Project dependencies and scripts ??? postcss.config.js # PostCSS configuration ??? tailwind.config.js # Tailwind CSS configuration ??? .env # Environment variables (not in repo) ??? README.md # Project documentation ```
+```plaintext
+auction-dugout/
+??? public/                         # Static assets
+?   ??? index.html                  # Main HTML template
+?   ??? favicon.ico                 # App favicon
+?
+??? src/                            # Source code
+?   ??? components/                 # React components
+?   ?   ??? AuctionInterface.js     # Main auction bidding interface
+?   ?   ??? AuthPage.js             # User authentication page
+?   ?   ??? ConfirmationDialogs.js  # Modal confirmation dialogs
+?   ?   ??? FileUpload.js           # CSV file upload component
+?   ?   ??? JerseyColorAssignment.js # Team jersey color assignment
+?   ?   ??? PlayerImage.js          # Player photo display component
+?   ?   ??? PlayerInfo.js           # Player details display
+?   ?   ??? SpinWheel.js            # Random team selection wheel
+?   ?   ??? TeamManagement.js       # Team overview and management
+?   ?   ??? TeamOwnerView.js        # Team owner dashboard
+?   ?   ??? ToastManager.js         # Toast notification manager
+?   ?
+?   ??? hooks/                      # Custom React hooks
+?   ?   ??? useAuth.js              # Authentication logic
+?   ?   ??? useAuction.js           # Auction state management
+?   ?   ??? useAuctionBusinessLogic.js # Core auction business rules
+?   ?   ??? useAutoSave.js          # Automatic data persistence
+?   ?   ??? usePersistence.js       # Data backup and restore
+?   ?   ??? useStartupRestore.js    # Session restoration on startup
+?   ?   ??? useToastManager.js      # Toast notification management
+?   ?   ??? useWhatsAppIntegration.js # WhatsApp messaging integration
+?   ?
+?   ??? utils/                      # Utility functions
+?   ?   ??? constants.js            # App constants and emojis
+?   ?   ??? csvUtils.js             # CSV parsing and validation
+?   ?   ??? supabaseClient.js       # Supabase client configuration
+?   ?
+?   ??? assets/                     # Static assets (images, logos)
+?   ?   ??? ad.png                  # App logo
+?   ?   ??? Whatsapp.png            # WhatsApp integration icon
+?   ?
+?   ??? App.js                      # Main application component
+?   ??? index.js                    # React app entry point
+?   ??? index.css                   # Global styles and Tailwind imports
+?
+??? server.js                       # Express.js backend server
+??? download_player_images.js       # Player image processing script
+??? package.json                    # Project dependencies and scripts
+??? postcss.config.js               # PostCSS configuration
+??? tailwind.config.js              # Tailwind CSS configuration
+??? .env                            # Environment variables (not in repo)
+??? README.md                       # Project documentation
 
 ### Key Architecture Patterns
 
