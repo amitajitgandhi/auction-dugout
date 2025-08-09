@@ -130,7 +130,7 @@ export default function CricketAuctionTool() {
     };
 
     // Handle start auction
-    const handleStartAuction = () => {
+    const handleStartAuction = async () => {
         if (!isTournamentNameSet) {
             showFancyError("Please set the tournament name before starting the auction.");
             return;
@@ -152,7 +152,40 @@ export default function CricketAuctionTool() {
             return;
         }
         
+        // Start the auction
         auction.startAuction();
+        
+        // Save progress immediately after starting the auction
+        if (authUser?.id && isTournamentNameSet) {
+            try {
+                const currentState = {
+                    players,
+                    teams,
+                    tournamentName,
+                    isTournamentNameSet,
+                    whatsappSettings,
+                    auctionStarted: true, // Mark auction as started
+                    selectedCategory: auction.selectedCategory,
+                    completedCategories: Array.from(auction.completedCategories || [])
+                };
+                
+                await persistence.saveState(currentState);
+                console.log('?? Progress saved after starting auction');
+                
+                showManagedToast('success', `Auction started and progress saved! ??`, {
+                    style: TOAST_STYLES.success,
+                    icon: '??',
+                    duration: 3000,
+                });
+            } catch (error) {
+                console.error('? Failed to save progress after starting auction:', error);
+                showManagedToast('error', 'Auction started but failed to save progress to cloud. Please try again.', {
+                    style: TOAST_STYLES.error,
+                    icon: '??',
+                    duration: 4000,
+                });
+            }
+        }
     };
 
     // Reset auction functionality
