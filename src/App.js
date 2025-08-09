@@ -172,16 +172,16 @@ export default function CricketAuctionTool() {
                 await persistence.saveState(currentState);
                 console.log('?? Progress saved after starting auction');
                 
-                showManagedToast('success', `Auction started and progress saved! ??`, {
+                showManagedToast('success', `Auction started and progress saved!`, {
                     style: TOAST_STYLES.success,
-                    icon: '??',
+                    icon: EMOJIS.SAVEDISK,
                     duration: 3000,
                 });
             } catch (error) {
                 console.error('? Failed to save progress after starting auction:', error);
-                showManagedToast('error', 'Auction started but failed to save progress to cloud. Please try again.', {
+                showManagedToast('error', 'Auction started but failed to save progress to cloud', {
                     style: TOAST_STYLES.error,
-                    icon: '??',
+                    icon: EMOJIS.FAILURE,
                     duration: 4000,
                 });
             }

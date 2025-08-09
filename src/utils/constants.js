@@ -36,7 +36,9 @@ export const EMOJIS = {
     NODATALOSS: String.fromCodePoint(0x1F6A8), // No data loss warning emoji
     HEART: String.fromCodePoint(0x2764, 0xFE0F),// Heart emoji 
     SPINWHEEL: String.fromCodePoint(0x1F3A1), // Ferris wheel emoji for spin wheel
-    JERSEY: String.fromCodePoint(0x1F455) // Shirt emoji for jersey
+    JERSEY: String.fromCodePoint(0x1F455), // Shirt emoji for jersey
+    SAVEDISK: String.fromCodePoint(0x1F4BE), // Floppy disk emoji for save
+    FAILURE: String.fromCodePoint(0x1F4A5) // Collision emoji for failure
 };
 
 // Helper to shuffle an array
