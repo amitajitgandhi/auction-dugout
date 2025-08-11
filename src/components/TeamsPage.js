@@ -519,14 +519,14 @@ const TeamsPage = ({
                                         </div>
                                         
                                         {/* Financial Stats - Distinct Blue Card */}
-                                        <div className="mb-5 p-4 rounded-2xl border border-blue-200" style={{
+                                        <div className="mb-2 p-1 rounded-2xl border border-blue-200" style={{
                                             background: `linear-gradient(135deg, 
                                                 rgba(219, 234, 254, 0.8) 0%, 
                                                 rgba(191, 219, 254, 0.6) 50%, 
                                                 rgba(147, 197, 253, 0.4) 100%)`,
                                             boxShadow: `inset 0 1px 0 rgba(255, 255, 255, 0.3)`
                                         }}>
-                                            <div className="grid grid-cols-1 gap-3">
+                                            <div className="grid grid-cols-1 gap-2">
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-blue-600 text-lg">{EMOJIS.MONEY_BAG}</span>
@@ -547,7 +547,7 @@ const TeamsPage = ({
                                         {/* Squad Section - Distinct Green Theme */}
                                         {data.players.length > 0 ? (
                                             <div>
-                                                <div className="mb-3 p-3 rounded-xl border border-emerald-200" style={{
+                                                <div className="mb-2 p-1 rounded-xl border border-emerald-200" style={{
                                                     background: `linear-gradient(135deg, 
                                                         rgba(209, 250, 229, 0.7) 0%, 
                                                         rgba(167, 243, 208, 0.5) 100%)`
@@ -557,49 +557,56 @@ const TeamsPage = ({
                                                         Squad ({data.players.length} players)
                                                     </h4>
                                                 </div>
-                                                <div className="space-y-3 max-h-60 overflow-y-auto custom-scrollbar">
+                                                <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
                                                     {data.players.map((p, idx) => (
-                                                        <div key={idx} className="p-3 rounded-xl border border-gray-200 group hover:bg-gray-50 transition-all duration-200" style={{
+                                                        <div key={idx} className="p-2 rounded-xl border border-gray-200 group hover:bg-gray-50 transition-all duration-200" style={{
                                                             background: `linear-gradient(135deg, 
                                                                 rgba(255, 255, 255, 0.9) 0%, 
                                                                 rgba(249, 250, 251, 0.8) 100%)`,
                                                             boxShadow: `0 2px 4px rgba(0, 0, 0, 0.05)`
                                                         }}>
-                                                            <div className="flex justify-between items-center mb-1">
-                                                                <div className="flex items-center gap-1 text-sm flex-1 min-w-0">
+                                                            {/* Player Row - Grid Layout for Alignment */}
+                                                            <div className="grid grid-cols-12 gap-1 items-center">
+                                                                {/* Player Name Column */}
+                                                                <div className="col-span-5 flex items-center gap-1 min-w-0">
                                                                     <span className="text-xs flex-shrink-0">{EMOJIS.PERSON}</span>
                                                                     <span 
-                                                                        className="font-semibold text-gray-800 truncate"
+                                                                        className="font-semibold text-gray-800 truncate text-sm"
                                                                         title={p.name}
-                                                                        style={{
-                                                                            maxWidth: '120px'
-                                                                        }}
                                                                     >
-                                                                        {toCamelCase(p.name.length > 15 ? `${p.name.substring(0, 15)}..` : p.name)}
+                                                                        {toCamelCase(p.name.length > 12 ? `${p.name.substring(0, 12)}..` : p.name)}
                                                                     </span>
                                                                 </div>
-                                                                <div className="flex items-center gap-2 flex-shrink-0">
-                                                                    <span className="text-emerald-600 font-bold px-2 py-1 rounded-lg text-xs" style={{
+                                                                
+                                                                {/* Category Column */}
+                                                                <div className="col-span-3 text-center">
+                                                                    {p.category && (
+                                                                        <span className="text-purple-600 bg-purple-50 px-1 py-0.5 rounded text-xs font-medium">
+                                                                            {p.category}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                
+                                                                {/* Price Column */}
+                                                                <div className="col-span-3 text-right">
+                                                                    <span className="text-emerald-600 font-bold px-1 py-0.5 rounded text-xs" style={{
                                                                         background: `rgba(209, 250, 229, 0.8)`,
                                                                         border: `1px solid rgba(52, 211, 153, 0.2)`
                                                                     }}>
                                                                         {EMOJIS.CURRENCY_RUPEE}{p.soldPrice.toLocaleString()}
                                                                     </span>
-                                                                    {/* Edit Button */}
+                                                                </div>
+                                                                
+                                                                {/* Edit Button Column */}
+                                                                <div className="col-span-1 text-center">
                                                                     <button
                                                                         onClick={() => handleEditPlayer(p, teamName)}
-                                                                        className="opacity-0 group-hover:opacity-100 p-1 bg-gray-500 hover:bg-gray-600 text-white rounded text-xs transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400"
+                                                                        className="opacity-0 group-hover:opacity-100 p-1 text-white rounded text-xs transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400"
                                                                         title="Edit player"
                                                                     >
                                                                         {EMOJIS.PENCIL}
                                                                     </button>
                                                                 </div>
-                                                            </div>
-                                                            <div className="text-xs text-gray-600 flex items-center gap-2">
-                                                                <span className="text-blue-600 font-medium bg-blue-50 px-2 py-0.5 rounded">{EMOJIS.SOCCER_BALL} {p.skill}</span>
-                                                                {p.category && (
-                                                                    <span className="text-purple-600 bg-purple-50 px-2 py-0.5 rounded">{EMOJIS.CLIPBOARD} {p.category}</span>
-                                                                )}
                                                             </div>
                                                         </div>
                                                     ))}
