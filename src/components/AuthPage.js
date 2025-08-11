@@ -15,22 +15,34 @@ const features = [
     {
         label: 'Live Streaming',
         icon: EMOJIS.VIDEO,
-        desc: 'Broadcast the auction in real-time for all participants and viewers.'
+        desc: 'Broadcast the auction in real-time for all participants'
     },
     {
         label: 'Team Summary',
         icon: EMOJIS.TEAMOWNERVIEW,
-        desc: 'Dedicated dashboard for team owners to manage bids and strategies.'
+        desc: 'Dedicated dashboard for team owners to manage bids'
     },
     {
         label: 'Whatsapp',
-        icon: <img src={whatsappLogo} alt="WhatsApp" style={{ width: 44, height: 44, marginBottom: 0, marginTop: 13, display: 'block' }} />,
+        icon: (
+            <img 
+                src={whatsappLogo} 
+                alt="WhatsApp" 
+                style={{ 
+                    width: 36, 
+                    height: 36, 
+                    marginBottom: 8, 
+                    marginTop: 12, 
+                    display: 'block' 
+                }} 
+            />
+        ),
         desc: 'Instant notifications and updates directly to your WhatsApp.'
     },
     {
         label: 'Smart UI',
         icon: EMOJIS.SMARTUI,
-        desc: 'Modern, intuitive interface for a seamless auction experience.'
+        desc: 'Modern, intuitive interface for a seamless auction'
     },
     {
         label: 'Export Teams',
@@ -62,13 +74,14 @@ const Logo = () => (
         initial={{ rotate: -20, scale: 0.8, opacity: 0 }}
         animate={{ rotate: 0, scale: 1, opacity: 1 }}
         transition={{ duration: 1, ease: 'easeOut' }}
-        style={{ marginRight: 20, width: 120, height: 120, borderRadius: '50%', objectFit: 'contain' }}
+        style={{ marginRight: 16, width: 100, height: 100, borderRadius: '50%', objectFit: 'contain' }}
     />
 );
 
 export default function AuthPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [highlightedTile, setHighlightedTile] = useState(-1); // Track which tile is highlighted (-1 = none)
     const { signIn, loading, error } = useAuth();
 
     const handleSubmit = async (e) => {
@@ -81,6 +94,28 @@ export default function AuthPage() {
         document.title = 'Auction Dugout';
     }, []);
 
+    // Auto-highlight feature tiles one by one
+    useEffect(() => {
+        const highlightInterval = setInterval(() => {
+            setHighlightedTile(prevIndex => {
+                if (prevIndex >= features.length - 1) {
+                    return 0; // Reset to first tile
+                }
+                return prevIndex + 1;
+            });
+        }, 1500); // Change highlighted tile every 1.5 seconds
+
+        // Initial delay before starting the highlight cycle
+        const initialDelay = setTimeout(() => {
+            setHighlightedTile(0);
+        }, 2000); // Start highlighting after 2 seconds
+
+        return () => {
+            clearInterval(highlightInterval);
+            clearTimeout(initialDelay);
+        };
+    }, []);
+
     return (
         <AnimatePresence>
             {true && (
@@ -91,13 +126,12 @@ export default function AuthPage() {
                     exit={{ opacity: 0, y: -40 }}
                     transition={{ duration: 0.7 }}
                     style={{
-                        minHeight: '100vh',
+                        height: '100vh', // Fixed height instead of minHeight
                         display: 'flex',
                         flexDirection: 'column',
-                        // Changed background to a dark gradient
                         background: 'linear-gradient(135deg, #18181b 0%, #1e293b 100%)',
                         fontFamily: 'Montserrat, sans-serif',
-                        overflow: 'hidden',
+                        overflow: 'hidden', // Prevent any scrolling
                         position: 'relative',
                     }}
                 >
@@ -108,10 +142,10 @@ export default function AuthPage() {
               @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap');
 
               .animated-title {
-                font-size: 72px;
+                font-size: 58px;
                 font-weight: 900;
                 font-family: 'Orbitron', sans-serif;
-                letter-spacing: 2px;
+                letter-spacing: 1.5px;
                 background: linear-gradient(270deg, #ef4444, #fbbf24, #0ea5e9, #ef4444);
                 background-size: 800% 800%;
                 -webkit-background-clip: text;
@@ -125,11 +159,38 @@ export default function AuthPage() {
                 50% { background-position: 100% 50%; }
                 100% { background-position: 0% 50%; }
               }
+
+              /* Hide scrollbars globally for this page */
+              body {
+                overflow: hidden;
+              }
+
+              /* Highlight animation - Updated to match mouse hover exactly */
+              @keyframes highlightAnimation {
+                0% { 
+                  transform: scale(1);
+                  box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+                }
+                50% { 
+                  transform: scale(1.05);
+                  box-shadow: 0 6px 20px #fbbf24;
+                }
+                100% { 
+                  transform: scale(1);
+                  box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+                }
+              }
+
+              .highlighted-tile {
+                animation: highlightAnimation 1.5s ease-in-out;
+                transform: scale(1.05) !important;
+                box-shadow: 0 6px 20px #fbbf24 !important;
+              }
             `}
                     </style>
 
-                    {/* Title */}
-                    <div style={{ textAlign: 'center', marginTop: 32, marginBottom: 12 }}>
+                    {/* Compact Title */}
+                    <div style={{ textAlign: 'center', marginTop: 20, marginBottom: 8 }}>
                         <motion.div
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -138,7 +199,7 @@ export default function AuthPage() {
                                 display: 'flex',
                                 justifyContent: 'center',
                                 alignItems: 'center',
-                                gap: 12,
+                                gap: 8,
                             }}
                         >
                             <Logo />
@@ -151,49 +212,50 @@ export default function AuthPage() {
                                 Auction Dugout
                             </motion.h1>
                         </motion.div>
-                        <p style={{ color: '#fbbf24', fontWeight: 600, fontSize: 18, textShadow: '0 2px 8px #18181b' }}>
+                        <p style={{ color: '#fbbf24', fontWeight: 600, fontSize: 16, textShadow: '0 2px 8px #18181b', margin: 0 }}>
                             Smart, seamless cricket auctions.
                         </p>
                     </div>
 
-                    {/* Login + Features */}
+                    {/* Main Content - Optimized for 100% zoom */}
                     <div style={{
                         flex: 1,
                         display: 'flex',
                         justifyContent: 'center',
                         alignItems: 'center',
-                        flexWrap: 'wrap',
-                        gap: 32, // Reduced gap
-                        padding: '0 24px',
+                        gap: 20, // Optimal gap for 100% zoom
+                        padding: '0 12px',
+                        maxHeight: 'calc(100vh - 180px)', // Reserve space for title and footer
+                        flexWrap: 'nowrap', // Force side-by-side layout
+                        overflow: 'hidden',
                     }}>
-                        {/* Login Card - Moved more to the left */}
+                        {/* Login Card */}
                         <motion.div
                             initial={{ opacity: 0, x: -30 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ duration: 0.8 }}
                             style={{
                                 background: 'rgba(255, 255, 255, 0.85)',
-                                borderRadius: 20,
-                                padding: 40, // Reduced padding
+                                borderRadius: 16,
+                                padding: 24,
                                 boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
-                                minWidth: 320, // Reduced minimum width
-                                maxWidth: 420, // Reduced maximum width
-                                minHeight: 460, // Reduced height
-                                width: '100%',
+                                width: 300,
+                                minHeight: 380,
                                 backdropFilter: 'blur(10px)',
                                 border: '1.5px solid #fbbf24',
                                 display: 'flex',
                                 flexDirection: 'column',
                                 justifyContent: 'center',
-                                marginRight: 20, // Push login more to the left
+                                flexShrink: 0,
                             }}
                         >
                             <h2 style={{
                                 color: '#ef4444',
                                 fontWeight: 800,
                                 textAlign: 'center',
-                                marginBottom: 24,
-                                fontSize: 26, // Slightly smaller
+                                marginBottom: 18,
+                                fontSize: 20,
+                                lineHeight: '1.2',
                             }}>
                                 Login to the World of Auction
                             </h2>
@@ -205,7 +267,12 @@ export default function AuthPage() {
                                     onChange={(e) => setEmail(e.target.value)}
                                     required
                                     autoFocus
-                                    style={inputStyle}
+                                    style={{
+                                        ...inputStyle,
+                                        padding: '10px 12px',
+                                        marginBottom: 12,
+                                        fontSize: 14,
+                                    }}
                                 />
                                 <input
                                     type="password"
@@ -213,18 +280,28 @@ export default function AuthPage() {
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     required
-                                    style={inputStyle}
+                                    style={{
+                                        ...inputStyle,
+                                        padding: '10px 12px',
+                                        marginBottom: 12,
+                                        fontSize: 14,
+                                    }}
                                 />
                                 {error && <p style={errorStyle}>{error}</p>}
-                                <button type="submit" style={buttonStyle} disabled={loading}>
+                                <button type="submit" style={{
+                                    ...buttonStyle,
+                                    padding: 10,
+                                    fontSize: 15,
+                                }} disabled={loading}>
                                     {loading ? 'Logging in...' : 'Login'}
                                 </button>
                             </form>
                             <p style={{
-                                marginTop: 20,
+                                marginTop: 14,
                                 textAlign: 'center',
-                                fontSize: 14,
+                                fontSize: 11,
                                 color: '#6b7280',
+                                lineHeight: '1.3',
                             }}>
                                 Only registered users can login. <br />
                                 <a href="https://wa.me/+917276319578" target="_blank" rel="noreferrer" style={{ color: '#ef4444', fontWeight: 600 }}>
@@ -236,66 +313,108 @@ export default function AuthPage() {
                         {/* Vertical Separator */}
                         <div style={{
                             width: 1,
-                            minHeight: 480, // Reduced height
-                            height: '60%',
+                            height: 380,
                             background: 'linear-gradient(180deg, #fbbf24 0%, #fde68a 100%)',
-                            borderRadius: 12,
+                            borderRadius: 8,
                             boxShadow: '0 0 4px #fbbf24',
                             border: '1px solid #fde68a',
+                            flexShrink: 0,
                         }} />
 
-                        {/* Features Grid - Updated for 4x2 layout */}
-                        <div style={{ minWidth: 720, maxWidth: 1000 }}>
+                        {/* Auto-Highlighted Features Grid */}
+                        <div style={{ 
+                            width: 720,
+                            flexShrink: 0,
+                        }}>
                             <div style={{
                                 display: 'grid',
-                                gridTemplateColumns: 'repeat(4, 1fr)', // 4 columns instead of 3
-                                gridTemplateRows: 'repeat(2, 1fr)', // 2 rows
-                                gap: 24, // Reduced gap
+                                gridTemplateColumns: 'repeat(4, 1fr)',
+                                gridTemplateRows: 'repeat(2, 1fr)',
+                                gap: 18,
+                                justifyContent: 'center',
+                                alignItems: 'center',
                             }}>
-                                {features.map(({ icon, label, desc }) => (
+                                {features.map(({ icon, label, desc }, index) => (
                                     <motion.div
                                         key={label}
-                                        whileHover={{ scale: 1.08, boxShadow: '0 8px 32px #fbbf24' }}
-                                        transition={{ type: 'spring', stiffness: 300 }}
+                                        className={highlightedTile === index ? 'highlighted-tile' : ''}
+                                        initial={{ opacity: 0, scale: 0.8 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        transition={{ 
+                                            delay: index * 0.1 + 1,
+                                            duration: 0.5,
+                                            type: 'spring',
+                                            stiffness: 200
+                                        }}
+                                        whileHover={false} // Removed mouse hover highlighter
                                         style={{
                                             background: '#fff',
-                                            borderRadius: 24, // Slightly smaller
-                                            width: 200, // Reduced width to fit 4 in a row
-                                            height: 200, // Reduced height
-                                            padding: 18, // Reduced padding
+                                            borderRadius: 16,
+                                            width: 160,
+                                            height: 160,
+                                            padding: 14,
                                             textAlign: 'center',
-                                            boxShadow: '0 8px 24px rgba(0,0,0,0.11)',
+                                            boxShadow: highlightedTile === index 
+                                                ? '0 6px 20px #fbbf24' 
+                                                : '0 6px 20px rgba(0,0,0,0.1)',
                                             fontWeight: 700,
-                                            fontSize: 16, // Slightly smaller
+                                            fontSize: 14,
                                             color: '#1f2937',
                                             cursor: 'default',
                                             display: 'flex',
                                             flexDirection: 'column',
                                             justifyContent: 'flex-start',
                                             alignItems: 'center',
+                                            border: highlightedTile === index ? '2px solid #fbbf24' : '2px solid transparent',
+                                            transition: 'all 0.3s ease-in-out',
                                         }}
                                     >
-                                        <div style={{ fontSize: 38, marginBottom: 8, marginTop: 6 }}>{icon}</div>
-                                        <div style={{ fontWeight: 900, fontSize: 18, color: '#ef4444', marginBottom: 6, marginTop: 0 }}>{label}</div>
-                                        <div style={{ fontWeight: 500, fontSize: 12, color: '#374151', marginTop: 0, lineHeight: '1.3' }}>{desc}</div>
+                                        <motion.div 
+                                            style={{ fontSize: 36, marginBottom: 6, marginTop: 4 }}
+                                            animate={highlightedTile === index ? {
+                                                scale: [1, 1.2, 1],
+                                                rotate: [0, 5, -5, 0]
+                                            } : {}}
+                                            transition={{ duration: 0.6, ease: "easeInOut" }}
+                                        >
+                                            {icon}
+                                        </motion.div>
+                                        <div style={{ 
+                                            fontWeight: 900, 
+                                            fontSize: 15, 
+                                            color: '#ef4444', 
+                                            marginBottom: 4, 
+                                            marginTop: 0,
+                                        }}>
+                                            {label}
+                                        </div>
+                                        <div style={{ 
+                                            fontWeight: 500, 
+                                            fontSize: 11, 
+                                            color: '#374151', 
+                                            marginTop: 0, 
+                                            lineHeight: '1.2',
+                                        }}>
+                                            {desc}
+                                        </div>
                                     </motion.div>
                                 ))}
                             </div>
                         </div>
                     </div>
 
-                    {/* Stylish Footer */}
+                    {/* Compact Footer */}
                     <footer style={{
-                        marginTop: 'auto',
-                        padding: '12px 16px',
+                        padding: '8px 12px',
                         background: 'linear-gradient(90deg, #ef4444, #fbbf24, #0ea5e9)',
                         backgroundSize: '300% 300%',
                         animation: 'pulseFooter 8s ease infinite',
                         textAlign: 'center',
                         color: '#f3f4f6',
                         fontWeight: 600,
-                        fontSize: 12,
-                        boxShadow: '0 -4px 24px rgba(0,0,0,0.4)',
+                        fontSize: 11,
+                        boxShadow: '0 -2px 16px rgba(0,0,0,0.3)',
+                        flexShrink: 0,
                     }}>
                         <style>
                             {`
@@ -307,7 +426,7 @@ export default function AuthPage() {
                         `}
                         </style>
 
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                             <span>Powered by</span>
                             <a
                                 href="https://www.linkedin.com/in/amitajitgandhi/"
@@ -330,7 +449,7 @@ export default function AuthPage() {
                                 <img
                                     src={whatsappLogo}
                                     alt="WhatsApp"
-                                    style={{ width: 20, height: 20 }}
+                                    style={{ width: 16, height: 16 }}
                                 />
                             </a>
                         </div>
@@ -342,13 +461,13 @@ export default function AuthPage() {
     );
 }
 
-// Styles
+// Compact Styles
 const inputStyle = {
     width: '100%',
-    padding: '14px 16px',
-    marginBottom: 16,
-    fontSize: 16,
-    borderRadius: 10,
+    padding: '12px 14px',
+    marginBottom: 14,
+    fontSize: 14,
+    borderRadius: 8,
     border: '1px solid #e5e7eb',
     fontWeight: 500,
     outline: 'none',
@@ -356,20 +475,20 @@ const inputStyle = {
 
 const buttonStyle = {
     width: '100%',
-    padding: 14,
+    padding: 12,
     background: 'linear-gradient(to right, #fbbf24, #ef4444)',
     color: '#fff',
     fontWeight: 800,
-    fontSize: 18,
+    fontSize: 16,
     border: 'none',
-    borderRadius: 10,
+    borderRadius: 8,
     cursor: 'pointer',
 };
 
 const errorStyle = {
     color: '#dc2626',
     fontWeight: 600,
-    fontSize: 14,
-    marginBottom: 12,
+    fontSize: 12,
+    marginBottom: 10,
     textAlign: 'center',
 };
