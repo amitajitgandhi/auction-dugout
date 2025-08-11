@@ -38,7 +38,8 @@ export const EMOJIS = {
     SPINWHEEL: String.fromCodePoint(0x1F3A1), // Ferris wheel emoji for spin wheel
     JERSEY: String.fromCodePoint(0x1F455), // Shirt emoji for jersey
     SAVEDISK: String.fromCodePoint(0x1F4BE), // Floppy disk emoji for save
-    FAILURE: String.fromCodePoint(0x1F4A5) // Collision emoji for failure
+    FAILURE: String.fromCodePoint(0x1F4A5), // Collision emoji for failure
+    PENCIL: String.fromCodePoint(0x270F, 0xFE0F) // Pencil emoji for edit
 };
 
 // Helper to shuffle an array

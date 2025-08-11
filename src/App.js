@@ -227,6 +227,85 @@ export default function CricketAuctionTool() {
         });
     };
 
+    // Handle player edit functionality
+    const handlePlayerEdit = async (player, newTeamName, newPrice) => {
+        const currentTeamName = player.currentTeam;
+        
+        // Update teams state
+        setTeams(prevTeams => {
+            const updatedTeams = { ...prevTeams };
+            
+            // Remove player from current team
+            if (updatedTeams[currentTeamName]) {
+                updatedTeams[currentTeamName] = {
+                    ...updatedTeams[currentTeamName],
+                    players: updatedTeams[currentTeamName].players.filter(p => p.name !== player.name)
+                };
+                
+                // Adjust purse for current team (add back the old price)
+                updatedTeams[currentTeamName].purse += player.soldPrice;
+                
+                // Adjust playersToBuy for current team (increment since they lost a player)
+                updatedTeams[currentTeamName].playersToBuy += 1;
+            }
+            
+            // Add player to new team with updated price
+            if (updatedTeams[newTeamName]) {
+                const updatedPlayer = {
+                    ...player,
+                    soldPrice: newPrice
+                };
+                
+                updatedTeams[newTeamName] = {
+                    ...updatedTeams[newTeamName],
+                    players: [...updatedTeams[newTeamName].players, updatedPlayer]
+                };
+                
+                // Adjust purse for new team (subtract the new price)
+                updatedTeams[newTeamName].purse -= newPrice;
+                
+                // Adjust playersToBuy for new team (decrement since they gained a player)
+                updatedTeams[newTeamName].playersToBuy -= 1;
+            }
+            
+            return updatedTeams;
+        });
+        
+        // Update players state
+        setPlayers(prevPlayers => 
+            prevPlayers.map(p => 
+                p.name === player.name 
+                    ? { ...p, soldTo: newTeamName, soldPrice: newPrice }
+                    : p
+            )
+        );
+        
+        // Save progress after player edit
+        if (authUser?.id && isTournamentNameSet) {
+            try {
+                const currentState = {
+                    players: players.map(p => 
+                        p.name === player.name 
+                            ? { ...p, soldTo: newTeamName, soldPrice: newPrice }
+                            : p
+                    ),
+                    teams: teams, // This will be the updated teams from the state update above
+                    tournamentName,
+                    isTournamentNameSet,
+                    whatsappSettings,
+                    auctionStarted: auction.auctionStarted,
+                    selectedCategory: auction.selectedCategory,
+                    completedCategories: Array.from(auction.completedCategories || [])
+                };
+                
+                await persistence.saveState(currentState);
+                console.log('?? Progress saved after player edit');
+            } catch (error) {
+                console.error('? Failed to save progress after player edit:', error);
+            }
+        }
+    };
+
     // Render the appropriate page
     if (currentPage === 'teams') {
         return (
@@ -242,6 +321,7 @@ export default function CricketAuctionTool() {
                     onWhatsAppSettings={handleWhatsAppSettings}
                     onTeamWhatsAppShare={(teamName, teamData) => handleTeamWhatsAppShare(teamName, teamData, tournamentName)}
                     whatsappSettings={whatsappSettings}
+                    onPlayerEdit={handlePlayerEdit}
                 />
                 <ResetConfirmation 
                     isOpen={showResetConfirmation}

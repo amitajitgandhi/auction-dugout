@@ -14,11 +14,31 @@ const TeamsPage = ({
     showManagedToast,
     onWhatsAppSettings,
     onTeamWhatsAppShare,
-    whatsappSettings
+    whatsappSettings,
+    onPlayerEdit // New prop for handling player edits
 }) => {
     const [showMenu, setShowMenu] = useState(false);
     const [showPlayerSpin, setShowPlayerSpin] = useState(false);
     const [showJerseyColor, setShowJerseyColor] = useState(false);
+    const [editingPlayer, setEditingPlayer] = useState(null);
+    const [showConfirmation, setShowConfirmation] = useState(false);
+    const [editForm, setEditForm] = useState({
+        newTeam: '',
+        newPrice: 0
+    });
+
+    // Helper function to convert text to camelCase
+    const toCamelCase = (str) => {
+        return str
+            .toLowerCase()
+            .split(' ')
+            .map((word, index) => 
+                index === 0 
+                    ? word.charAt(0).toUpperCase() + word.slice(1)
+                    : word.charAt(0).toUpperCase() + word.slice(1)
+            )
+            .join(' ');
+    };
 
     const handleExportTeams = () => {
         try {
@@ -108,6 +128,93 @@ const TeamsPage = ({
     const handleResetAuction = () => {
         onResetAuction();
         setShowMenu(false);
+    };
+
+    // Player edit functionality
+    const handleEditPlayer = (player, currentTeam) => {
+        setEditingPlayer({ ...player, currentTeam });
+        setEditForm({
+            newTeam: currentTeam,
+            newPrice: player.soldPrice
+        });
+    };
+
+    const handleSavePlayerEdit = () => {
+        if (!editForm.newTeam) {
+            showManagedToast('error', 'Please select a team!', {
+                style: {
+                    border: '2px solid #f59e42',
+                    padding: '16px',
+                    color: '#b91c1c',
+                    fontWeight: 'bold',
+                    fontSize: '1.1rem',
+                    background: 'linear-gradient(90deg, #fffbe6 0%, #ffe4e6 100%)',
+                    boxShadow: '0 4px 24px 0 #fbbf24',
+                },
+                icon: EMOJIS.WARNING,
+                duration: 3000,
+            });
+            return;
+        }
+
+        if (editForm.newPrice <= 0) {
+            showManagedToast('error', 'Price must be greater than 0!', {
+                style: {
+                    border: '2px solid #f59e42',
+                    padding: '16px',
+                    color: '#b91c1c',
+                    fontWeight: 'bold',
+                    fontSize: '1.1rem',
+                    background: 'linear-gradient(90deg, #fffbe6 0%, #ffe4e6 100%)',
+                    boxShadow: '0 4px 24px 0 #fbbf24',
+                },
+                icon: EMOJIS.WARNING,
+                duration: 3000,
+            });
+            return;
+        }
+
+        // Show confirmation dialog
+        setShowConfirmation(true);
+    };
+
+    const handleConfirmUpdate = () => {
+        // Call the update function passed from parent
+        if (onPlayerEdit) {
+            onPlayerEdit(editingPlayer, editForm.newTeam, parseInt(editForm.newPrice));
+        }
+
+        const actionMessage = editingPlayer.currentTeam !== editForm.newTeam 
+            ? `Player "${editingPlayer.name}" transferred to ${editForm.newTeam}!`
+            : `Player "${editingPlayer.name}" price updated!`;
+
+        showManagedToast('success', actionMessage, {
+            style: {
+                border: '2px solid #10b981',
+                padding: '16px',
+                color: '#065f46',
+                fontWeight: 'bold',
+                fontSize: '1.05rem',
+                background: 'linear-gradient(90deg, #d1fae5 0%, #a7f3d0 100%)',
+                boxShadow: '0 4px 24px 0 #10b981',
+            },
+            icon: EMOJIS.CHECK_MARK,
+            duration: 3000,
+        });
+
+        setEditingPlayer(null);
+        setEditForm({ newTeam: '', newPrice: 0 });
+        setShowConfirmation(false);
+    };
+
+    const handleCancelConfirmation = () => {
+        setShowConfirmation(false);
+    };
+
+    const handleCancelEdit = () => {
+        setEditingPlayer(null);
+        setEditForm({ newTeam: '', newPrice: 0 });
+        setShowConfirmation(false);
     };
 
     return (
@@ -204,6 +311,120 @@ const TeamsPage = ({
                 ></div>
             )}
 
+            {/* Confirmation Modal */}
+            {showConfirmation && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 transform transition-all duration-300">
+                        <div className="text-center mb-6">
+                            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-yellow-100 mb-4">
+                                <span className="text-4xl">{EMOJIS.WARNING}</span>
+                            </div>
+                            <h3 className="text-2xl font-bold text-gray-900 mb-2">Confirm Changes</h3>
+                            <p className="text-gray-600">
+                                Are you sure you want to update the player details?
+                            </p>
+                        </div>
+
+                        <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                            <div className="text-sm text-gray-600 space-y-2">
+                                <div><strong>Player:</strong> {editingPlayer?.name}</div>
+                                <div><strong>From Team:</strong> {editingPlayer?.currentTeam}</div>
+                                <div><strong>To Team:</strong> {editForm.newTeam}</div>
+                                <div><strong>New Price:</strong> {EMOJIS.CURRENCY_RUPEE}{parseInt(editForm.newPrice).toLocaleString()}</div>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={handleCancelConfirmation}
+                                className="flex-1 px-6 py-3 bg-gray-200 text-gray-800 rounded-lg font-semibold hover:bg-gray-300 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleConfirmUpdate}
+                                className="flex-1 px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-400 shadow-lg"
+                            >
+                                Confirm Update
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Player Edit Modal */}
+            {editingPlayer && !showConfirmation && (
+                <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 transform transition-all duration-300">
+                        <div className="text-center mb-6">
+                            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-orange-100 mb-4">
+                                <span className="text-4xl">{EMOJIS.PENCIL}</span>
+                            </div>
+                            <h3 className="text-2xl font-bold text-gray-900 mb-2">Edit Player</h3>
+                            <p className="text-gray-600">
+                                Update team assignment or sold price for<br/>
+                                <strong>{editingPlayer.name}</strong>
+                            </p>
+                        </div>
+
+                        <div className="space-y-4">
+                            {/* Current Info */}
+                            <div className="bg-gray-50 rounded-lg p-4">
+                                <div className="text-sm text-gray-600 space-y-1">
+                                    <div><strong>Current Team:</strong> {editingPlayer.currentTeam}</div>
+                                    <div><strong>Current Price:</strong> {EMOJIS.CURRENCY_RUPEE}{editingPlayer.soldPrice.toLocaleString()}</div>
+                                    <div><strong>Skill:</strong> {editingPlayer.skill}</div>
+                                    <div><strong>Category:</strong> {editingPlayer.category}</div>
+                                </div>
+                            </div>
+
+                            {/* New Team Selection */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Transfer to Team</label>
+                                <select
+                                    value={editForm.newTeam}
+                                    onChange={(e) => setEditForm(prev => ({ ...prev, newTeam: e.target.value }))}
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                                >
+                                    <option value="">Select Team</option>
+                                    {Object.keys(teams).map(teamName => (
+                                        <option key={teamName} value={teamName}>{teamName}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* New Price */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Update Sold Price</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    value={editForm.newPrice}
+                                    onChange={(e) => setEditForm(prev => ({ ...prev, newPrice: e.target.value }))}
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                                    placeholder="Enter new price"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3 mt-6">
+                            <button
+                                onClick={handleCancelEdit}
+                                className="flex-1 px-6 py-3 bg-gray-200 text-gray-800 rounded-lg font-semibold hover:bg-gray-300 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSavePlayerEdit}
+                                className="flex-1 px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg font-semibold hover:from-orange-600 hover:to-orange-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-orange-400 shadow-lg"
+                            >
+                                Save Changes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Player Spin Wheel Modal */}
             <PlayerSpinWheel
                 teams={teams}
@@ -262,8 +483,6 @@ const TeamsPage = ({
                                     {/* Subtle corner accents */}
                                     <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-indigo-100 to-transparent rounded-bl-3xl opacity-40"></div>
                                     <div className="absolute bottom-0 left-0 w-12 h-12 bg-gradient-to-tr from-purple-100 to-transparent rounded-tr-3xl opacity-30"></div>
-                                    
-                                    {/* Single cricket bat icon only */}
                                     
                                     <div className="relative z-10">
                                         {/* Team Name Section */}
@@ -340,23 +559,41 @@ const TeamsPage = ({
                                                 </div>
                                                 <div className="space-y-3 max-h-60 overflow-y-auto custom-scrollbar">
                                                     {data.players.map((p, idx) => (
-                                                        <div key={idx} className="p-3 rounded-xl border border-gray-200" style={{
+                                                        <div key={idx} className="p-3 rounded-xl border border-gray-200 group hover:bg-gray-50 transition-all duration-200" style={{
                                                             background: `linear-gradient(135deg, 
                                                                 rgba(255, 255, 255, 0.9) 0%, 
                                                                 rgba(249, 250, 251, 0.8) 100%)`,
                                                             boxShadow: `0 2px 4px rgba(0, 0, 0, 0.05)`
                                                         }}>
                                                             <div className="flex justify-between items-center mb-1">
-                                                                <span className="font-semibold text-gray-800 flex items-center gap-1 text-sm">
-                                                                    <span className="text-xs">{EMOJIS.PERSON}</span>
-                                                                    {p.name}
-                                                                </span>
-                                                                <span className="text-emerald-600 font-bold px-2 py-1 rounded-lg text-xs" style={{
-                                                                    background: `rgba(209, 250, 229, 0.8)`,
-                                                                    border: `1px solid rgba(52, 211, 153, 0.2)`
-                                                                }}>
-                                                                    {EMOJIS.CURRENCY_RUPEE}{p.soldPrice.toLocaleString()}
-                                                                </span>
+                                                                <div className="flex items-center gap-1 text-sm flex-1 min-w-0">
+                                                                    <span className="text-xs flex-shrink-0">{EMOJIS.PERSON}</span>
+                                                                    <span 
+                                                                        className="font-semibold text-gray-800 truncate"
+                                                                        title={p.name}
+                                                                        style={{
+                                                                            maxWidth: '120px'
+                                                                        }}
+                                                                    >
+                                                                        {toCamelCase(p.name.length > 15 ? `${p.name.substring(0, 15)}..` : p.name)}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="flex items-center gap-2 flex-shrink-0">
+                                                                    <span className="text-emerald-600 font-bold px-2 py-1 rounded-lg text-xs" style={{
+                                                                        background: `rgba(209, 250, 229, 0.8)`,
+                                                                        border: `1px solid rgba(52, 211, 153, 0.2)`
+                                                                    }}>
+                                                                        {EMOJIS.CURRENCY_RUPEE}{p.soldPrice.toLocaleString()}
+                                                                    </span>
+                                                                    {/* Edit Button */}
+                                                                    <button
+                                                                        onClick={() => handleEditPlayer(p, teamName)}
+                                                                        className="opacity-0 group-hover:opacity-100 p-1 bg-gray-500 hover:bg-gray-600 text-white rounded text-xs transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400"
+                                                                        title="Edit player"
+                                                                    >
+                                                                        {EMOJIS.PENCIL}
+                                                                    </button>
+                                                                </div>
                                                             </div>
                                                             <div className="text-xs text-gray-600 flex items-center gap-2">
                                                                 <span className="text-blue-600 font-medium bg-blue-50 px-2 py-0.5 rounded">{EMOJIS.SOCCER_BALL} {p.skill}</span>
