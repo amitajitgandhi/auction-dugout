@@ -47,6 +47,21 @@ const PlayerInfo = ({
                     <span className="font-medium">Category:</span>
                     <span className="font-semibold">{currentPlayer?.category}</span>
                 </div>
+                {/* CricHeroes Profile Link - Optional */}
+                {currentPlayer?.cricHeroesProfile && currentPlayer.cricHeroesProfile.trim() && (
+                    <div className="text-blue-600 flex items-center gap-2 text-lg">
+                        <span>??</span>
+                        <span className="font-medium">CricHeroes Stats:</span>
+                        <a 
+                            href={currentPlayer.cricHeroesProfile} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 underline font-medium transition-colors duration-200"
+                        >
+                            View Stats
+                        </a>
+                    </div>
+                )}
             </div>
 
             {/* Status Display */}

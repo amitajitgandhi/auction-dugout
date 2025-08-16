@@ -61,7 +61,7 @@ export const parseCSV = (file, callback, onError) => {
 
 // Helper function to detect what type of CSV was uploaded
 const detectCSVType = (columns) => {
-    const playerColumns = ["Name", "Skillset", "Photo Link", "Category"];
+    const playerColumns = ["Name", "Skillset", "Photo Link", "Category", "CricHeroes_Profile"];
     const teamColumns = ["Team Name", "Owner Name", "Purse", "Players to Buy"];
     
     const playerMatches = playerColumns.filter(col => columns.includes(col)).length;
@@ -79,25 +79,29 @@ export const validatePlayerCSV = (data) => {
     }
 
     const requiredColumns = ["Name", "Skillset", "Photo Link", "Category"];
+    const optionalColumns = ["CricHeroes_Profile"]; // New optional column
+    const allValidColumns = [...requiredColumns, ...optionalColumns];
+    
     const firstRow = data[0];
     const actualColumns = Object.keys(firstRow);
     const missingColumns = requiredColumns.filter(col => !(col in firstRow));
     
     console.log('?? CSV Validation Debug:');
     console.log('Required columns:', requiredColumns);
+    console.log('Optional columns:', optionalColumns);
     console.log('Actual columns found:', actualColumns);
-    console.log('Missing columns:', missingColumns);
+    console.log('Missing required columns:', missingColumns);
     
     if (missingColumns.length > 0) {
         // Detect if they uploaded the wrong type of CSV
         const csvType = detectCSVType(actualColumns);
         
         if (csvType === 'teams') {
-            throw new Error(`${EMOJIS.CROSS_MARK} Wrong file type! You uploaded a Teams CSV file.\n\n${EMOJIS.CLIPBOARD} Please upload a Players CSV file with columns: Name, Skillset, Photo Link, Category\n\n${EMOJIS.SPARKLES} Tip: Use the 'Download Sample Players CSV' button for the correct format.`);
+            throw new Error(`${EMOJIS.CROSS_MARK} Wrong file type! You uploaded a Teams CSV file.\n\n${EMOJIS.CLIPBOARD} Please upload a Players CSV file with columns: Name, Skillset, Photo Link, Category, CricHeroes_Profile (optional)\n\n${EMOJIS.SPARKLES} Tip: Use the 'Download Sample Players CSV' button for the correct format.`);
         } else if (csvType === 'unknown') {
-            throw new Error(`${EMOJIS.CROSS_MARK} Invalid CSV format!\n\n${EMOJIS.CLIPBOARD} Required columns: Name, Skillset, Photo Link, Category\n\n${EMOJIS.FOLDER} Your file has: ${actualColumns.join(', ')}\n\n${EMOJIS.SPARKLES} Tip: Download the sample file to see the correct format.`);
+            throw new Error(`${EMOJIS.CROSS_MARK} Invalid CSV format!\n\n${EMOJIS.CLIPBOARD} Required columns: Name, Skillset, Photo Link, Category\n${EMOJIS.CLIPBOARD} Optional columns: CricHeroes_Profile\n\n${EMOJIS.FOLDER} Your file has: ${actualColumns.join(', ')}\n\n${EMOJIS.SPARKLES} Tip: Download the sample file to see the correct format.`);
         } else {
-            throw new Error(`${EMOJIS.CROSS_MARK} Missing required columns: ${missingColumns.join(', ')}\n\n${EMOJIS.SPARKLES} Please ensure your CSV has the exact column headers shown in the sample file.`);
+            throw new Error(`${EMOJIS.CROSS_MARK} Missing required columns: ${missingColumns.join(', ')}\n\n${EMOJIS.SPARKLES} Please ensure your CSV has the exact column headers shown in the sample file.\n\n${EMOJIS.INFO} Note: CricHeroes_Profile column is optional.`);
         }
     }
 
@@ -119,15 +123,27 @@ export const validatePlayerCSV = (data) => {
                 name: row.Name,
                 category: row.Category,
                 skillset: row.Skillset,
-                photoLink: row["Photo Link"]
+                photoLink: row["Photo Link"],
+                cricHeroesProfile: row["CricHeroes_Profile"]
             });
             errorCount++;
+        }
+        
+        // Validate CricHeroes_Profile format if provided
+        if (row["CricHeroes_Profile"] && row["CricHeroes_Profile"].trim()) {
+            const profileText = row["CricHeroes_Profile"].trim();
+            const extractedUrl = formatCricHeroesProfile(profileText);
+            
+            if (profileText && !extractedUrl) {
+                console.log(`${EMOJIS.WARNING} Row ${index + 2} has invalid CricHeroes_Profile format:`, profileText);
+                console.log(`${EMOJIS.INFO} Expected format: Text with https://cricheroes.com/player-profile/{playerId}/{playerName}`);
+            }
         }
     });
 
     // Be more lenient - only throw error if more than 50% of rows have issues
     if (errorCount > validRows.length * 0.5) {
-        throw new Error(`${EMOJIS.CROSS_MARK} Too many validation errors (${errorCount}/${validRows.length} rows).\n\n${EMOJIS.SPARKLES} Please ensure each player has at least a Name. Other fields can be empty.`);
+        throw new Error(`${EMOJIS.CROSS_MARK} Too many validation errors (${errorCount}/${validRows.length} rows).\n\n${EMOJIS.SPARKLES} Please ensure each player has at least a Name. Other fields can be empty.\n\n${EMOJIS.INFO} CricHeroes_Profile should be in format: https://cricheroes.com/player-profile/{playerId}/{playerName}`);
     }
 
     console.log(`${EMOJIS.CHECK_MARK} CSV validation passed: ${validRows.length} valid rows found`);
@@ -196,4 +212,24 @@ export const validateTeamCSV = (data) => {
 
     console.log(`${EMOJIS.CHECK_MARK} Team CSV validation passed: ${validRows.length} valid teams found`);
     return true;
+};
+
+// Extract and format CricHeroes profile URL
+export const formatCricHeroesProfile = (profileText) => {
+    if (!profileText || typeof profileText !== 'string') return '';
+    
+    const trimmedText = profileText.trim();
+    if (!trimmedText) return '';
+    
+    // Extract URL starting with https://cricheroes\.com/player-profile/
+    const urlMatch = trimmedText.match(/https:\/\/cricheroes\.com\/player-profile\/[^\s]*/);
+    if (urlMatch) {
+        const extractedUrl = urlMatch[0];
+        // Remove any trailing characters that might not be part of the URL
+        const cleanUrl = extractedUrl.replace(/[.,;!?]*$/, '');
+        // Append /stats at the end
+        return cleanUrl + '/stats';
+    }
+    
+    return ''; // Return empty if no valid URL found
 };
