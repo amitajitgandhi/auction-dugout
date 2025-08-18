@@ -5,9 +5,11 @@ import { Toaster } from "react-hot-toast";
 // Components
 import TournamentSetup from "./components/TournamentSetup";
 import FileUpload from "./components/FileUpload";
+import CategoryConfig from "./components/CategoryConfig";
 import CategorySelection from "./components/CategorySelection";
 import AuctionInterface from "./components/AuctionInterface";
 import TeamsPage from "./components/TeamsPage";
+import MaxBidPage from "./components/MaxBidPage";
 import ResetConfirmation from "./components/ResetConfirmation";
 import WhatsAppSettings from "./components/WhatsAppSettings";
 import AuthPage from "./components/AuthPage";
@@ -34,16 +36,24 @@ export default function CricketAuctionTool() {
     const [teams, setTeams] = useState({});
     const [tournamentName, setTournamentName] = useState("");
     const [isTournamentNameSet, setIsTournamentNameSet] = useState(false);
-    const [currentPage, setCurrentPage] = useState('auction'); // 'auction' or 'teams'
+    const [currentPage, setCurrentPage] = useState('auction'); // 'auction', 'teams', 'maxbid', or 'categoryconfig'
     const [showResetConfirmation, setShowResetConfirmation] = useState(false);
     const [showWhatsAppSettings, setShowWhatsAppSettings] = useState(false);
+    const [categoryConfigs, setCategoryConfigs] = useState({});
     
     // Refs
     const auctionInterfaceRef = useRef(null);
     
     // Navigation functions
     const goToTeamsPage = () => setCurrentPage('teams');
+    const goToMaxBidPage = () => setCurrentPage('maxbid');
     const goToAuctionPage = () => setCurrentPage('auction');
+    const goToCategoryConfig = () => setCurrentPage('categoryconfig');
+    const goBackToFileUpload = (configs = {}) => {
+        // Save category configs when going back to file upload
+        setCategoryConfigs(prev => ({...prev, ...configs}));
+        setCurrentPage('auction');
+    };
     
     // Custom hooks
     const { showManagedToast, showFancyError } = useToastManager();
@@ -70,7 +80,7 @@ export default function CricketAuctionTool() {
     );
     
     // Auto-save functionality
-    useAutoSave(players, teams, tournamentName, isTournamentNameSet, whatsappSettings, auction, persistence, authUser);
+    useAutoSave(players, teams, tournamentName, isTournamentNameSet, whatsappSettings, auction, persistence, authUser, categoryConfigs);
     
     // Startup restore logic
     const { showStartupRestore, startupRestoreData, handleStartupRestoreConfirm, handleStartupRestoreCancel } = useStartupRestore(persistence, showManagedToast, authUser);
@@ -130,9 +140,9 @@ export default function CricketAuctionTool() {
     };
 
     // Handle start auction
-    const handleStartAuction = async () => {
+    const handleProceedToCategoryConfig = () => {
         if (!isTournamentNameSet) {
-            showFancyError("Please set the tournament name before starting the auction.");
+            showFancyError("Please set the tournament name before proceeding.");
             return;
         }
         
@@ -152,8 +162,20 @@ export default function CricketAuctionTool() {
             return;
         }
         
+        // Navigate to category configuration page
+        goToCategoryConfig();
+    };
+
+    // Handle start auction from category config
+    const handleStartAuctionFromConfig = async (configs) => {
+        // Store the category configurations
+        setCategoryConfigs(configs);
+        
         // Start the auction
         auction.startAuction();
+        
+        // Navigate back to auction page
+        goToAuctionPage();
         
         // Save progress immediately after starting the auction
         if (authUser?.id && isTournamentNameSet) {
@@ -164,6 +186,7 @@ export default function CricketAuctionTool() {
                     tournamentName,
                     isTournamentNameSet,
                     whatsappSettings,
+                    categoryConfigs: configs,
                     auctionStarted: true, // Mark auction as started
                     selectedCategory: auction.selectedCategory,
                     completedCategories: Array.from(auction.completedCategories || [])
@@ -196,6 +219,7 @@ export default function CricketAuctionTool() {
     const confirmResetAuction = () => {
         setPlayers([]);
         setTeams({});
+        setCategoryConfigs({});
         
         auction.resetAuction();
         setShowResetConfirmation(false);
@@ -293,6 +317,7 @@ export default function CricketAuctionTool() {
                     tournamentName,
                     isTournamentNameSet,
                     whatsappSettings,
+                    categoryConfigs,
                     auctionStarted: auction.auctionStarted,
                     selectedCategory: auction.selectedCategory,
                     completedCategories: Array.from(auction.completedCategories || [])
@@ -339,6 +364,66 @@ export default function CricketAuctionTool() {
         );
     }
 
+    if (currentPage === 'maxbid') {
+        return (
+            <>
+                <Toaster position="top-center" />
+                <MaxBidPage 
+                    teams={teams}
+                    players={players}
+                    tournamentName={tournamentName}
+                    onResetAuction={handleResetAuction}
+                    onBackToAuction={goToAuctionPage}
+                    showManagedToast={showManagedToast}
+                    onWhatsAppSettings={handleWhatsAppSettings}
+                    onTeamWhatsAppShare={(teamName, teamData) => handleTeamWhatsAppShare(teamName, teamData, tournamentName)}
+                    whatsappSettings={whatsappSettings}
+                />
+                <ResetConfirmation 
+                    isOpen={showResetConfirmation}
+                    onConfirm={confirmResetAuction}
+                    onCancel={() => setShowResetConfirmation(false)}
+                />
+                <WhatsAppSettings
+                    isOpen={showWhatsAppSettings}
+                    settings={whatsappSettings}
+                    onSave={handleSaveWhatsAppSettings}
+                    onClose={() => setShowWhatsAppSettings(false)}
+                    onTest={handleWhatsAppTest}
+                />
+            </>
+        );
+    }
+
+    if (currentPage === 'categoryconfig') {
+        return (
+            <>
+                <Toaster position="top-center" />
+                <CategoryConfig 
+                    players={players}
+                    teams={teams}
+                    tournamentName={tournamentName}
+                    onStartAuction={handleStartAuctionFromConfig}
+                    onBackToFileUpload={goBackToFileUpload}
+                    showManagedToast={showManagedToast}
+                    categoryConfigs={categoryConfigs}
+                />
+                <ResetConfirmation 
+                    isOpen={showResetConfirmation}
+                    onConfirm={confirmResetAuction}
+                    onCancel={() => setShowResetConfirmation(false)}
+                />
+                <WhatsAppSettings
+                    isOpen={showWhatsAppSettings}
+                    settings={whatsappSettings}
+                    onSave={handleSaveWhatsAppSettings}
+                    onClose={() => setShowWhatsAppSettings(false)}
+                    onTest={handleWhatsAppTest}
+                />
+            </>
+        );
+    }
+    
     // Main Auction Page
     return (
         <>
@@ -381,6 +466,7 @@ export default function CricketAuctionTool() {
                     onSelect={auction.handleCategorySelect}
                     onClose={() => auction.setCategorySelectionOpen(false)}
                     onViewTeams={goToTeamsPage}
+                    onViewMaxBid={goToMaxBidPage}
                 />
 
                 {/* Startup Restore Dialog */}
@@ -413,6 +499,10 @@ export default function CricketAuctionTool() {
                                             <div className="flex justify-between">
                                                 <span className="font-medium text-blue-800">Teams:</span>
                                                 <span className="text-blue-700">{Object.keys(startupRestoreData.teams || {}).length}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="font-medium text-blue-800">Category Config:</span>
+                                                <span className="text-blue-700">{Object.keys(startupRestoreData.categoryConfigs || {}).length}</span>
                                             </div>
                                             <div className="flex justify-between">
                                                 <span className="font-medium text-blue-800">Saved:</span>
@@ -448,7 +538,7 @@ export default function CricketAuctionTool() {
                                         Start Fresh
                                     </button>
                                     <button
-                                        onClick={() => handleStartupRestoreConfirm(setPlayers, setTeams, setTournamentName, setIsTournamentNameSet, setWhatsappSettings, whatsappSettings)}
+                                        onClick={() => handleStartupRestoreConfirm(setPlayers, setTeams, setTournamentName, setIsTournamentNameSet, setWhatsappSettings, whatsappSettings, setCategoryConfigs)}
                                         className="flex-1 sm:flex-none px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-semibold hover:from-blue-600 hover:to-blue-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-lg flex items-center justify-center gap-2"
                                     >
                                         <span>{EMOJIS.RESTORE}</span>
@@ -496,8 +586,16 @@ export default function CricketAuctionTool() {
                                 onPlayersLoad={handlePlayersLoad}
                                 onTeamsLoad={handleTeamsLoad}
                                 onError={showFancyError}
-                                onStartAuction={handleStartAuction}
+                                onStartAuction={handleProceedToCategoryConfig}
                                 onWhatsAppSettings={handleWhatsAppSettings}
+                                // Additional props for saving progress
+                                persistence={persistence}
+                                authUser={authUser}
+                                isTournamentNameSet={isTournamentNameSet}
+                                tournamentName={tournamentName}
+                                whatsappSettings={whatsappSettings}
+                                categoryConfigs={categoryConfigs}
+                                showManagedToast={showManagedToast}
                             />
                         )}
 
@@ -518,6 +616,7 @@ export default function CricketAuctionTool() {
                                 markedUnsoldCount={auction.markedUnsoldCount}
                                 currentCategoryUnsoldCount={auction.currentCategoryUnsoldCount}
                                 onViewTeams={goToTeamsPage}
+                                onViewMaxBid={goToMaxBidPage}
                                 selectedCategory={auction.selectedCategory}
                                 round={auction.round}
                                 isUnsoldRound={auction.isUnsoldRound}

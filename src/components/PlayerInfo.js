@@ -1,5 +1,6 @@
 import React from "react";
 import { EMOJIS } from "../utils/constants";
+import cricheroeslogo from '../assets/cricheroes.png';
 
 const PlayerInfo = ({ 
     currentPlayer, 
@@ -50,15 +51,19 @@ const PlayerInfo = ({
                 {/* CricHeroes Profile Link - Optional */}
                 {currentPlayer?.cricHeroesProfile && currentPlayer.cricHeroesProfile.trim() && (
                     <div className="text-blue-600 flex items-center gap-2 text-lg">
-                        <span>??</span>
-                        <span className="font-medium">CricHeroes Stats:</span>
-                        <a 
-                            href={currentPlayer.cricHeroesProfile} 
-                            target="_blank" 
+                        <img
+                            src={cricheroeslogo}
+                            alt="WhatsApp"
+                            style={{ width: 24, height: 24 }}
+                        />
+                        <a
+                            href={currentPlayer.cricHeroesProfile}
+                            target="_blank"
                             rel="noopener noreferrer"
-                            className="text-blue-600 hover:text-blue-800 underline font-medium transition-colors duration-200"
+                            className="transition-colors duration-200 underline"
                         >
-                            View Stats
+                            <span className="font-bold text-black">cric</span>
+                            <span className="font-bold text-red-600">heroes</span>
                         </a>
                     </div>
                 )}

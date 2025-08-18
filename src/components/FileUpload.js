@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { parseCSV, validatePlayerCSV, validateTeamCSV, formatDriveLink, formatCricHeroesProfile } from "../utils/csvUtils";
-import { EMOJIS } from "../utils/constants";
+import { EMOJIS, getDefaultPlayerImage } from "../utils/constants";
 import { supabase } from "../supabaseClient"; // Make sure this is correct
 
 const FileUpload = ({ 
@@ -10,11 +10,104 @@ const FileUpload = ({
     onTeamsLoad, 
     onError,
     onStartAuction,
-    onWhatsAppSettings
+    onWhatsAppSettings,
+    // Additional props for saving progress
+    persistence,
+    authUser,
+    isTournamentNameSet,
+    tournamentName,
+    whatsappSettings,
+    categoryConfigs,
+    showManagedToast
 }) => {
     const [isUploadingPlayers, setIsUploadingPlayers] = useState(false);
     const [isUploadingTeams, setIsUploadingTeams] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
+    const [showProceedConfirmation, setShowProceedConfirmation] = useState(false);
+
+    // Calculate auction summary for proceed confirmation
+    const calculateAuctionSummary = () => {
+        const totalPlayers = players.length;
+        const totalTeams = Object.keys(teams).length;
+        const playersPerTeam = totalTeams > 0 ? Math.round(totalPlayers / totalTeams) : 0;
+        const teamBudget = totalTeams > 0 ? Object.values(teams)[0]?.purse + Object.values(teams)[0]?.ownerRetainedAt || Object.values(teams)[0]?.purse || 0 : 0;
+        
+        // Players with valid photos (non-empty photo URLs)
+        const playersWithValidPhoto = players.filter(p => p.photo && p.photo.trim() && !p.photo.includes('data:image/svg+xml')).length;
+        
+        // Players with valid CricHeroes links
+        const playersWithCricHeroes = players.filter(p => p.cricHeroesProfile && p.cricHeroesProfile.trim()).length;
+
+        return {
+            totalPlayers,
+            totalTeams,
+            playersPerTeam,
+            teamBudget,
+            playersWithValidPhoto,
+            playersWithCricHeroes
+        };
+    };
+
+    // Handle proceed button click
+    const handleProceedClick = () => {
+        setShowProceedConfirmation(true);
+    };
+
+    // Confirm proceed to category config
+    const confirmProceed = async () => {
+        setShowProceedConfirmation(false);
+        
+        // Save progress when proceeding to category config
+        if (authUser?.id && isTournamentNameSet) {
+            try {
+                const currentState = {
+                    players,
+                    teams,
+                    tournamentName,
+                    isTournamentNameSet,
+                    whatsappSettings,
+                    categoryConfigs,
+                    auctionStarted: false, // Not started yet, just proceeding to config
+                    selectedCategory: null,
+                    completedCategories: []
+                };
+                
+                await persistence.saveState(currentState);
+                console.log('?? Progress saved when proceeding to category configuration');
+                
+                showManagedToast('success', `Progress saved! Proceeding to category configuration.`, {
+                    style: {
+                        border: '2px solid #10b981',
+                        padding: '16px',
+                        color: '#065f46',
+                        fontWeight: 'bold',
+                        fontSize: '1.05rem',
+                        background: 'linear-gradient(90deg, #d1fae5 0%, #a7f3d0 100%)',
+                        boxShadow: '0 4px 24px 0 #10b981',
+                    },
+                    icon: EMOJIS.SAVEDISK,
+                    duration: 3000,
+                });
+            } catch (error) {
+                console.error('? Failed to save progress when proceeding:', error);
+                showManagedToast('error', 'Failed to save progress, but proceeding anyway.', {
+                    style: {
+                        border: '2px solid #ef4444',
+                        padding: '16px',
+                        color: '#b91c1c',
+                        fontWeight: 'bold',
+                        fontSize: '1rem',
+                        background: 'linear-gradient(90deg, #fee2e2 0%, #fecaca 100%)',
+                        boxShadow: '0 4px 24px 0 #ef4444',
+                    },
+                    icon: EMOJIS.FAILURE,
+                    duration: 4000,
+                });
+            }
+        }
+        
+        onStartAuction();
+    };
 
     // Handle player file upload
     const handlePlayerUpload = async (e) => {
@@ -51,7 +144,10 @@ const FileUpload = ({
                     }
 
                     try {
-                        const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
+                        // Use your Render backend API for image processing
+                        const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "https://auction-backend-xeai.onrender.com";
+                        // console.log('?? Using API URL:', API_BASE_URL); // Debug log
+                        
                         const response = await fetch(`${API_BASE_URL}/api/upload-player`, {
                             method: "POST",
                             headers: {
@@ -66,24 +162,58 @@ const FileUpload = ({
                             })
                         });
 
-                        const result = await response.json();
+                        if (!response.ok) {
+                            throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+                        }
 
-                        if (!response.ok) throw new Error(result.message);
+                        const result = await response.json();
 
                         enrichedPlayers.push({
                             id: index,
                             name,
                             skill,
                             category,
-                            photo: result.image_url,
+                            photo: result.image_url || rawPhotoUrl, // Use processed image or fallback to raw URL
                             cricHeroesProfile, // Store the CricHeroes profile URL
                             sold: false,
                             soldTo: null,
                             soldPrice: null,
                         });
 
+                        console.log(`? Successfully processed ${name} with backend API`);
+
                     } catch (err) {
-                        console.warn(`Server upload failed for ${name}:`, err.message);
+                        console.warn(`?? Server upload failed for ${name}:`, err.message);
+                        
+                        // Fallback: Add player with original photo URL if API fails
+                        // If the original photo URL also fails, use default placeholder
+                        let fallbackPhoto = rawPhotoUrl;
+                        
+                        // Check if the original photo URL is accessible
+                        try {
+                            const photoResponse = await fetch(rawPhotoUrl, { method: 'HEAD' });
+                            if (!photoResponse.ok) {
+                                console.warn(`?? Original photo URL also failed for ${name}, using default image`);
+                                fallbackPhoto = getDefaultPlayerImage();
+                            }
+                        } catch (photoErr) {
+                            console.warn(`?? Photo accessibility check failed for ${name}, using default image`);
+                            fallbackPhoto = getDefaultPlayerImage();
+                        }
+                        
+                        enrichedPlayers.push({
+                            id: index,
+                            name,
+                            skill,
+                            category,
+                            photo: fallbackPhoto, // Use fallback photo (either original or default)
+                            cricHeroesProfile,
+                            sold: false,
+                            soldTo: null,
+                            soldPrice: null,
+                        });
+
+                        console.log(`?? Added ${name} with fallback image`);
                     }
 
                     // Update progress after each player
@@ -137,12 +267,39 @@ const FileUpload = ({
                 data.forEach((team) => {
                     const teamName = team["Team Name"]?.trim();
                     if (teamName) {
+                        const ownerRetained = team["Owner Retained"]?.trim().toLowerCase() === 'yes';
+                        const ownerRetainedAt = parseInt(team["Owner Retained at"], 10) || 0;
+                        const ownerCategory = team["Owner Category"]?.trim() || "";
+                        
                         loadedTeams[teamName] = {
                             owner: team["Owner Name"]?.trim() || "",
-                            purse: parseInt(team["Purse"], 10) || 0,
-                            playersToBuy: parseInt(team["Players to Buy"], 10) || 0,
+                            purse: parseInt(team["Total Points"], 10) || 0,
+                            playersToBuy: parseInt(team["Total Players to Buy"], 10) || 0,
+                            ownerRetained: ownerRetained,
+                            ownerRetainedAt: ownerRetainedAt,
+                            ownerCategory: ownerCategory,
                             players: [],
                         };
+
+                        // If owner is retained, add them as a player
+                        if (ownerRetained && ownerRetainedAt > 0) {
+                            const ownerPlayer = {
+                                id: `owner-${teamName}`,
+                                name: team["Owner Name"]?.trim() || "",
+                                skill: "Owner",
+                                category: ownerCategory || "OPEN",
+                                photo: null,
+                                cricHeroesProfile: "",
+                                sold: true,
+                                soldTo: teamName,
+                                soldPrice: ownerRetainedAt,
+                                isOwner: true
+                            };
+                            
+                            loadedTeams[teamName].players.push(ownerPlayer);
+                            loadedTeams[teamName].purse -= ownerRetainedAt; // Deduct owner retention cost
+                            loadedTeams[teamName].playersToBuy -= 1; // Reduce players to buy since owner is retained
+                        }
                     }
                 });
                 
@@ -187,12 +344,12 @@ const FileUpload = ({
     // Function to download sample teams CSV
     const downloadSampleTeamsCSV = () => {
         const sampleData = [
-            ['Team Name', 'Owner Name', 'Purse', 'Players to Buy'],
-            ['Mumbai Indians', 'Mukesh Ambani', '80000000', '25'],
-            ['Chennai Super Kings', 'N. Srinivasan', '80000000', '25'],
-            ['Royal Challengers Bangalore', 'Vijay Mallya', '80000000', '25'],
-            ['Kolkata Knight Riders', 'Shah Rukh Khan', '80000000', '25'],
-            ['Delhi Capitals', 'JSW Group', '80000000', '25']
+            ['Team Name', 'Owner Name', 'Total Points', 'Total Players to Buy', 'Owner Retained', 'Owner Retained at', 'Owner Category'],
+            ['Mumbai Indians', 'Mukesh Ambani', '80000000', '25', 'Yes', '15000000', 'PLATINUM'],
+            ['Chennai Super Kings', 'N. Srinivasan', '80000000', '25', 'No', '0', ''],
+            ['Royal Challengers Bangalore', 'Vijay Mallya', '80000000', '25', 'Yes', '12000000', 'ICON'],
+            ['Kolkata Knight Riders', 'Shah Rukh Khan', '80000000', '25', 'Yes', '8000000', 'OPEN'],
+            ['Delhi Capitals', 'JSW Group', '80000000', '25', 'No', '0', '']
         ];
         
         const csvContent = sampleData.map(row => row.map(field => `"${field}"`).join(',')).join('\n');
@@ -646,12 +803,24 @@ const FileUpload = ({
                 <span class="column-desc">- Name of the team owner (Required)</span>
             </div>
             <div class="column-item">
-                <span class="column-name">3. Purse</span>
-                <span class="column-desc">- Total budget amount for the team (Required, numeric value)</span>
+                <span class="column-name">3. Total Points</span>
+                <span class="column-desc">- Total budget amount for the team (Required, numeric value) - will be same for all teams</span>
             </div>
             <div class="column-item">
-                <span class="column-name">4. Players to Buy</span>
-                <span class="column-desc">- Number of players the team needs to buy (Required, numeric value)</span>
+                <span class="column-name">4. Total Players to Buy</span>
+                <span class="column-desc">- Total number of players the team needs (Required, including owner if retained) - will be same for all teams</span>
+            </div>
+            <div class="column-item">
+                <span class="column-name">5. Owner Retained</span>
+                <span class="column-desc">- Whether owner is retained as player (Required, Yes/No)</span>
+            </div>
+            <div class="column-item">
+                <span class="column-name">6. Owner Retained at</span>
+                <span class="column-desc">- Points spent on owner retention (Required only when Owner Retained is YES, 0/blank if not retained)</span>
+            </div>
+            <div class="column-item">
+                <span class="column-name">7. Owner Category</span>
+                <span class="column-desc">- Owner's player category if retained (Required only when Owner Retained is YES and players are categorized, if Retained and no category then - OPEN, empty/blank if not retained)</span>
             </div>
         </div>
 
@@ -659,8 +828,13 @@ const FileUpload = ({
             <h4>${String.fromCodePoint(0x26A0, 0xFE0F)} Data Validation Rules</h4>
             <ul>
                 <li>Team Name and Owner Name cannot be empty</li>
-                <li>Purse must be a positive number (greater than 0)</li>
-                <li>Players to Buy must be a positive number (greater than 0)</li>
+                <li>Total Points must be a positive number (greater than 0) - same for all teams</li>
+                <li>Total Players to Buy must be a positive number (greater than 0) - same for all teams</li>
+                <li>Owner Retained must be exactly "Yes" or "No" (case insensitive)</li>
+                <li>Owner Retained at must be 0/blank if Owner Retained is "No"</li>
+                <li>Owner Retained at must be greater than 0 if Owner Retained is "Yes"</li>
+                <li>Owner Category required only when Owner Retained is "Yes" and players are categorized</li>
+                <li>Owner Category defaults to "OPEN" if retained but no category specified</li>
                 <li>No duplicate team names allowed</li>
                 <li>Numeric values should not contain currency symbols or commas</li>
             </ul>
@@ -672,8 +846,11 @@ const FileUpload = ({
                 <tr>
                     <th>Team Name</th>
                     <th>Owner Name</th>
-                    <th>Purse</th>
-                    <th>Players to Buy</th>
+                    <th>Total Points</th>
+                    <th>Total Players to Buy</th>
+                    <th>Owner Retained</th>
+                    <th>Owner Retained at</th>
+                    <th>Owner Category</th>
                 </tr>
             </thead>
             <tbody>
@@ -682,49 +859,72 @@ const FileUpload = ({
                     <td>Mukesh Ambani</td>
                     <td>80000000</td>
                     <td>25</td>
+                    <td>Yes</td>
+                    <td>15000000</td>
+                    <td>PLATINUM</td>
                 </tr>
                 <tr>
                     <td>Chennai Super Kings</td>
                     <td>N. Srinivasan</td>
                     <td>80000000</td>
                     <td>25</td>
+                    <td>No</td>
+                    <td>0</td>
+                    <td></td>
                 </tr>
                 <tr>
                     <td>Royal Challengers Bangalore</td>
                     <td>Vijay Mallya</td>
                     <td>80000000</td>
                     <td>25</td>
+                    <td>Yes</td>
+                    <td>12000000</td>
+                    <td>ICON</td>
                 </tr>
                 <tr>
                     <td>Kolkata Knight Riders</td>
                     <td>Shah Rukh Khan</td>
                     <td>80000000</td>
                     <td>25</td>
+                    <td>Yes</td>
+                    <td>8000000</td>
+                    <td>OPEN</td>
+                </tr>
+                <tr>
+                    <td>Delhi Capitals</td>
+                    <td>JSW Group</td>
+                    <td>80000000</td>
+                    <td>25</td>
+                    <td>No</td>
+                    <td></td>
+                    <td></td>
                 </tr>
             </tbody>
         </table>
+
+        <h2>${String.fromCodePoint(0x2728)} Owner Retention Details</h2>
+        <ul>
+            <li>If Owner Retained is "Yes", the owner will be automatically added as a player</li>
+            <li>The retention cost will be deducted from the team's total points</li>
+            <li>The total players to buy count will be reduced by 1</li>
+            <li>Owner Category determines the owner's player category (For Ex - PLATINUM, ICON, GOLD, SILVER, OR OPEN)</li>
+            <li>If Owner Retained is "Yes" and no category specified, defaults to "OPEN"</li>
+            <li>If Owner Retained is "No", owner retention fields should be empty/blank</li>
+            <li>Total Points and Total Players to Buy should be consistent across all teams</li>
+        </ul>
 
         <div class="tip-box">
             <h4>${String.fromCodePoint(0x2728)} Best Practices</h4>
             <ul>
                 <li>Use consistent naming conventions for teams</li>
-                <li>Ensure purse amounts are realistic for your auction type</li>
+                <li>Ensure total points are realistic for your auction type</li>
                 <li>Set appropriate player counts based on your tournament format</li>
-                <li>Double-check all numeric values before uploading</li>
+                <li>Double-check owner retention logic and costs</li>
+                <li>Verify owner categories match your player categories</li>
                 <li>Keep team names short and memorable</li>
-                <li>Verify owner names are spelled correctly</li>
                 <li>Use the sample CSV as a template</li>
             </ul>
         </div>
-
-        <h2>${String.fromCodePoint(0x1F504)} Common Issues & Solutions</h2>
-        <ul>
-            <li><strong>Duplicate team names:</strong> Ensure all team names are unique</li>
-            <li><strong>Invalid purse amounts:</strong> Use only numbers, no currency symbols</li>
-            <li><strong>Empty fields:</strong> All required fields must have values</li>
-            <li><strong>Wrong file format:</strong> Save as .csv, not .xlsx or .xls</li>
-            <li><strong>Special characters:</strong> Avoid special characters in team names</li>
-        </ul>
 
         <div class="footer">
             <p><strong>Auction Dugout</strong> - Cricket Auction Management System</p>
@@ -885,14 +1085,86 @@ const FileUpload = ({
                     WhatsApp Settings
                 </button>
                 <button
-                    onClick={onStartAuction}
+                    onClick={handleProceedClick}
                     className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-4 rounded-xl font-bold shadow-lg hover:from-blue-600 hover:to-purple-700 transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:transform-none disabled:cursor-not-allowed flex items-center justify-center gap-3"
                     disabled={players.length === 0 || Object.keys(teams).length === 0 || isUploadingPlayers || isUploadingTeams}
                 >
-                    <span className="text-xl">{EMOJIS.TARGET}</span>
-                    Start Auction
+                    <span className="text-xl">{EMOJIS.FORWARD_ARROW}</span>
+                    Proceed
                 </button>
             </div>
+
+            {/* Proceed Confirmation Popup */}
+            {showProceedConfirmation && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+                        <div className="text-center mb-6">
+                            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 mb-4">
+                                <span className="text-4xl">{EMOJIS.FORWARD_ARROW}</span>
+                            </div>
+                            <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                                Ready to Proceed?
+                            </h3>
+                            <p className="text-gray-600 mb-6">
+                                Please review the auction summary below before proceeding to category configuration
+                            </p>
+                        </div>
+
+                        {/* Auction Summary */}
+                        <div className="bg-gray-50 rounded-lg p-6 mb-6">
+                            <h4 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                <span>{EMOJIS.CLIPBOARD}</span>
+                                Auction Summary
+                            </h4>
+                            
+                            <div className="space-y-2">
+                                <div className="flex justify-between items-center py-2 px-3 bg-white rounded-lg">
+                                    <span className="font-medium text-gray-800">Total Players</span>
+                                    <span className="font-bold text-blue-600">{calculateAuctionSummary().totalPlayers}</span>
+                                </div>
+                                <div className="flex justify-between items-center py-2 px-3 bg-white rounded-lg">
+                                    <span className="font-medium text-gray-800">Total Teams</span>
+                                    <span className="font-bold text-purple-600">{calculateAuctionSummary().totalTeams}</span>
+                                </div>
+                                <div className="flex justify-between items-center py-2 px-3 bg-white rounded-lg">
+                                    <span className="font-medium text-gray-800">Players per Team</span>
+                                    <span className="font-bold text-green-600">{calculateAuctionSummary().playersPerTeam}</span>
+                                </div>
+                                <div className="flex justify-between items-center py-2 px-3 bg-white rounded-lg">
+                                    <span className="font-medium text-gray-800">Team Budget</span>
+                                    <span className="font-bold text-green-600">{EMOJIS.CURRENCY_RUPEE}{calculateAuctionSummary().teamBudget.toLocaleString()}</span>
+                                </div>
+                                <div className="flex justify-between items-center py-2 px-3 bg-white rounded-lg">
+                                    <span className="font-medium text-gray-800">Players with Photos</span>
+                                    <span className="font-bold text-blue-600">{calculateAuctionSummary().playersWithValidPhoto}/{calculateAuctionSummary().totalPlayers}</span>
+                                </div>
+                                <div className="flex justify-between items-center py-2 px-3 bg-white rounded-lg">
+                                    <span className="font-medium text-gray-800">CricHeroes Profiles</span>
+                                    <span className="font-bold text-orange-600">{calculateAuctionSummary().playersWithCricHeroes}/{calculateAuctionSummary().totalPlayers}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                            <button
+                                onClick={() => setShowProceedConfirmation(false)}
+                                className="flex-1 sm:flex-none px-6 py-3 bg-gray-200 text-gray-800 rounded-lg font-semibold hover:bg-gray-300 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400 flex items-center justify-center gap-2"
+                            >
+                                <span>{EMOJIS.CROSS_MARK}</span>
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmProceed}
+                                className="flex-1 sm:flex-none px-8 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-lg flex items-center justify-center gap-2"
+                            >
+                                <span>{EMOJIS.FORWARD_ARROW}</span>
+                                Yes, Proceed!
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

@@ -10,6 +10,8 @@ export const EMOJIS = {
     CLIPBOARD: String.fromCodePoint(0x1F4CB),
     MAILBOX: String.fromCodePoint(0x1F4ED),
     BACK_ARROW: String.fromCodePoint(0x2B05, 0xFE0F),
+    FORWARD_ARROW: String.fromCodePoint(0x27A1, 0xFE0F),
+    GEAR: String.fromCodePoint(0x2699, 0xFE0F),
     CHART: String.fromCodePoint(0x1F4CA),
     REFRESH: String.fromCodePoint(0x1F504),
     FOLDER: String.fromCodePoint(0x1F4C1),

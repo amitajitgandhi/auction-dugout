@@ -18,6 +18,7 @@ const AuctionInterface = forwardRef(({
     markedUnsoldCount,
     currentCategoryUnsoldCount,
     onViewTeams,
+    onViewMaxBid,
     selectedCategory,
     round,
     isUnsoldRound,
@@ -315,7 +316,7 @@ const AuctionInterface = forwardRef(({
                                         </button>
                                     </div>
                                 ) : (
-                                    <div className="grid grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-3 gap-3">
                                         <button
                                             onClick={handleNextPlayer}
                                             className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2.5 rounded-lg font-semibold shadow-md hover:from-blue-600 hover:to-purple-700 transition transform hover:scale-105"
@@ -342,8 +343,17 @@ const AuctionInterface = forwardRef(({
                                             className="bg-gradient-to-r from-yellow-400 to-pink-500 text-white px-4 py-2.5 rounded-lg font-semibold shadow-md hover:from-yellow-500 hover:to-pink-600 transition"
                                             disabled={isTransitioning}
                                         >
-                                            {EMOJIS.PEOPLE} View Teams
+                                            {EMOJIS.PEOPLE} Teams
                                         </button>
+                                        {onViewMaxBid && (
+                                            <button
+                                                onClick={onViewMaxBid}
+                                                className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-4 py-2.5 rounded-lg font-semibold shadow-md hover:from-purple-600 hover:to-indigo-700 transition"
+                                                disabled={isTransitioning}
+                                            >
+                                                {EMOJIS.ZAP} Max Bid
+                                            </button>
+                                        )}
                                     </div>
                                 )}
                             </div>
