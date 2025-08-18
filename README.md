@@ -36,7 +36,7 @@ npm install
 Create a `.env` file in the root directory:
 ```env
 # Supabase Configuration
-SUPABASE_URL=[URL](https://nlgwgsjhvklilkmuziiw.supabase.co)
+SUPABASE_URL=https://nlgwgsjhvklilkmuziiw.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=KEY
 SUPABASE_BUCKET_NAME=player-images
 
