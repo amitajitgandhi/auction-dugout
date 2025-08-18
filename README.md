@@ -114,10 +114,10 @@ npm start
 | Column | Type | Required | Description | Example |
 |--------|------|----------|-------------|---------|
 | Name | String | Yes | Player's full name | "Virat Kohli" |
-| Skillset | String | Yes | Primary skill | "Batsman", "Bowler", "All Rounder", "Wicket Keeper" |
+| Skillset | String | Yes | Primary skill | "Batsman", "Bowler", "All Rounder" |
 | Photo Link | URL | Yes | Player photo URL | "https://example.com/photo.jpg" |
-| Category | String | Yes | Player category | "PLATINUM", "ICON", "GOLD", "SILVER", "OPEN" |
-| CricHeroes_Profile | URL | No | CricHeroes profile link | "https://cricheroes.com/player-profile/123/player" |
+| Category | String | Yes | Player category | "PLATINUM", "ICON", "GOLD", "SILVER" |
+| CricHeroes_Profile | URL | No | CricHeroes profile link | "https://cricheroes.com/player-id/player-name" |
 
 ### Teams CSV Structure
 | Column | Type | Required | Description | Example |
