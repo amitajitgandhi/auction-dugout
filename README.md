@@ -35,9 +35,15 @@ npm install
 3. Setup environment variables
 Create a `.env` file in the root directory:
 ```env
-REACT_APP_SUPABASE_URL=your_supabase_url
-REACT_APP_SUPABASE_ANON_KEY=your_supabase_anon_key
-REACT_APP_API_BASE_URL=your_backend_api_url
+# Supabase Configuration
+SUPABASE_URL=[URL](https://nlgwgsjhvklilkmuziiw.supabase.co)
+SUPABASE_SERVICE_ROLE_KEY=KEY
+SUPABASE_BUCKET_NAME=player-images
+
+# RENDER Configuration
+REACT_APP_API_BASE_URL=https://auction-backend-xeai.onrender.com
+REACT_APP_SUPABASE_URL=https://nlgwgsjhvklilkmuziiw.supabase.co
+REACT_APP_SUPABASE_ANON_KEY=KEY
 ```
 
 4. Start the development server
@@ -466,25 +472,13 @@ This architecture ensures **scalability**, **reliability**, and **maintainabilit
 
 ## 🔧 Configuration
 
-### Environment Variables
-```env
-# Supabase Configuration
-REACT_APP_SUPABASE_URL=https://your-project.supabase.co
-REACT_APP_SUPABASE_ANON_KEY=your-anon-key
-
-# API Configuration
-REACT_APP_API_BASE_URL=https://your-backend-api.com
-```
-
 ### Supabase Setup
 1. Create a new Supabase project
 2. Enable authentication with email/password
 3. Create necessary tables for data storage
 4. Configure RLS (Row Level Security) policies
 5. Add environment variables to your `.env` file
-- SUPABASE_URL
-- SUPABASE_SERVICE_ROLE_KEY
-- SUPABASE_BUCKET_NAME=player-images
+
 
 ## 🤝 Contributing
 
