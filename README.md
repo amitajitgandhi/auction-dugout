@@ -482,6 +482,9 @@ REACT_APP_API_BASE_URL=https://your-backend-api.com
 3. Create necessary tables for data storage
 4. Configure RLS (Row Level Security) policies
 5. Add environment variables to your `.env` file
+- SUPABASE_URL
+- SUPABASE_SERVICE_ROLE_KEY
+- SUPABASE_BUCKET_NAME=player-images
 
 ## 🤝 Contributing
 
