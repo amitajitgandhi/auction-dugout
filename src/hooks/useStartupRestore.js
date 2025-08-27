@@ -22,13 +22,15 @@ export const useStartupRestore = (persistence, showManagedToast, user = null) =>
                             timestamp: savedState.timestamp || savedState.updated_at || new Date().toISOString(),
                             tournamentName: savedState.tournamentName || 'Unknown Tournament',
                             players: savedState.players || [],
-                            teams: savedState.teams || {}
+                            teams: savedState.teams || {},
+                            categoryConfigs: savedState.categoryConfigs || {} // Include category configurations
                         };
                         
-                        console.log('?? Found saved auction data for startup restore:', {
+                        console.log('? Found saved auction data for startup restore:', {
                             players: processedData.players?.length || 0,
                             teams: Object.keys(processedData.teams || {}).length,
                             tournament: processedData.tournamentName,
+                            categoryConfigs: Object.keys(processedData.categoryConfigs || {}).length,
                             source: processedData.source
                         });
                         
@@ -61,7 +63,7 @@ export const useStartupRestore = (persistence, showManagedToast, user = null) =>
     }, [user?.id, hasCheckedStartupRestore]);
 
     // Handle startup restore confirmation
-    const handleStartupRestoreConfirm = async (setPlayers, setTeams, setTournamentName, setIsTournamentNameSet, setWhatsappSettings, whatsappSettings) => {
+    const handleStartupRestoreConfirm = async (setPlayers, setTeams, setTournamentName, setIsTournamentNameSet, setWhatsappSettings, whatsappSettings, setCategoryConfigs) => {
         if (startupRestoreData) {
             try {
                 // Restore state
@@ -70,14 +72,20 @@ export const useStartupRestore = (persistence, showManagedToast, user = null) =>
                 setTournamentName(startupRestoreData.tournamentName || '');
                 setIsTournamentNameSet(startupRestoreData.isTournamentNameSet || false);
                 setWhatsappSettings(startupRestoreData.whatsappSettings || whatsappSettings);
+                setCategoryConfigs(startupRestoreData.categoryConfigs || {}); // Restore category configurations
                 
                 console.log('? Auction data restored successfully:', {
                     players: startupRestoreData.players?.length || 0,
                     teams: Object.keys(startupRestoreData.teams || {}).length,
-                    tournament: startupRestoreData.tournamentName
+                    tournament: startupRestoreData.tournamentName,
+                    categoryConfigs: Object.keys(startupRestoreData.categoryConfigs || {}).length
                 });
                 
-                showManagedToast('success', `Auction data restored! ${startupRestoreData.players?.length || 0} players, ${Object.keys(startupRestoreData.teams || {}).length} teams`, {
+                // Enhanced toast message to include category config info
+                const categoryConfigCount = Object.keys(startupRestoreData.categoryConfigs || {}).length;
+                const toastMessage = `Auction data restored! ${startupRestoreData.players?.length || 0} players, ${Object.keys(startupRestoreData.teams || {}).length} teams${categoryConfigCount > 0 ? `, ${categoryConfigCount} category configs` : ''}`;
+                
+                showManagedToast('success', toastMessage, {
                     style: TOAST_STYLES.success,
                     icon: EMOJIS.CHECK_MARK,
                     duration: 4000,

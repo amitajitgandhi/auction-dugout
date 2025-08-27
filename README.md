@@ -10,7 +10,7 @@ A comprehensive web-based cricket auction management system with real-time biddi
 - **🎯 Live Auction Interface:** Real-time bidding with player photos, category selection, and auction rounds
 - **💾 Auto-Backup & Restore:** Automatic cloud and local state persistence with session restoration
 - **📱 WhatsApp Integration:** Send auction updates and team summaries directly to WhatsApp groups
-- **📈 Analytics Dashboard:** Max bid analysis, team overview, and comprehensive auction statistics
+- **📈 Analytics Dashboard:** Max bid capacity calculator, team overview, and comprehensive auction statistics
 - **🎨 Modern UI/UX:** Responsive design with animations, toasts, emojis, and dark theme
 
 ## 🚀 Getting Started
@@ -92,9 +92,10 @@ npm start
    - **WhatsApp Sharing:** Send team summaries to WhatsApp groups
 
 8. **Analytics & Reports**
-   - **Max Bid Analysis:** Highest/lowest bids, category breakdowns
-   - **Auction Statistics:** Total spending, average prices, team comparisons
-   - **Export Reports:** CSV exports of all auction data
+   - **Max Bid Capacity:** Calculate maximum amount each team can bid for ongoing player
+   - **Team Overview:** Current squad, remaining budget, players needed
+   - **Auction Statistics:** Real-time bidding capacity based on remaining balance and pending players
+   - **Export Reports:** CSV exports of team bidding capacity and auction data
 
 ### Advanced Features
 

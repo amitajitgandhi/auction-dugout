@@ -7,7 +7,6 @@ const CategorySelection = ({
     onSelect, 
     onClose,
     onViewTeams,
-    onViewMaxBid
 }) => {
     if (!isOpen) return null;
 
@@ -29,25 +28,15 @@ const CategorySelection = ({
                                 </button>
                             ))}
                             
-                            {/* Navigation Buttons - only show when there are categories to select */}
-                            {(onViewTeams || onViewMaxBid) && (
-                                <div className="mt-4 pt-4 border-t border-gray-200 space-y-3">
-                                    {onViewTeams && (
-                                        <button
-                                            onClick={onViewTeams}
-                                            className="w-full bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-6 py-3 rounded-lg font-bold shadow-md hover:from-blue-600 hover:to-cyan-700 transition flex items-center justify-center gap-2"
-                                        >
-                                            {EMOJIS.PEOPLE} View Teams Summary
-                                        </button>
-                                    )}
-                                    {onViewMaxBid && (
-                                        <button
-                                            onClick={onViewMaxBid}
-                                            className="w-full bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-6 py-3 rounded-lg font-bold shadow-md hover:from-purple-600 hover:to-indigo-700 transition flex items-center justify-center gap-2"
-                                        >
-                                            {EMOJIS.ZAP} Max Bid Analysis
-                                        </button>
-                                    )}
+                            {/* Navigation Buttons - only show View Teams Summary */}
+                            {onViewTeams && (
+                                <div className="mt-4 pt-4 border-t border-gray-200">
+                                    <button
+                                        onClick={onViewTeams}
+                                        className="w-full bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-6 py-3 rounded-lg font-bold shadow-md hover:from-blue-600 hover:to-cyan-700 transition flex items-center justify-center gap-2"
+                                    >
+                                        {EMOJIS.PEOPLE} View Teams Summary
+                                    </button>
                                 </div>
                             )}
                         </>
@@ -65,15 +54,7 @@ const CategorySelection = ({
                                         {EMOJIS.PEOPLE} View Teams Summary
                                     </button>
                                 )}
-                                {onViewMaxBid && (
-                                    <button
-                                        onClick={onViewMaxBid}
-                                        className="w-full bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-6 py-3 rounded-lg font-bold shadow-md hover:from-purple-600 hover:to-indigo-700 transition flex items-center justify-center gap-2"
-                                    >
-                                        {EMOJIS.ZAP} Max Bid Analysis
-                                    </button>
-                                )}
-                                {!onViewTeams && !onViewMaxBid && (
+                                {!onViewTeams && (
                                     <button
                                         onClick={onClose}
                                         className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-3 rounded-lg font-bold shadow-md hover:from-green-600 hover:to-emerald-700 transition"

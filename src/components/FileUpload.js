@@ -29,8 +29,9 @@ const FileUpload = ({
     const calculateAuctionSummary = () => {
         const totalPlayers = players.length;
         const totalTeams = Object.keys(teams).length;
-        const playersPerTeam = totalTeams > 0 ? Math.round(totalPlayers / totalTeams) : 0;
-        const teamBudget = totalTeams > 0 ? Object.values(teams)[0]?.purse + Object.values(teams)[0]?.ownerRetainedAt || Object.values(teams)[0]?.purse || 0 : 0;
+        // Use originalPlayersPerTeam if available, otherwise fall back to playersToBuy for backward compatibility
+        const playersPerTeam = totalTeams > 0 ? (Object.values(teams)[0]?.originalPlayersPerTeam || Object.values(teams)[0]?.playersToBuy || 0) : 0;
+        const teamBudget = totalTeams > 0 ? Object.values(teams)[0]?.purse + (Object.values(teams)[0]?.ownerRetainedAt || 0) || Object.values(teams)[0]?.purse || 0 : 0;
         
         // Players with valid photos (non-empty photo URLs)
         const playersWithValidPhoto = players.filter(p => p.photo && p.photo.trim() && !p.photo.includes('data:image/svg+xml')).length;
@@ -274,7 +275,8 @@ const FileUpload = ({
                         loadedTeams[teamName] = {
                             owner: team["Owner Name"]?.trim() || "",
                             purse: parseInt(team["Total Points"], 10) || 0,
-                            playersToBuy: parseInt(team["Total Players to Buy"], 10) || 0,
+                            playersToBuy: parseInt(team["Players per Team"], 10) || 0,
+                            originalPlayersPerTeam: parseInt(team["Players per Team"], 10) || 0, // Store original value
                             ownerRetained: ownerRetained,
                             ownerRetainedAt: ownerRetainedAt,
                             ownerCategory: ownerCategory,
@@ -344,7 +346,7 @@ const FileUpload = ({
     // Function to download sample teams CSV
     const downloadSampleTeamsCSV = () => {
         const sampleData = [
-            ['Team Name', 'Owner Name', 'Total Points', 'Total Players to Buy', 'Owner Retained', 'Owner Retained at', 'Owner Category'],
+            ['Team Name', 'Owner Name', 'Total Points', 'Players per Team', 'Owner Retained', 'Owner Retained at', 'Owner Category'],
             ['Mumbai Indians', 'Mukesh Ambani', '80000000', '25', 'Yes', '15000000', 'PLATINUM'],
             ['Chennai Super Kings', 'N. Srinivasan', '80000000', '25', 'No', '0', ''],
             ['Royal Challengers Bangalore', 'Vijay Mallya', '80000000', '25', 'Yes', '12000000', 'ICON'],
@@ -807,7 +809,7 @@ const FileUpload = ({
                 <span class="column-desc">- Total budget amount for the team (Required, numeric value) - will be same for all teams</span>
             </div>
             <div class="column-item">
-                <span class="column-name">4. Total Players to Buy</span>
+                <span class="column-name">4. Players per Team</span>
                 <span class="column-desc">- Total number of players the team needs (Required, including owner if retained) - will be same for all teams</span>
             </div>
             <div class="column-item">
@@ -829,7 +831,7 @@ const FileUpload = ({
             <ul>
                 <li>Team Name and Owner Name cannot be empty</li>
                 <li>Total Points must be a positive number (greater than 0) - same for all teams</li>
-                <li>Total Players to Buy must be a positive number (greater than 0) - same for all teams</li>
+                <li>Players per Team must be a positive number (greater than 0) - same for all teams</li>
                 <li>Owner Retained must be exactly "Yes" or "No" (case insensitive)</li>
                 <li>Owner Retained at must be 0/blank if Owner Retained is "No"</li>
                 <li>Owner Retained at must be greater than 0 if Owner Retained is "Yes"</li>
@@ -847,7 +849,7 @@ const FileUpload = ({
                     <th>Team Name</th>
                     <th>Owner Name</th>
                     <th>Total Points</th>
-                    <th>Total Players to Buy</th>
+                    <th>Players per Team</th>
                     <th>Owner Retained</th>
                     <th>Owner Retained at</th>
                     <th>Owner Category</th>
@@ -910,7 +912,7 @@ const FileUpload = ({
             <li>Owner Category determines the owner's player category (For Ex - PLATINUM, ICON, GOLD, SILVER, OR OPEN)</li>
             <li>If Owner Retained is "Yes" and no category specified, defaults to "OPEN"</li>
             <li>If Owner Retained is "No", owner retention fields should be empty/blank</li>
-            <li>Total Points and Total Players to Buy should be consistent across all teams</li>
+            <li>Total Points and Players per Team should be consistent across all teams</li>
         </ul>
 
         <div class="tip-box">
@@ -981,8 +983,8 @@ const FileUpload = ({
                             disabled={isUploadingPlayers}
                             className="block w-full border-2 border-blue-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white disabled:opacity-50 disabled:cursor-not-allowed"
                         />
-                        
-                        {isUploadingPlayers && (
+						
+						{isUploadingPlayers && (
                             <div className="space-y-2">
                                 <div className="flex items-center text-sm text-blue-700 bg-blue-100 rounded-lg p-3">
                                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
@@ -996,14 +998,14 @@ const FileUpload = ({
                                 </div>
                             </div>
                         )}
-                        
+						
                         {players.length > 0 && (
                             <div className="flex items-center text-sm text-green-700 bg-green-100 rounded-lg p-3">
                                 <span className="mr-2">{EMOJIS.CHECK_MARK}</span>
                                 <strong>{players.length} players loaded successfully!</strong>
                             </div>
                         )}
-                        
+						
                         <div className="flex gap-2">
                             <button
                                 onClick={downloadSamplePlayersCSV}

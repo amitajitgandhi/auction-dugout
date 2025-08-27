@@ -378,6 +378,10 @@ export default function CricketAuctionTool() {
                     onWhatsAppSettings={handleWhatsAppSettings}
                     onTeamWhatsAppShare={(teamName, teamData) => handleTeamWhatsAppShare(teamName, teamData, tournamentName)}
                     whatsappSettings={whatsappSettings}
+                    // Add current player and category configs for proper analysis
+                    currentPlayer={auction.currentPlayer}
+                    selectedCategory={auction.selectedCategory}
+                    categoryConfigs={categoryConfigs}
                 />
                 <ResetConfirmation 
                     isOpen={showResetConfirmation}
@@ -529,6 +533,7 @@ export default function CricketAuctionTool() {
                                     </p>
                                 </div>
                                 
+
                                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                                     <button
                                         onClick={handleStartupRestoreCancel}

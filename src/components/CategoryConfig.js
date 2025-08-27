@@ -28,21 +28,55 @@ const CategoryConfig = ({
         return configs;
     });
 
+    // Track if configs were restored from backup
+    const [configsRestored, setConfigsRestored] = useState(false);
+
     // Update category configs when categories change (e.g., new data loaded)
     useEffect(() => {
         setCategoryConfigs(prev => {
             const updatedConfigs = { ...prev };
+            let hasRestoredData = false;
+            
             categories.forEach(cat => {
                 if (!updatedConfigs[cat]) {
                     updatedConfigs[cat] = {
                         playersPerCategory: initialCategoryConfigs[cat]?.playersPerCategory || '',
                         basePrice: initialCategoryConfigs[cat]?.basePrice || ''
                     };
+                } else {
+                    // Update with restored data if available
+                    if (initialCategoryConfigs[cat]?.playersPerCategory && 
+                        initialCategoryConfigs[cat]?.basePrice) {
+                        updatedConfigs[cat] = {
+                            playersPerCategory: initialCategoryConfigs[cat].playersPerCategory,
+                            basePrice: initialCategoryConfigs[cat].basePrice
+                        };
+                        hasRestoredData = true;
+                    }
                 }
             });
+            
+            // Show notification if configs were restored from backup (only toast, no tile)
+            if (hasRestoredData && !configsRestored) {
+                setConfigsRestored(true);
+                showManagedToast && showManagedToast('success', 'Category configurations restored from backup!', {
+                    style: {
+                        border: '2px solid #10b981',
+                        padding: '16px',
+                        color: '#065f46',
+                        fontWeight: 'bold',
+                        fontSize: '1.05rem',
+                        background: 'linear-gradient(90deg, #d1fae5 0%, #a7f3d0 100%)',
+                        boxShadow: '0 4px 24px 0 #10b981',
+                    },
+                    icon: EMOJIS.GEAR,
+                    duration: 4000,
+                });
+            }
+            
             return updatedConfigs;
         });
-    }, [categories, initialCategoryConfigs]);
+    }, [categories, initialCategoryConfigs, showManagedToast, configsRestored]);
 
     // State for confirmation dialog
     const [showStartAuctionConfirmation, setShowStartAuctionConfirmation] = useState(false);
@@ -58,11 +92,16 @@ const CategoryConfig = ({
         }));
     };
 
+    // Handle back to file upload navigation with current configs
+    const handleBackToFileUpload = () => {
+        onBackToFileUpload(categoryConfigs);
+    };
+
     // Enhanced validation with specific field error conditions
     const validation = useMemo(() => {
-        const totalPlayers = players.length;
         const totalTeams = Object.keys(teams).length;
-        const playersPerTeam = totalTeams > 0 ? Math.round(totalPlayers / totalTeams) : 0;
+        // Use originalPlayersPerTeam instead of playersToBuy to get the original CSV value
+        const playersPerTeam = totalTeams > 0 ? Object.values(teams)[0]?.originalPlayersPerTeam || 0 : 0;
         const teamBudget = totalTeams > 0 ? Object.values(teams)[0]?.purse + (Object.values(teams)[0]?.ownerRetainedAt || 0) || Object.values(teams)[0]?.purse || 0 : 0;
         
         let isValid = true;
@@ -111,8 +150,7 @@ const CategoryConfig = ({
             totalPlayersToBuy += playersPerCategory;
         });
 
-        // Check if sum of players to buy equals players per team
-        // This validation affects overall validity but doesn't highlight specific fields as red
+        // Check if sum of players to buy equals players per team from CSV (original value)
         if (totalPlayersToBuy !== playersPerTeam && categories.length > 0) {
             isValid = false;
             errors.push(`Total players to buy across all categories (${totalPlayersToBuy}) must equal players per team (${playersPerTeam})`);
@@ -134,7 +172,8 @@ const CategoryConfig = ({
         const totalTeams = Object.keys(teams).length;
         const totalPoints = Object.values(teams).reduce((sum, team) => sum + (team.purse || 0), 0);
         const teamBudget = totalTeams > 0 ? Object.values(teams)[0]?.purse + (Object.values(teams)[0]?.ownerRetainedAt || 0) || Object.values(teams)[0]?.purse || 0 : 0;
-        const playersPerTeam = totalTeams > 0 ? Math.round(totalPlayers / totalTeams) : 0;
+        // Use originalPlayersPerTeam instead of playersToBuy to get the original CSV value
+        const playersPerTeam = totalTeams > 0 ? Object.values(teams)[0]?.originalPlayersPerTeam || 0 : 0;
         
         // Players with valid photos (non-empty photo URLs)
         const playersWithValidPhoto = players.filter(p => p.photo && p.photo.trim() && !p.photo.includes('data:image/svg+xml')).length;
@@ -283,7 +322,7 @@ const CategoryConfig = ({
                         
                         {/* Back Button */}
                         <button
-                            onClick={() => onBackToFileUpload(categoryConfigs)}
+                            onClick={handleBackToFileUpload}
                             className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-6 py-3 rounded-lg font-bold shadow-lg hover:from-gray-600 hover:to-gray-700 hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400 flex items-center gap-3 mx-auto text-lg mb-6"
                         >
                             <span className="text-xl">{EMOJIS.BACK_ARROW}</span>
@@ -332,9 +371,6 @@ const CategoryConfig = ({
                                                     }`}
                                                     placeholder="Enter number"
                                                 />
-                                                <p className="text-xs text-gray-500 mt-1">
-                                                    Max: {getPlayerCountForCategory(category)}
-                                                </p>
                                             </div>
                                             
                                             {/* Base Price Input */}
@@ -355,20 +391,10 @@ const CategoryConfig = ({
                                                     }`}
                                                     placeholder="Enter base price"
                                                 />
-                                                <p className="text-xs text-gray-500 mt-1">
-                                                    Minimum Bid Price
-                                                </p>
                                             </div>
                                         </div>
                                     </div>
                                 ))}
-                            </div>
-                            
-                            {/* Summary Info */}
-                            <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                                <p className="text-sm text-blue-800">
-                                    <strong>Summary:</strong> Total players to buy: {validation.totalPlayersToBuy} | Required: {validation.playersPerTeam} per team
-                                </p>
                             </div>
                         </div>
                     </div>

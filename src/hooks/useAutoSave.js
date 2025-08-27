@@ -8,7 +8,8 @@ export const useAutoSave = (
     whatsappSettings,
     auction,
     persistence,
-    user = null
+    user = null,
+    categoryConfigs = {} // Add categoryConfigs parameter
 ) => {
     // Auto-save interval ref
     const autoSaveIntervalRef = useRef(null);
@@ -41,6 +42,7 @@ export const useAutoSave = (
                         tournamentName,
                         isTournamentNameSet,
                         whatsappSettings,
+                        categoryConfigs, // Include category configurations
                         auctionStarted: auction.auctionStarted,
                         selectedCategory: auction.selectedCategory,
                         completedCategories: Array.from(auction.completedCategories || [])
@@ -89,6 +91,7 @@ export const useAutoSave = (
                     tournamentName,
                     isTournamentNameSet,
                     whatsappSettings,
+                    categoryConfigs, // Include category configurations
                     auctionStarted: auction.auctionStarted,
                     selectedCategory: auction.selectedCategory,
                     completedCategories: Array.from(auction.completedCategories || [])
@@ -120,6 +123,7 @@ export const useAutoSave = (
         tournamentName, 
         isTournamentNameSet, 
         whatsappSettings, 
+        categoryConfigs, // Add categoryConfigs to dependencies
         auction.auctionStarted, 
         auction.selectedCategory, 
         auction.completedCategories, 
