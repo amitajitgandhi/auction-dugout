@@ -3,6 +3,7 @@ import { exportTeamsData, EMOJIS } from "../utils/constants";
 import { WHATSAPP_EMOJIS } from "../utils/whatsappUtils";
 import PlayerSpinWheel from "./PlayerSpinWheel";
 import JerseyColorAssignment from "./JerseyColorAssignment";
+import BoosterPopup from "./BoosterPopup";
 
 const TeamsPage = ({ 
     teams, 
@@ -15,11 +16,14 @@ const TeamsPage = ({
     onWhatsAppSettings,
     onTeamWhatsAppShare,
     whatsappSettings,
-    onPlayerEdit // New prop for handling player edits
+    onPlayerEdit, // New prop for handling player edits
+    boosterData, // New prop for booster data
+    onBoosterUpdate // New prop for updating booster data
 }) => {
     const [showMenu, setShowMenu] = useState(false);
     const [showPlayerSpin, setShowPlayerSpin] = useState(false);
     const [showJerseyColor, setShowJerseyColor] = useState(false);
+    const [showBooster, setShowBooster] = useState(false);
     const [editingPlayer, setEditingPlayer] = useState(null);
     const [showConfirmation, setShowConfirmation] = useState(false);
     const [editForm, setEditForm] = useState({
@@ -38,6 +42,22 @@ const TeamsPage = ({
                     : word.charAt(0).toUpperCase() + word.slice(1)
             )
             .join(' ');
+    };
+
+    // Helper function to get adjusted purse including booster points
+    const getAdjustedPurse = (teamName, teamData) => {
+        let adjustedPurse = teamData.purse;
+        
+        // Add booster points if available
+        if (boosterData && boosterData.teamBoosters && boosterData.teamBoosters[teamName]) {
+            const teamBooster = boosterData.teamBoosters[teamName];
+            if (teamBooster.selected && teamBooster.boosterCount > 0 && boosterData.pointsPerBooster) {
+                const boosterPoints = teamBooster.boosterCount * boosterData.pointsPerBooster;
+                adjustedPurse += boosterPoints;
+            }
+        }
+        
+        return adjustedPurse;
     };
 
     const handleExportTeams = () => {
@@ -217,6 +237,36 @@ const TeamsPage = ({
         setShowConfirmation(false);
     };
 
+    const handleApplyBoosters = (boosterDataToSave) => {
+        // Pass the booster data to the parent component for saving
+        if (onBoosterUpdate) {
+            onBoosterUpdate(boosterDataToSave);
+        }
+    };
+
+    const handleBooster = () => {
+        if (Object.keys(teams).length === 0) {
+            showManagedToast('error', 'No teams available for Booster! Please add teams first.', {
+                style: {
+                    border: '2px solid #f59e42',
+                    padding: '16px',
+                    color: '#b91c1c',
+                    fontWeight: 'bold',
+                    fontSize: '1.1rem',
+                    background: 'linear-gradient(90deg, #fffbe6 0%, #ffe4e6 100%)',
+                    boxShadow: '0 4px 24px 0 #fbbf24',
+                },
+                icon: EMOJIS.WARNING,
+                duration: 4000,
+            });
+            setShowMenu(false);
+            return;
+        }
+        
+        setShowBooster(true);
+        setShowMenu(false);
+    };
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-800 to-gray-900 bg-fixed relative overflow-x-hidden">
             {/* Tournament Name Ticker */}
@@ -246,6 +296,15 @@ const TeamsPage = ({
                 {showMenu && (
                     <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-lg shadow-xl border border-gray-200 z-50 animate-fade-in">
                         <div className="py-2">
+                            {/* Booster - First Option */}
+                            <button
+                                onClick={handleBooster}
+                                className="w-full text-left px-4 py-3 hover:bg-orange-50 transition-colors duration-200 flex items-center gap-3"
+                            >
+                                <span className="text-orange-500">{EMOJIS.ZAP}</span>
+                                <span className="text-gray-700 font-medium">Booster</span>
+                            </button>
+
                             {/* Export Teams */}
                             <button
                                 onClick={handleExportTeams}
@@ -425,6 +484,16 @@ const TeamsPage = ({
                 </div>
             )}
 
+            {/* Booster Popup */}
+            <BoosterPopup
+                isOpen={showBooster}
+                onClose={() => setShowBooster(false)}
+                teams={teams}
+                showManagedToast={showManagedToast}
+                boosterData={boosterData}
+                onApplyBoosters={handleApplyBoosters}
+            />
+
             {/* Player Spin Wheel Modal */}
             <PlayerSpinWheel
                 teams={teams}
@@ -530,9 +599,9 @@ const TeamsPage = ({
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-blue-600 text-lg">{EMOJIS.MONEY_BAG}</span>
-                                                        <span className="font-semibold text-blue-800">Remaining Purse</span>
+                                                        <span className="font-semibold text-blue-800">Points Left</span>
                                                     </div>
-                                                    <span className="font-bold text-emerald-600 text-lg">{EMOJIS.CURRENCY_RUPEE}{data.purse.toLocaleString()}</span>
+                                                    <span className="font-bold text-emerald-600 text-lg">{EMOJIS.CURRENCY_RUPEE}{getAdjustedPurse(teamName, data).toLocaleString()}</span>
                                                 </div>
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex items-center gap-2">

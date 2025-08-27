@@ -40,6 +40,7 @@ export default function CricketAuctionTool() {
     const [showResetConfirmation, setShowResetConfirmation] = useState(false);
     const [showWhatsAppSettings, setShowWhatsAppSettings] = useState(false);
     const [categoryConfigs, setCategoryConfigs] = useState({});
+    const [boosterData, setBoosterData] = useState({});
     
     // Refs
     const auctionInterfaceRef = useRef(null);
@@ -80,7 +81,7 @@ export default function CricketAuctionTool() {
     );
     
     // Auto-save functionality
-    useAutoSave(players, teams, tournamentName, isTournamentNameSet, whatsappSettings, auction, persistence, authUser, categoryConfigs);
+    useAutoSave(players, teams, tournamentName, isTournamentNameSet, whatsappSettings, auction, persistence, authUser, categoryConfigs, boosterData);
     
     // Startup restore logic
     const { showStartupRestore, startupRestoreData, handleStartupRestoreConfirm, handleStartupRestoreCancel } = useStartupRestore(persistence, showManagedToast, authUser);
@@ -187,6 +188,7 @@ export default function CricketAuctionTool() {
                     isTournamentNameSet,
                     whatsappSettings,
                     categoryConfigs: configs,
+                    boosterData, // Include booster data
                     auctionStarted: true, // Mark auction as started
                     selectedCategory: auction.selectedCategory,
                     completedCategories: Array.from(auction.completedCategories || [])
@@ -318,6 +320,7 @@ export default function CricketAuctionTool() {
                     isTournamentNameSet,
                     whatsappSettings,
                     categoryConfigs,
+                    boosterData, // Include booster data in save
                     auctionStarted: auction.auctionStarted,
                     selectedCategory: auction.selectedCategory,
                     completedCategories: Array.from(auction.completedCategories || [])
@@ -327,6 +330,45 @@ export default function CricketAuctionTool() {
                 console.log('?? Progress saved after player edit');
             } catch (error) {
                 console.error('? Failed to save progress after player edit:', error);
+            }
+        }
+    };
+
+    // Handle booster update functionality
+    const handleBoosterUpdate = async (newBoosterData) => {
+        setBoosterData(newBoosterData);
+        
+        // Save progress after booster update
+        if (authUser?.id && isTournamentNameSet) {
+            try {
+                const currentState = {
+                    players,
+                    teams,
+                    tournamentName,
+                    isTournamentNameSet,
+                    whatsappSettings,
+                    categoryConfigs,
+                    boosterData: newBoosterData, // Include updated booster data
+                    auctionStarted: auction.auctionStarted,
+                    selectedCategory: auction.selectedCategory,
+                    completedCategories: Array.from(auction.completedCategories || [])
+                };
+                
+                await persistence.saveState(currentState);
+                console.log('?? Progress saved after booster update');
+                
+                showManagedToast('success', 'Booster data saved successfully!', {
+                    style: TOAST_STYLES.success,
+                    icon: EMOJIS.SAVEDISK,
+                    duration: 3000,
+                });
+            } catch (error) {
+                console.error('? Failed to save progress after booster update:', error);
+                showManagedToast('error', 'Failed to save booster data', {
+                    style: TOAST_STYLES.error,
+                    icon: EMOJIS.FAILURE,
+                    duration: 4000,
+                });
             }
         }
     };
@@ -347,6 +389,8 @@ export default function CricketAuctionTool() {
                     onTeamWhatsAppShare={(teamName, teamData) => handleTeamWhatsAppShare(teamName, teamData, tournamentName)}
                     whatsappSettings={whatsappSettings}
                     onPlayerEdit={handlePlayerEdit}
+                    boosterData={boosterData}
+                    onBoosterUpdate={handleBoosterUpdate}
                 />
                 <ResetConfirmation 
                     isOpen={showResetConfirmation}
@@ -382,6 +426,7 @@ export default function CricketAuctionTool() {
                     currentPlayer={auction.currentPlayer}
                     selectedCategory={auction.selectedCategory}
                     categoryConfigs={categoryConfigs}
+                    boosterData={boosterData}
                 />
                 <ResetConfirmation 
                     isOpen={showResetConfirmation}
@@ -543,7 +588,7 @@ export default function CricketAuctionTool() {
                                         Start Fresh
                                     </button>
                                     <button
-                                        onClick={() => handleStartupRestoreConfirm(setPlayers, setTeams, setTournamentName, setIsTournamentNameSet, setWhatsappSettings, whatsappSettings, setCategoryConfigs)}
+                                        onClick={() => handleStartupRestoreConfirm(setPlayers, setTeams, setTournamentName, setIsTournamentNameSet, setWhatsappSettings, whatsappSettings, setCategoryConfigs, setBoosterData)}
                                         className="flex-1 sm:flex-none px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-semibold hover:from-blue-600 hover:to-blue-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-lg flex items-center justify-center gap-2"
                                     >
                                         <span>{EMOJIS.RESTORE}</span>

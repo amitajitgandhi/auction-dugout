@@ -65,7 +65,11 @@ const MaxBidAnalysisTable = ({
                                 </div>
                             </th>
                             {availableCategories.map(category => (
-                                <th key={category} className="px-3 py-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider border-r border-gray-300" colSpan="3">
+                                <th key={category} className={`px-3 py-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider border-r border-gray-300 ${
+                                    category === selectedCategoryForAnalysis 
+                                        ? 'bg-gradient-to-r from-blue-100 to-blue-200 border-2 border-blue-400' 
+                                        : ''
+                                }`} colSpan="3">
                                     <div className="p-2 rounded-lg">
                                         <div className="font-bold">{category}</div>
                                         {category === selectedCategoryForAnalysis && (
@@ -80,7 +84,7 @@ const MaxBidAnalysisTable = ({
                             <th className="px-4 py-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider border-r border-gray-300">
                                 <div className="flex items-center justify-center gap-1">
                                     <span>{EMOJIS.CURRENCY_RUPEE}</span>
-                                    Available
+                                    Points Left
                                 </div>
                             </th>
                             <th className="px-4 py-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider border-r border-gray-300">
@@ -102,9 +106,21 @@ const MaxBidAnalysisTable = ({
                             </th>
                             {availableCategories.map(category => (
                                 <Fragment key={category}>
-                                    <th className="px-2 py-3 text-center text-xs font-medium text-gray-600">Bought/Buy</th>
-                                    <th className="px-2 py-3 text-center text-xs font-medium text-gray-600">Base Price</th>
-                                    <th className="px-2 py-3 text-center text-xs font-medium text-gray-600 border-r border-gray-300">Reserved</th>
+                                    <th className={`px-2 py-3 text-center text-xs font-medium text-gray-600 ${
+                                        category === selectedCategoryForAnalysis 
+                                            ? 'bg-blue-50 border-l-2 border-blue-400' 
+                                            : ''
+                                    }`}>Bought/Buy</th>
+                                    <th className={`px-2 py-3 text-center text-xs font-medium text-gray-600 ${
+                                        category === selectedCategoryForAnalysis 
+                                            ? 'bg-blue-50' 
+                                            : ''
+                                    }`}>Base Price</th>
+                                    <th className={`px-2 py-3 text-center text-xs font-medium text-gray-600 border-r border-gray-300 ${
+                                        category === selectedCategoryForAnalysis 
+                                            ? 'bg-blue-50 border-r-2 border-blue-400' 
+                                            : ''
+                                    }`}>Reserved</th>
                                 </Fragment>
                             ))}
                             <th className="px-4 py-3 text-center text-xs font-medium text-gray-600 border-r border-gray-300">Points</th>
@@ -133,9 +149,14 @@ const MaxBidAnalysisTable = ({
                                 </td>
                                 {availableCategories.map(category => {
                                     const catData = team.categoryBreakdown[category];
+                                    const isSelectedCategory = category === selectedCategoryForAnalysis;
                                     return (
                                         <Fragment key={category}>
-                                            <td className="px-2 py-4 whitespace-nowrap text-center text-xs transition-colors duration-200">
+                                            <td className={`px-2 py-4 whitespace-nowrap text-center text-xs transition-colors duration-200 ${
+                                                isSelectedCategory 
+                                                    ? 'bg-blue-50 border-l-2 border-blue-400' 
+                                                    : ''
+                                            }`}>
                                                 <div className={`font-bold px-2 py-1 rounded-full text-xs ${
                                                     catData.playersBought >= catData.playersAllowed 
                                                         ? 'text-red-600 bg-red-100' 
@@ -144,12 +165,20 @@ const MaxBidAnalysisTable = ({
                                                     {catData.playersBought}/{catData.playersAllowed}
                                                 </div>
                                             </td>
-                                            <td className="px-2 py-4 whitespace-nowrap text-center text-xs transition-colors duration-200">
+                                            <td className={`px-2 py-4 whitespace-nowrap text-center text-xs transition-colors duration-200 ${
+                                                isSelectedCategory 
+                                                    ? 'bg-blue-50' 
+                                                    : ''
+                                            }`}>
                                                 <div className="text-gray-700 font-medium">
                                                     {EMOJIS.CURRENCY_RUPEE}{catData.basePrice.toLocaleString()}
                                                 </div>
                                             </td>
-                                            <td className="px-2 py-4 whitespace-nowrap text-center text-xs border-r border-gray-200 transition-colors duration-200">
+                                            <td className={`px-2 py-4 whitespace-nowrap text-center text-xs border-r border-gray-200 transition-colors duration-200 ${
+                                                isSelectedCategory 
+                                                    ? 'bg-blue-50 border-r-2 border-blue-400' 
+                                                    : ''
+                                            }`}>
                                                 <div className={`font-bold ${
                                                     catData.pointsReserved > 0 
                                                     ? 'text-gray-500' 

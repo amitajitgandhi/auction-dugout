@@ -55,7 +55,7 @@ const MaxBidHelpPopup = ({
                                 <div className="text-green-700 space-y-2 text-xs">
                                     <div className="bg-white bg-opacity-70 p-2 rounded-lg text-center">
                                         <div className="font-bold text-green-800 mb-1">Formula</div>
-                                        <div className="font-semibold">Max Bid = Available Points - Reserved Points</div>
+                                        <div className="font-semibold">Max Bid = Points Left - Reserved Points</div>
                                     </div>
                                     <div className="bg-white bg-opacity-70 p-3 rounded-lg">
                                         <div className="font-medium text-green-600">
@@ -139,7 +139,7 @@ const MaxBidHelpPopup = ({
                                 <div className="bg-white p-3 rounded-lg border border-gray-200">
                                     <div className="font-semibold text-blue-800 mb-1">Team Status</div>
                                     <div className="space-y-1 text-gray-700">
-                                        <div className="font-medium">Available Points: 8,000</div>
+                                        <div className="font-medium">Points Left: 8,000</div>
                                         <div className="border-t pt-1 mt-1">
                                             <div className="text-blue-600 font-medium">Requirements:</div>
                                             <div>PLATINUM (selected): Need 2 more</div>
@@ -165,7 +165,7 @@ const MaxBidHelpPopup = ({
                                 <div className="bg-white p-3 rounded-lg border border-gray-200">
                                     <div className="font-semibold text-green-800 mb-1">Max Bid Result</div>
                                     <div className="space-y-1 text-gray-700">
-                                        <div>Available Points: 8,000</div>
+                                        <div>Points Left: 8,000</div>
                                         <div>Total Reserved: 4,500</div>
                                         <div className="font-semibold text-green-600 pt-1 border-t mt-1 flex items-center gap-1">
                                             <span>{EMOJIS.CHECK_MARK}</span>

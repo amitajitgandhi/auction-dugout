@@ -16,7 +16,8 @@ const MaxBidPage = ({
     // New props for proper analysis
     currentPlayer,
     selectedCategory,
-    categoryConfigs
+    categoryConfigs,
+    boosterData // New prop for booster data
 }) => {
     const [showMenu, setShowMenu] = useState(false);
     const [selectedCategoryForAnalysis, setSelectedCategoryForAnalysis] = useState(currentPlayer?.category || 'OPEN');
@@ -27,6 +28,22 @@ const MaxBidPage = ({
         return Object.keys(categoryConfigs || {});
     }, [categoryConfigs]);
 
+    // Helper function to get adjusted purse including booster points
+    const getAdjustedPurse = (teamName, teamData) => {
+        let adjustedPurse = teamData.purse;
+        
+        // Add booster points if available
+        if (boosterData && boosterData.teamBoosters && boosterData.teamBoosters[teamName]) {
+            const teamBooster = boosterData.teamBoosters[teamName];
+            if (teamBooster.selected && teamBooster.boosterCount > 0 && boosterData.pointsPerBooster) {
+                const boosterPoints = teamBooster.boosterCount * boosterData.pointsPerBooster;
+                adjustedPurse += boosterPoints;
+            }
+        }
+        
+        return adjustedPurse;
+    };
+
     // Calculate comprehensive team analysis with category-wise breakdown
     const teamAnalysis = useMemo(() => {
         if (Object.keys(teams).length === 0 || Object.keys(categoryConfigs).length === 0) {
@@ -34,9 +51,9 @@ const MaxBidPage = ({
         }
 
         return Object.entries(teams).map(([teamName, teamData]) => {
-            const remainingPoints = teamData.purse;
+            const remainingPoints = getAdjustedPurse(teamName, teamData);
             let totalReservedPoints = 0;
-            const categoryBreakdown = {};
+            const categoryBreakdown = {}
 
             // Calculate for each category
             availableCategories.forEach(categoryName => {
@@ -93,7 +110,7 @@ const MaxBidPage = ({
                 playersToBuy: teamData.playersToBuy
             };
         });
-    }, [teams, categoryConfigs, availableCategories, selectedCategoryForAnalysis]);
+    }, [teams, categoryConfigs, availableCategories, selectedCategoryForAnalysis, boosterData]);
 
     // Sort teams by highest max bid (default sorting)
     const sortedTeams = useMemo(() => {

@@ -9,7 +9,8 @@ export const useAutoSave = (
     auction,
     persistence,
     user = null,
-    categoryConfigs = {} // Add categoryConfigs parameter
+    categoryConfigs = {}, // Add categoryConfigs parameter
+    boosterData = null // Add boosterData parameter
 ) => {
     // Auto-save interval ref
     const autoSaveIntervalRef = useRef(null);
@@ -43,6 +44,7 @@ export const useAutoSave = (
                         isTournamentNameSet,
                         whatsappSettings,
                         categoryConfigs, // Include category configurations
+                        boosterData, // Include booster data
                         auctionStarted: auction.auctionStarted,
                         selectedCategory: auction.selectedCategory,
                         completedCategories: Array.from(auction.completedCategories || [])
@@ -92,6 +94,7 @@ export const useAutoSave = (
                     isTournamentNameSet,
                     whatsappSettings,
                     categoryConfigs, // Include category configurations
+                    boosterData, // Include booster data
                     auctionStarted: auction.auctionStarted,
                     selectedCategory: auction.selectedCategory,
                     completedCategories: Array.from(auction.completedCategories || [])
@@ -124,6 +127,7 @@ export const useAutoSave = (
         isTournamentNameSet, 
         whatsappSettings, 
         categoryConfigs, // Add categoryConfigs to dependencies
+        boosterData, // Add boosterData to dependencies
         auction.auctionStarted, 
         auction.selectedCategory, 
         auction.completedCategories, 
