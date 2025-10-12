@@ -596,13 +596,38 @@ const TeamsPage = ({
                                             boxShadow: `inset 0 1px 0 rgba(255, 255, 255, 0.3)`
                                         }}>
                                             <div className="grid grid-cols-1 gap-2">
+                                                {/* Total Points - Original Budget + Boosters */}
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex items-center gap-2">
-                                                        <span className="text-blue-600 text-lg">{EMOJIS.MONEY_BAG}</span>
+                                                        <span className="text-blue-600 text-lg">{EMOJIS.TROPHY}</span>
+                                                        <span className="font-semibold text-blue-800">Total Points</span>
+                                                    </div>
+                                                    <span className="font-bold text-blue-600 text-lg">{EMOJIS.CURRENCY_RUPEE}{(() => {
+                                                        // Calculate original budget (remaining + spent) + any booster points
+                                                        let originalBudget = data.purse + (data.players.reduce((sum, p) => sum + (p.soldPrice || 0), 0));
+                                                        
+                                                        // Add booster points if available
+                                                        if (boosterData && boosterData.teamBoosters && boosterData.teamBoosters[teamName]) {
+                                                            const teamBooster = boosterData.teamBoosters[teamName];
+                                                            if (teamBooster.selected && teamBooster.boosterCount > 0 && boosterData.pointsPerBooster) {
+                                                                const boosterPoints = teamBooster.boosterCount * boosterData.pointsPerBooster;
+                                                                originalBudget += boosterPoints;
+                                                            }
+                                                        }
+                                                        
+                                                        return originalBudget;
+                                                    })().toLocaleString()}</span>
+                                                </div>
+                                                
+                                                {/* Points Left - Remaining Budget */}
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-emerald-600 text-lg">{EMOJIS.MONEY_BAG}</span>
                                                         <span className="font-semibold text-blue-800">Points Left</span>
                                                     </div>
                                                     <span className="font-bold text-emerald-600 text-lg">{EMOJIS.CURRENCY_RUPEE}{getAdjustedPurse(teamName, data).toLocaleString()}</span>
                                                 </div>
+                                                
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-orange-500 text-lg">{EMOJIS.TARGET}</span>
@@ -662,7 +687,7 @@ const TeamsPage = ({
                                                                         background: `rgba(209, 250, 229, 0.8)`,
                                                                         border: `1px solid rgba(52, 211, 153, 0.2)`
                                                                     }}>
-                                                                        ?{p.soldPrice.toLocaleString()}
+                                                                        {EMOJIS.CURRENCY_RUPEE}{p.soldPrice.toLocaleString()}
                                                                     </span>
                                                                 </div>
                                                                 

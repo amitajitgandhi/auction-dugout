@@ -31,7 +31,7 @@ const FileUpload = ({
         const totalTeams = Object.keys(teams).length;
         // Use originalPlayersPerTeam if available, otherwise fall back to playersToBuy for backward compatibility
         const playersPerTeam = totalTeams > 0 ? (Object.values(teams)[0]?.originalPlayersPerTeam || Object.values(teams)[0]?.playersToBuy || 0) : 0;
-        const teamBudget = totalTeams > 0 ? Object.values(teams)[0]?.purse + (Object.values(teams)[0]?.ownerRetainedAt || 0) || Object.values(teams)[0]?.purse || 0 : 0;
+        const teamBudget = totalTeams > 0 ? Object.values(teams)[0]?.purse || 0 : 0;
         
         // Players with valid photos (non-empty photo URLs)
         const playersWithValidPhoto = players.filter(p => p.photo && p.photo.trim() && !p.photo.includes('data:image/svg+xml')).length;
@@ -268,40 +268,13 @@ const FileUpload = ({
                 data.forEach((team) => {
                     const teamName = team["Team Name"]?.trim();
                     if (teamName) {
-                        const ownerRetained = team["Owner Retained"]?.trim().toLowerCase() === 'yes';
-                        const ownerRetainedAt = parseInt(team["Owner Retained at"], 10) || 0;
-                        const ownerCategory = team["Owner Category"]?.trim() || "";
-                        
                         loadedTeams[teamName] = {
                             owner: team["Owner Name"]?.trim() || "",
                             purse: parseInt(team["Total Points"], 10) || 0,
                             playersToBuy: parseInt(team["Players per Team"], 10) || 0,
                             originalPlayersPerTeam: parseInt(team["Players per Team"], 10) || 0, // Store original value
-                            ownerRetained: ownerRetained,
-                            ownerRetainedAt: ownerRetainedAt,
-                            ownerCategory: ownerCategory,
                             players: [],
                         };
-
-                        // If owner is retained, add them as a player
-                        if (ownerRetained && ownerRetainedAt > 0) {
-                            const ownerPlayer = {
-                                id: `owner-${teamName}`,
-                                name: team["Owner Name"]?.trim() || "",
-                                skill: "Owner",
-                                category: ownerCategory || "OPEN",
-                                photo: null,
-                                cricHeroesProfile: "",
-                                sold: true,
-                                soldTo: teamName,
-                                soldPrice: ownerRetainedAt,
-                                isOwner: true
-                            };
-                            
-                            loadedTeams[teamName].players.push(ownerPlayer);
-                            loadedTeams[teamName].purse -= ownerRetainedAt; // Deduct owner retention cost
-                            loadedTeams[teamName].playersToBuy -= 1; // Reduce players to buy since owner is retained
-                        }
                     }
                 });
                 
@@ -346,12 +319,12 @@ const FileUpload = ({
     // Function to download sample teams CSV
     const downloadSampleTeamsCSV = () => {
         const sampleData = [
-            ['Team Name', 'Owner Name', 'Total Points', 'Players per Team', 'Owner Retained', 'Owner Retained at', 'Owner Category'],
-            ['Mumbai Indians', 'Mukesh Ambani', '80000000', '25', 'Yes', '15000000', 'PLATINUM'],
-            ['Chennai Super Kings', 'N. Srinivasan', '80000000', '25', 'No', '0', ''],
-            ['Royal Challengers Bangalore', 'Vijay Mallya', '80000000', '25', 'Yes', '12000000', 'ICON'],
-            ['Kolkata Knight Riders', 'Shah Rukh Khan', '80000000', '25', 'Yes', '8000000', 'OPEN'],
-            ['Delhi Capitals', 'JSW Group', '80000000', '25', 'No', '0', '']
+            ['Team Name', 'Owner Name', 'Total Points', 'Players per Team'],
+            ['Mumbai Indians', 'Mukesh Ambani', '80000000', '25'],
+            ['Chennai Super Kings', 'N. Srinivasan', '80000000', '25'],
+            ['Royal Challengers Bangalore', 'Vijay Mallya', '80000000', '25'],
+            ['Kolkata Knight Riders', 'Shah Rukh Khan', '80000000', '25'],
+            ['Delhi Capitals', 'JSW Group', '80000000', '25']
         ];
         
         const csvContent = sampleData.map(row => row.map(field => `"${field}"`).join(',')).join('\n');
@@ -806,23 +779,11 @@ const FileUpload = ({
             </div>
             <div class="column-item">
                 <span class="column-name">3. Total Points</span>
-                <span class="column-desc">- Total budget amount for the team (Required, numeric value) - will be same for all teams</span>
+                <span class="column-desc">- Total budget amount for the team (Required, numeric value) - should be same for all teams</span>
             </div>
             <div class="column-item">
                 <span class="column-name">4. Players per Team</span>
-                <span class="column-desc">- Total number of players the team needs (Required, including owner if retained) - will be same for all teams</span>
-            </div>
-            <div class="column-item">
-                <span class="column-name">5. Owner Retained</span>
-                <span class="column-desc">- Whether owner is retained as player (Required, Yes/No)</span>
-            </div>
-            <div class="column-item">
-                <span class="column-name">6. Owner Retained at</span>
-                <span class="column-desc">- Points spent on owner retention (Required only when Owner Retained is YES, 0/blank if not retained)</span>
-            </div>
-            <div class="column-item">
-                <span class="column-name">7. Owner Category</span>
-                <span class="column-desc">- Owner's player category if retained (Required only when Owner Retained is YES and players are categorized, if Retained and no category then - OPEN, empty/blank if not retained)</span>
+                <span class="column-desc">- Total number of players the team needs (Required) - should be same for all teams</span>
             </div>
         </div>
 
@@ -832,11 +793,6 @@ const FileUpload = ({
                 <li>Team Name and Owner Name cannot be empty</li>
                 <li>Total Points must be a positive number (greater than 0) - same for all teams</li>
                 <li>Players per Team must be a positive number (greater than 0) - same for all teams</li>
-                <li>Owner Retained must be exactly "Yes" or "No" (case insensitive)</li>
-                <li>Owner Retained at must be 0/blank if Owner Retained is "No"</li>
-                <li>Owner Retained at must be greater than 0 if Owner Retained is "Yes"</li>
-                <li>Owner Category required only when Owner Retained is "Yes" and players are categorized</li>
-                <li>Owner Category defaults to "OPEN" if retained but no category specified</li>
                 <li>No duplicate team names allowed</li>
                 <li>Numeric values should not contain currency symbols or commas</li>
             </ul>
@@ -850,9 +806,6 @@ const FileUpload = ({
                     <th>Owner Name</th>
                     <th>Total Points</th>
                     <th>Players per Team</th>
-                    <th>Owner Retained</th>
-                    <th>Owner Retained at</th>
-                    <th>Owner Category</th>
                 </tr>
             </thead>
             <tbody>
@@ -861,58 +814,40 @@ const FileUpload = ({
                     <td>Mukesh Ambani</td>
                     <td>80000000</td>
                     <td>25</td>
-                    <td>Yes</td>
-                    <td>15000000</td>
-                    <td>PLATINUM</td>
                 </tr>
                 <tr>
                     <td>Chennai Super Kings</td>
                     <td>N. Srinivasan</td>
                     <td>80000000</td>
                     <td>25</td>
-                    <td>No</td>
-                    <td>0</td>
-                    <td></td>
                 </tr>
                 <tr>
                     <td>Royal Challengers Bangalore</td>
                     <td>Vijay Mallya</td>
                     <td>80000000</td>
                     <td>25</td>
-                    <td>Yes</td>
-                    <td>12000000</td>
-                    <td>ICON</td>
                 </tr>
                 <tr>
                     <td>Kolkata Knight Riders</td>
                     <td>Shah Rukh Khan</td>
                     <td>80000000</td>
                     <td>25</td>
-                    <td>Yes</td>
-                    <td>8000000</td>
-                    <td>OPEN</td>
                 </tr>
                 <tr>
                     <td>Delhi Capitals</td>
                     <td>JSW Group</td>
                     <td>80000000</td>
                     <td>25</td>
-                    <td>No</td>
-                    <td></td>
-                    <td></td>
                 </tr>
             </tbody>
         </table>
 
-        <h2>${String.fromCodePoint(0x2728)} Owner Retention Details</h2>
+        <h2>${String.fromCodePoint(0x2728)} Key Features</h2>
         <ul>
-            <li>If Owner Retained is "Yes", the owner will be automatically added as a player</li>
-            <li>The retention cost will be deducted from the team's total points</li>
-            <li>The total players to buy count will be reduced by 1</li>
-            <li>Owner Category determines the owner's player category (For Ex - PLATINUM, ICON, GOLD, SILVER, OR OPEN)</li>
-            <li>If Owner Retained is "Yes" and no category specified, defaults to "OPEN"</li>
-            <li>If Owner Retained is "No", owner retention fields should be empty/blank</li>
-            <li>Total Points and Players per Team should be consistent across all teams</li>
+            <li><strong>Equal Budget:</strong> All teams start with the same total points budget</li>
+            <li><strong>Equal Squad Size:</strong> All teams need to buy the same number of players</li>
+            <li><strong>Clean & Simple:</strong> No complex retention rules or pre-assignments</li>
+            <li><strong>Fair Competition:</strong> Every team starts on equal footing</li>
         </ul>
 
         <div class="tip-box">
@@ -921,10 +856,9 @@ const FileUpload = ({
                 <li>Use consistent naming conventions for teams</li>
                 <li>Ensure total points are realistic for your auction type</li>
                 <li>Set appropriate player counts based on your tournament format</li>
-                <li>Double-check owner retention logic and costs</li>
-                <li>Verify owner categories match your player categories</li>
                 <li>Keep team names short and memorable</li>
                 <li>Use the sample CSV as a template</li>
+                <li>Double-check all numeric values before uploading</li>
             </ul>
         </div>
 
