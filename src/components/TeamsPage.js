@@ -637,13 +637,13 @@ const TeamsPage = ({
                                                             {/* Player Row - Grid Layout for Alignment */}
                                                             <div className="grid grid-cols-12 gap-1 items-center">
                                                                 {/* Player Name Column */}
-                                                                <div className="col-span-5 flex items-center gap-1 min-w-0">
+                                                                <div className="col-span-4 flex items-center gap-1 min-w-0">
                                                                     <span className="text-xs flex-shrink-0">{EMOJIS.PERSON}</span>
                                                                     <span 
                                                                         className="font-semibold text-gray-800 truncate text-sm"
                                                                         title={p.name}
                                                                     >
-                                                                        {toCamelCase(p.name.length > 12 ? `${p.name.substring(0, 12)}..` : p.name)}
+                                                                        {toCamelCase(p.name.length > 10 ? `${p.name.substring(0, 10)}..` : p.name)}
                                                                     </span>
                                                                 </div>
                                                                 
@@ -656,13 +656,13 @@ const TeamsPage = ({
                                                                     )}
                                                                 </div>
                                                                 
-                                                                {/* Price Column */}
-                                                                <div className="col-span-3 text-right">
-                                                                    <span className="text-emerald-600 font-bold px-1 py-0.5 rounded text-xs" style={{
+                                                                {/* Price Column - Increased width and removed emoji */}
+                                                                <div className="col-span-4 text-right">
+                                                                    <span className="text-emerald-600 font-bold px-1 py-0.5 rounded text-xs whitespace-nowrap" style={{
                                                                         background: `rgba(209, 250, 229, 0.8)`,
                                                                         border: `1px solid rgba(52, 211, 153, 0.2)`
                                                                     }}>
-                                                                        {EMOJIS.CURRENCY_RUPEE}{p.soldPrice.toLocaleString()}
+                                                                        ?{p.soldPrice.toLocaleString()}
                                                                     </span>
                                                                 </div>
                                                                 
