@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+﻿import { useRef, useEffect } from 'react';
 import { EMOJIS } from '../utils/constants';
 
 export const useAuctionBusinessLogic = (
@@ -15,12 +15,28 @@ export const useAuctionBusinessLogic = (
     persistence = null,
     authUser = null,
     isTournamentNameSet = false,
-    whatsappSettings = {}
+    whatsappSettings = {},
+    boosterData = null // Add boosterData parameter
 ) => {
+    // Helper function to calculate adjusted purse including booster points
+    const getAdjustedPurse = (teamName, teamData) => {
+        let adjustedPurse = teamData.purse;
+        
+        // Add booster points if available
+        if (boosterData && boosterData.teamBoosters && boosterData.teamBoosters[teamName]) {
+            const teamBooster = boosterData.teamBoosters[teamName];
+            if (teamBooster.selected && teamBooster.boosterCount > 0 && boosterData.pointsPerBooster) {
+                const boosterPoints = teamBooster.boosterCount * boosterData.pointsPerBooster;
+                adjustedPurse += boosterPoints;
+            }
+        }
+        return adjustedPurse;
+    };
+
     // Helper function to trigger immediate save after auction actions
     const triggerAuctionSave = async (actionType, playerName, teamName = null, price = null) => {
         if (!persistence || !authUser?.id || !isTournamentNameSet) {
-            console.log('?? Skipping auction save - conditions not met:', {
+            console.log('🔄 Skipping auction save - conditions not met:', {
                 hasPersistence: !!persistence,
                 hasUser: !!authUser?.id,
                 tournamentSet: isTournamentNameSet
@@ -40,7 +56,7 @@ export const useAuctionBusinessLogic = (
                 completedCategories: Array.from(auction.completedCategories || [])
             };
 
-            console.log(`?? Triggering immediate save after ${actionType}:`, {
+            console.log(`🔄 Triggering immediate save after ${actionType}:`, {
                 player: playerName,
                 team: teamName,
                 price: price
@@ -49,12 +65,12 @@ export const useAuctionBusinessLogic = (
             const success = await persistence.saveState(currentState);
             
             if (success) {
-                console.log(`? Auction progress saved after ${actionType}`);
+                console.log(`✅ Auction progress saved after ${actionType}`);
             } else {
-                console.error(`? Failed to save auction progress after ${actionType}`);
+                console.error(`❌ Failed to save auction progress after ${actionType}`);
             }
         } catch (error) {
-            console.error(`? Error saving auction progress after ${actionType}:`, error);
+            console.error(`❌ Error saving auction progress after ${actionType}:`, error);
         }
     };
 
@@ -70,10 +86,19 @@ export const useAuctionBusinessLogic = (
             showFancyError("Team not found.");
             return false;
         }
-        if (price > team.purse) {
-            showFancyError("Bid exceeds team's purse.");
+        
+        // Use adjusted purse that includes booster points
+        const adjustedPurse = getAdjustedPurse(teamName, team);
+        if (price > adjustedPurse) {
+            const boosterInfo = boosterData && boosterData.teamBoosters && boosterData.teamBoosters[teamName] 
+                ? ` (including ${boosterData.teamBoosters[teamName].boosterCount || 0} booster)`
+                : '';
+            console.log(`❌ Bid of ${price} exceeds adjusted purse of ${adjustedPurse} for team ${teamName}`);
+            console.log('Booster Data:', boosterData);
+            showFancyError(`Bid exceeds team's available budget ${boosterInfo}.`);
             return false;
         }
+        
         if (team.playersToBuy <= 0) {
             showFancyError("This team cannot buy more players. Player limit reached. Please select a different team.");
             return false;

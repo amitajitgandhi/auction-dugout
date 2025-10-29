@@ -77,7 +77,8 @@ export default function CricketAuctionTool() {
         persistence,
         authUser,
         isTournamentNameSet,
-        whatsappSettings
+        whatsappSettings,
+        boosterData // Add the missing boosterData parameter
     );
     
     // Auto-save functionality

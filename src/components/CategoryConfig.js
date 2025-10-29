@@ -108,6 +108,15 @@ const CategoryConfig = ({
         let errors = [];
         let fieldErrors = {}; // Track specific visual errors per category and field
         let totalPlayersToBuy = 0;
+        let criteriaStatus = {}; // Track criteria status for display
+
+        // Initialize criteria status
+        criteriaStatus = {
+            allFieldsFilled: true,
+            validPlayerCounts: true,
+            validPrices: true,
+            totalPlayersMatch: true
+        };
 
         // Validate each category
         categories.forEach(cat => {
@@ -120,6 +129,13 @@ const CategoryConfig = ({
                 playersPerCategory: false,
                 basePrice: false
             };
+
+            // Check if all fields are filled
+            if (!config?.playersPerCategory || !config?.basePrice || 
+                isNaN(playersPerCategory) || playersPerCategory <= 0 ||
+                isNaN(basePrice) || basePrice <= 0) {
+                criteriaStatus.allFieldsFilled = false;
+            }
 
             // Basic validation (for overall validity but not visual highlighting)
             if (isNaN(playersPerCategory) || playersPerCategory <= 0) {
@@ -134,8 +150,9 @@ const CategoryConfig = ({
 
             // Specific visual validation conditions
             // Highlight Players to Buy field as red ONLY when exceeds total players in category
-            if (playersPerCategory > totalPlayersInCategory) {
+            if (playersPerCategory >= totalPlayersInCategory) {
                 isValid = false;
+                criteriaStatus.validPlayerCounts = false;
                 fieldErrors[cat].playersPerCategory = true;
                 errors.push(`${cat}: Players to buy (${playersPerCategory}) cannot exceed total players in category (${totalPlayersInCategory})`);
             }
@@ -143,8 +160,9 @@ const CategoryConfig = ({
             // Highlight Base Price field as red ONLY when exceeds team budget
             if (basePrice > teamBudget) {
                 isValid = false;
+                criteriaStatus.validPrices = false;
                 fieldErrors[cat].basePrice = true;
-                errors.push(`${cat}: Base price (?${basePrice.toLocaleString()}) cannot exceed team budget (?${teamBudget.toLocaleString()})`);
+                errors.push(`${cat}: Base price (${basePrice.toLocaleString()}) cannot exceed team budget (${teamBudget.toLocaleString()})`);
             }
 
             totalPlayersToBuy += playersPerCategory;
@@ -153,6 +171,7 @@ const CategoryConfig = ({
         // Check if sum of players to buy equals players per team from CSV (original value)
         if (totalPlayersToBuy !== playersPerTeam && categories.length > 0) {
             isValid = false;
+            criteriaStatus.totalPlayersMatch = false;
             errors.push(`Total players to buy across all categories (${totalPlayersToBuy}) must equal players per team (${playersPerTeam})`);
         }
 
@@ -162,7 +181,8 @@ const CategoryConfig = ({
             fieldErrors,
             totalPlayersToBuy,
             playersPerTeam,
-            teamBudget
+            teamBudget,
+            criteriaStatus
         };
     }, [categories, categoryConfigs, players, teams]);
 
@@ -240,6 +260,89 @@ const CategoryConfig = ({
     const getPlayerCountForCategory = (category) => {
         return players.filter(p => p.category === category).length;
     };
+
+    // Render Start Button Criteria component
+    const renderStartButtonCriteria = () => (
+        <div className="bg-white bg-opacity-95 rounded-xl shadow-lg overflow-hidden mb-6">
+            <div className="bg-gradient-to-r from-blue-50 to-blue-100 px-6 py-4 border-b">
+                <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                    <span>{EMOJIS.CLIPBOARD}</span>
+                    Start Auction Requirements
+                </h3>
+                <p className="text-gray-600 text-sm mt-1">Complete all criteria below to enable the START AUCTION button</p>
+            </div>
+            
+            <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Criterion 1: All Fields Filled */}
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-sm}`}>
+                            {validation.criteriaStatus.allFieldsFilled ? EMOJIS.CHECK_MARK : EMOJIS.CROSS_MARK}
+                        </div>
+                        <div>
+                            <p className="font-medium text-gray-800">All Fields Completed</p>
+                            <p className="text-sm text-gray-600">Players to buy and base price for all categories</p>
+                        </div>
+                    </div>
+
+                    {/* Criterion 2: Valid Player Counts */}
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-sm}`}>
+                            {validation.criteriaStatus.validPlayerCounts ? EMOJIS.CHECK_MARK : EMOJIS.CROSS_MARK}
+                        </div>
+                        <div>
+                            <p className="font-medium text-gray-800">Valid Player Counts</p>
+                            <p className="text-sm text-gray-600">Players to buy &lt; available players per category</p>
+                        </div>
+                    </div>
+
+                    {/* Criterion 3: Valid Prices */}
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-sm}`}>
+                            {validation.criteriaStatus.validPrices ? EMOJIS.CHECK_MARK : EMOJIS.CROSS_MARK}
+                        </div>
+                        <div>
+                            <p className="font-medium text-gray-800">Valid Base Prices</p>
+                            <p className="text-sm text-gray-600">Base price &lt; team budget ({EMOJIS.MONEY_BAG}{validation.teamBudget.toLocaleString()})</p>
+                        </div>
+                    </div>
+
+                    {/* Criterion 4: Total Players Match */}
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-sm}`}>
+                            {validation.criteriaStatus.totalPlayersMatch ? EMOJIS.CHECK_MARK : EMOJIS.CROSS_MARK}
+                        </div>
+                        <div>
+                            <p className="font-medium text-gray-800">Total Players Match</p>
+                            <p className="text-sm text-gray-600">
+                                Sum of players to buy = {validation.playersPerTeam} 
+                                {validation.totalPlayersToBuy > 0 && ` (Current: ${validation.totalPlayersToBuy})`}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Overall status indicator */}
+                <div className={`mt-4 p-4 rounded-lg text-center font-medium ${
+                    validation.isValid 
+                        ? 'bg-green-100 text-green-800 border border-green-300' 
+                        : 'bg-red-100 text-red-800 border border-red-300'
+                }`}>
+                    {validation.isValid ? (
+                        <span className="flex items-center justify-center gap-2">
+                            <span className="text-xl">{EMOJIS.CHECK_MARK}</span>
+                            All requirements met! You can start the auction.
+                        </span>
+                    ) : (
+                        <span className="flex items-center justify-center gap-2">
+                            <span className="text-xl">{EMOJIS.CROSS_MARK}</span>
+                            Please complete the above requirements to start the auction.
+                        </span>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
 
     // Render Auction Summary component with consistent formatting
     const renderAuctionSummary = () => (
@@ -329,6 +432,9 @@ const CategoryConfig = ({
                             Back to File Upload
                         </button>
                     </div>
+
+                    {/* Start Button Criteria */}
+                    {renderStartButtonCriteria()}
 
                     {/* Category Configuration */}
                     <div className="bg-white bg-opacity-95 rounded-xl shadow-lg overflow-hidden mb-6">
