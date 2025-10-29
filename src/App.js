@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+﻿import React, { useState, useRef } from "react";
 import ReactConfetti from "react-confetti";
 import { Toaster } from "react-hot-toast";
 
@@ -70,7 +70,7 @@ export default function CricketAuctionTool() {
         setTeams, 
         auction, 
         showFancyError, 
-        showManagedToast, // Added missing parameter
+        showManagedToast,
         sendWhatsAppNotification, 
         tournamentName,
         auctionInterfaceRef,
@@ -78,7 +78,8 @@ export default function CricketAuctionTool() {
         authUser,
         isTournamentNameSet,
         whatsappSettings,
-        boosterData // Add the missing boosterData parameter
+        boosterData,
+        categoryConfigs // ← Add this parameter
     );
     
     // Auto-save functionality

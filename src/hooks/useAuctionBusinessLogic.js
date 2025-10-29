@@ -16,7 +16,8 @@ export const useAuctionBusinessLogic = (
     authUser = null,
     isTournamentNameSet = false,
     whatsappSettings = {},
-    boosterData = null // Add boosterData parameter
+    boosterData = null, // Add boosterData parameter
+    categoryConfigs = {} // Add categoryConfigs parameter for validation
 ) => {
     // Helper function to calculate adjusted purse including booster points
     const getAdjustedPurse = (teamName, teamData) => {
@@ -33,8 +34,8 @@ export const useAuctionBusinessLogic = (
         return adjustedPurse;
     };
 
-    // Helper function to trigger immediate save after auction actions
-    const triggerAuctionSave = async (actionType, playerName, teamName = null, price = null) => {
+    // Helper function to trigger immediate save after auction actions with specific state
+    const triggerAuctionSaveWithState = async (actionType, playerName, teamName = null, price = null, updatedPlayers = null, updatedTeams = null) => {
         if (!persistence || !authUser?.id || !isTournamentNameSet) {
             console.log('🔄 Skipping auction save - conditions not met:', {
                 hasPersistence: !!persistence,
@@ -46,11 +47,12 @@ export const useAuctionBusinessLogic = (
 
         try {
             const currentState = {
-                players,
-                teams,
+                players: updatedPlayers || players,  // ✅ Use provided state or fallback to current
+                teams: updatedTeams || teams,        // ✅ Use provided state or fallback to current
                 tournamentName,
                 isTournamentNameSet,
                 whatsappSettings,
+                boosterData, // ✅ Include booster data in save
                 auctionStarted: auction.auctionStarted,
                 selectedCategory: auction.selectedCategory,
                 completedCategories: Array.from(auction.completedCategories || [])
@@ -59,7 +61,9 @@ export const useAuctionBusinessLogic = (
             console.log(`🔄 Triggering immediate save after ${actionType}:`, {
                 player: playerName,
                 team: teamName,
-                price: price
+                price: price,
+                playersCount: currentState.players.length,
+                teamsCount: Object.keys(currentState.teams).length
             });
 
             const success = await persistence.saveState(currentState);
@@ -72,6 +76,12 @@ export const useAuctionBusinessLogic = (
         } catch (error) {
             console.error(`❌ Error saving auction progress after ${actionType}:`, error);
         }
+    };
+
+    // Helper function to trigger immediate save after auction actions
+    const triggerAuctionSave = async (actionType, playerName, teamName = null, price = null) => {
+        // Delegate to the enhanced save function
+        await triggerAuctionSaveWithState(actionType, playerName, teamName, price, null, null);
     };
 
     // Sell player logic - Modified to return success/failure status and send WhatsApp notification
@@ -106,17 +116,20 @@ export const useAuctionBusinessLogic = (
         
         const playerName = auction.currentPlayer.name;
         
-        const updated = players.map((p) =>
+        // ✅ Capture the new state values at transaction time
+        const updatedPlayers = players.map((p) =>
             p.id === auction.currentPlayer.id
                 ? { ...p, sold: true, soldTo: teamName, soldPrice: price }
                 : p
         );
-        setPlayers(updated);
         
-        setTeams(teams => {
+        const updatedTeams = (() => {
             const team = teams[teamName];
             if (!team) return teams;
-            const newPurse = team.purse - price;
+            
+            // Use adjustedPurse for deduction to match validation logic
+            const newPurse = adjustedPurse - price;
+            
             // Prevent duplicate players in team
             const alreadyInTeam = team.players.some(p => p.id === auction.currentPlayer.id);
             return {
@@ -130,7 +143,11 @@ export const useAuctionBusinessLogic = (
                         : [...team.players, { ...auction.currentPlayer, soldPrice: price }],
                 },
             };
-        });
+        })();
+        
+        // Update React state
+        setPlayers(updatedPlayers);
+        setTeams(updatedTeams);
         
         auction.setTeamNameInput("");
         auction.setBidAmountInput("");
@@ -156,10 +173,10 @@ export const useAuctionBusinessLogic = (
         // Send WhatsApp notification for sold player
         sendWhatsAppNotification(auction.currentPlayer, teamName, price, tournamentName, false);
         
-        // Trigger immediate save after successful sale
+        // ✅ Save with the captured updated state immediately
         setTimeout(async () => {
-            await triggerAuctionSave('SOLD', playerName, teamName, price);
-        }, 100); // Small delay to ensure state updates are reflected
+            await triggerAuctionSaveWithState('SOLD', playerName, teamName, price, updatedPlayers, updatedTeams);
+        }, 100);
         
         return true; // Sale successful
     };
@@ -178,6 +195,7 @@ export const useAuctionBusinessLogic = (
                 auctionInterfaceRef.current.triggerSoldStamp();
             }
             
+            // ✅ Process auction state immediately without timeouts
             auction.setSoldQueue(q => new Set(q).add(auction.currentPlayer.id));
             if (auction.isUnsoldRound) {
                 auction.setUnsoldQueue(q => {
@@ -186,19 +204,26 @@ export const useAuctionBusinessLogic = (
                     return newSet;
                 });
             }
+            
             // Mark player as ready for next - but don't auto-load next player
             auction.setPlayerProcessed(true);
             auction.setCurrentQueuePointer(ptr => ptr + 1);
             
-            // Check if category is complete after selling this player
-            setTimeout(() => {
-                // Only check completion if we're not in an unsold round, or if we are,
-                // make sure to account for remaining players in the unsold queue
-                if (auction.checkCategoryCompletion()) {
-                    console.log("Category completed! Finishing category...");
-                    auction.finishCategory();
+            // ✅ Check category completion immediately with proper error handling
+            try {
+                if (auction.checkCategoryCompletion) {
+                    const isComplete = auction.checkCategoryCompletion();
+                    if (isComplete) {
+                        console.log("Category completed! Finishing category...");
+                        if (auction.finishCategory) {
+                            auction.finishCategory();
+                        }
+                    }
                 }
-            }, 200); // Increased delay to ensure state updates are processed
+            } catch (error) {
+                console.error("❌ Error checking category completion:", error);
+                showFancyError("Error checking category completion. Please verify auction state.");
+            }
         }
         // If sale failed, do nothing - no animation, player remains in auction
     };
@@ -214,34 +239,40 @@ export const useAuctionBusinessLogic = (
             auctionInterfaceRef.current.triggerUnsoldStamp();
         }
         
-        setPlayers(prevPlayers => {
-            const updated = prevPlayers.map((p) =>
-                p.id === auction.currentPlayer.id
-                    ? { ...p, sold: false, soldTo: "Unsold", soldPrice: 0 }
-                    : p
-            );
-            return updated;
-        });
-        auction.markUnsoldPlayerWithoutNext();
-        // Do NOT show confetti for unsold - the sad animation is handled in AuctionInterface
+        // ✅ Capture the updated state at transaction time
+        const updatedPlayers = players.map((p) =>
+            p.id === auction.currentPlayer.id
+                ? { ...p, sold: false, soldTo: "Unsold", soldPrice: 0 }
+                : p
+        );
         
-        // Send WhatsApp notification for unsold player
-        sendWhatsAppNotification(auction.currentPlayer, '', 0, tournamentName, true);
+        // Update React state
+        setPlayers(updatedPlayers);
         
-        // Trigger immediate save after marking as unsold
-        setTimeout(async () => {
-            await triggerAuctionSave('UNSOLD', playerName);
-        }, 100); // Small delay to ensure state updates are reflected
-        
-        // Check if category is complete after marking this player as unsold
-        setTimeout(() => {
-            // Only check completion if we're not in an unsold round, or if we are,
-            // make sure to account for remaining players in the unsold queue
-            if (auction.checkCategoryCompletion()) {
-                console.log("Category completed! Finishing category...");
-                auction.finishCategory();
+        // ✅ Process auction state immediately
+        try {
+            auction.markUnsoldPlayerWithoutNext();
+            
+            // Send WhatsApp notification for unsold player
+            sendWhatsAppNotification(auction.currentPlayer, '', 0, tournamentName, true);
+            
+            // ✅ Save with captured updated state immediately
+            await triggerAuctionSaveWithState('UNSOLD', playerName, null, null, updatedPlayers, null);
+            
+            // ✅ Check category completion immediately with proper error handling
+            if (auction.checkCategoryCompletion) {
+                const isComplete = auction.checkCategoryCompletion();
+                if (isComplete) {
+                    console.log("Category completed! Finishing category...");
+                    if (auction.finishCategory) {
+                        auction.finishCategory();
+                    }
+                }
             }
-        }, 200); // Increased delay to ensure state updates are processed
+        } catch (error) {
+            console.error("❌ Error processing unsold player:", error);
+            showFancyError("Error processing unsold player. Please try again.");
+        }
     };
 
     return {
