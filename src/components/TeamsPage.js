@@ -3,7 +3,7 @@ import { exportTeamsData, EMOJIS } from "../utils/constants";
 import { WHATSAPP_EMOJIS } from "../utils/whatsappUtils";
 import PlayerSpinWheel from "./PlayerSpinWheel";
 import JerseyColorAssignment from "./JerseyColorAssignment";
-import BoosterPopup from "./BoosterPopup";
+import TeamEditPopup from "./TeamEditPopup";
 
 const TeamsPage = ({ 
     teams, 
@@ -16,14 +16,14 @@ const TeamsPage = ({
     onWhatsAppSettings,
     onTeamWhatsAppShare,
     whatsappSettings,
-    onPlayerEdit, // New prop for handling player edits
-    boosterData, // New prop for booster data
-    onBoosterUpdate // New prop for updating booster data
+    onPlayerEdit,
+    onTeamPurseUpdate,
+    updateTeamPurse
 }) => {
     const [showMenu, setShowMenu] = useState(false);
     const [showPlayerSpin, setShowPlayerSpin] = useState(false);
     const [showJerseyColor, setShowJerseyColor] = useState(false);
-    const [showBooster, setShowBooster] = useState(false);
+    const [showTeamEdit, setShowTeamEdit] = useState(false);
     const [editingPlayer, setEditingPlayer] = useState(null);
     const [showConfirmation, setShowConfirmation] = useState(false);
     const [editForm, setEditForm] = useState({
@@ -44,20 +44,8 @@ const TeamsPage = ({
             .join(' ');
     };
 
-    // Helper function to get adjusted purse including booster points
     const getAdjustedPurse = (teamName, teamData) => {
-        let adjustedPurse = teamData.purse;
-        
-        // Add booster points if available
-        if (boosterData && boosterData.teamBoosters && boosterData.teamBoosters[teamName]) {
-            const teamBooster = boosterData.teamBoosters[teamName];
-            if (teamBooster.selected && teamBooster.boosterCount > 0 && boosterData.pointsPerBooster) {
-                const boosterPoints = teamBooster.boosterCount * boosterData.pointsPerBooster;
-                adjustedPurse += boosterPoints;
-            }
-        }
-        
-        return adjustedPurse;
+        return teamData.purse;
     };
 
     const handleExportTeams = () => {
@@ -150,7 +138,6 @@ const TeamsPage = ({
         setShowMenu(false);
     };
 
-    // Player edit functionality
     const handleEditPlayer = (player, currentTeam) => {
         setEditingPlayer({ ...player, currentTeam });
         setEditForm({
@@ -194,12 +181,10 @@ const TeamsPage = ({
             return;
         }
 
-        // Show confirmation dialog
         setShowConfirmation(true);
     };
 
     const handleConfirmUpdate = () => {
-        // Call the update function passed from parent
         if (onPlayerEdit) {
             onPlayerEdit(editingPlayer, editForm.newTeam, parseInt(editForm.newPrice));
         }
@@ -237,16 +222,9 @@ const TeamsPage = ({
         setShowConfirmation(false);
     };
 
-    const handleApplyBoosters = (boosterDataToSave) => {
-        // Pass the booster data to the parent component for saving
-        if (onBoosterUpdate) {
-            onBoosterUpdate(boosterDataToSave);
-        }
-    };
-
-    const handleBooster = () => {
+    const handleTeamEdit = () => {
         if (Object.keys(teams).length === 0) {
-            showManagedToast('error', 'No teams available for Booster! Please add teams first.', {
+            showManagedToast('error', 'No teams available for editing! Please add teams first.', {
                 style: {
                     border: '2px solid #f59e42',
                     padding: '16px',
@@ -263,7 +241,7 @@ const TeamsPage = ({
             return;
         }
         
-        setShowBooster(true);
+        setShowTeamEdit(true);
         setShowMenu(false);
     };
 
@@ -296,24 +274,24 @@ const TeamsPage = ({
                 {showMenu && (
                     <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-lg shadow-xl border border-gray-200 z-50 animate-fade-in">
                         <div className="py-2">
-                            {/* Booster - First Option */}
+                            {/* Edit Balance - First Option */}
                             <button
-                                onClick={handleBooster}
-                                className="w-full text-left px-4 py-3 hover:bg-orange-50 transition-colors duration-200 flex items-center gap-3"
+                                onClick={handleTeamEdit}
+                                className="w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors duration-200 flex items-center gap-3"
                             >
-                                <span className="text-orange-500">{EMOJIS.ZAP}</span>
-                                <span className="text-gray-700 font-medium">Booster</span>
+                                <span className="text-blue-500">{EMOJIS.EDIT}</span>
+                                <span className="text-gray-700 font-medium">Edit Balance</span>
                             </button>
 
                             {/* Export Teams */}
                             <button
                                 onClick={handleExportTeams}
                                 className={`w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors duration-200 flex items-center gap-3 ${
-                                    Object.keys(teams).length === 0 || Object.values(teams).every(team => team.players.length === 0) 
+                                    Object.keys(teams).length === 0 || Object.values(teams).every(team => (team.players || []).length === 0) 
                                     ? 'opacity-50 cursor-not-allowed' 
                                     : ''
                                 }`}
-                                disabled={Object.keys(teams).length === 0 || Object.values(teams).every(team => team.players.length === 0)}
+                                disabled={Object.keys(teams).length === 0 || Object.values(teams).every(team => (team.players || []).length === 0)}
                             >
                                 <span className="text-blue-500">{EMOJIS.CHART}</span>
                                 <span className="text-gray-700 font-medium">Export Teams</span>
@@ -442,7 +420,8 @@ const TeamsPage = ({
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Transfer to Team</label>
                                 <select
                                     value={editForm.newTeam}
-                                    onChange={(e) => setEditForm(prev => ({ ...prev, newTeam: e.target.value }))}
+                                    onChange={(e) => setEditForm(prev => ({ ...prev, newTeam: e.target.value }))
+                                    }
                                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400"
                                 >
                                     <option value="">Select Team</option>
@@ -459,7 +438,8 @@ const TeamsPage = ({
                                     type="number"
                                     min="1"
                                     value={editForm.newPrice}
-                                    onChange={(e) => setEditForm(prev => ({ ...prev, newPrice: e.target.value }))}
+                                    onChange={(e) => setEditForm(prev => ({ ...prev, newPrice: e.target.value }))
+                                    }
                                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400"
                                     placeholder="Enter new price"
                                 />
@@ -484,14 +464,13 @@ const TeamsPage = ({
                 </div>
             )}
 
-            {/* Booster Popup */}
-            <BoosterPopup
-                isOpen={showBooster}
-                onClose={() => setShowBooster(false)}
+            {/* Team Edit Popup */}
+            <TeamEditPopup
+                isOpen={showTeamEdit}
+                onClose={() => setShowTeamEdit(false)}
                 teams={teams}
+                onUpdateTeamPurse={onTeamPurseUpdate}
                 showManagedToast={showManagedToast}
-                boosterData={boosterData}
-                onApplyBoosters={handleApplyBoosters}
             />
 
             {/* Player Spin Wheel Modal */}
@@ -549,35 +528,18 @@ const TeamsPage = ({
                                                    inset 0 1px 0 rgba(255, 255, 255, 0.6)`
                                     }}
                                 >
-                                    {/* Subtle corner accents */}
-                                    <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-indigo-100 to-transparent rounded-bl-3xl opacity-40"></div>
-                                    <div className="absolute bottom-0 left-0 w-12 h-12 bg-gradient-to-tr from-purple-100 to-transparent rounded-tr-3xl opacity-30"></div>
-                                    
+                                    {/* Team card content */}
                                     <div className="relative z-10">
                                         {/* Team Name Section */}
                                         <div className="mb-4">
                                             <div className="flex items-center justify-between mb-2">
-                                                {/* Team Name - Left aligned and single line */}
                                                 <div className="flex-1 text-left pr-2">
                                                     <h3 className="font-bold text-xl text-slate-700 flex items-center justify-start gap-2 whitespace-nowrap overflow-hidden">
                                                         <span className="text-lg">{EMOJIS.CRICKET_BAT}</span>
                                                         <span className="truncate">{teamName}</span>
                                                     </h3>
                                                 </div>
-                                                {/* WhatsApp Share Button for each team - smaller size */}
-                                                {whatsappSettings && whatsappSettings.enabled && whatsappSettings.groupNumber && (
-                                                    <button
-                                                        onClick={() => onTeamWhatsAppShare(teamName, data)}
-                                                        className="p-1.5 bg-green-500 hover:bg-green-600 text-white rounded-full shadow-lg hover:scale-110 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-400 flex-shrink-0"
-                                                        title={`Share ${teamName} details to WhatsApp`}
-                                                    >
-                                                        <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white" xmlns="http://www.w3.org/2000/svg">
-                                                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.893 3.386"/>
-                                                        </svg>
-                                                    </button>
-                                                )}
                                             </div>
-                                            {/* Owner Name - Left aligned */}
                                             <div className="text-left">
                                                 <p className="text-slate-500 flex items-center justify-start gap-2 text-sm">
                                                     <span className="text-xs">{EMOJIS.PERSON}</span>
@@ -587,39 +549,27 @@ const TeamsPage = ({
                                             </div>
                                         </div>
                                         
-                                        {/* Financial Stats - Distinct Blue Card */}
+                                        {/* Financial Stats */}
                                         <div className="mb-2 p-1 rounded-2xl border border-blue-200" style={{
                                             background: `linear-gradient(135deg, 
                                                 rgba(219, 234, 254, 0.8) 0%, 
                                                 rgba(191, 219, 254, 0.6) 50%, 
-                                                rgba(147, 197, 253, 0.4) 100%)`,
-                                            boxShadow: `inset 0 1px 0 rgba(255, 255, 255, 0.3)`
+                                                rgba(147, 197, 253, 0.4) 100%)`
                                         }}>
                                             <div className="grid grid-cols-1 gap-2">
-                                                {/* Total Points - Original Budget + Boosters */}
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-blue-600 text-lg">{EMOJIS.TROPHY}</span>
                                                         <span className="font-semibold text-blue-800">Total Points</span>
                                                     </div>
                                                     <span className="font-bold text-blue-600 text-lg">{EMOJIS.CURRENCY_RUPEE}{(() => {
-                                                        // Calculate original budget (remaining + spent) + any booster points
-                                                        let originalBudget = data.purse + (data.players.reduce((sum, p) => sum + (p.soldPrice || 0), 0));
-                                                        
-                                                        // Add booster points if available
-                                                        if (boosterData && boosterData.teamBoosters && boosterData.teamBoosters[teamName]) {
-                                                            const teamBooster = boosterData.teamBoosters[teamName];
-                                                            if (teamBooster.selected && teamBooster.boosterCount > 0 && boosterData.pointsPerBooster) {
-                                                                const boosterPoints = teamBooster.boosterCount * boosterData.pointsPerBooster;
-                                                                originalBudget += boosterPoints;
-                                                            }
-                                                        }
-                                                        
-                                                        return originalBudget;
-                                                    })().toLocaleString()}</span>
+                                                        const totalSpent = ((data.players || []).reduce((sum, p) => sum + (p.soldPrice || 0), 0));
+                                                        const currentPurse = data.purse || 0;
+                                                        const initialPurse = data.initialPurse || (currentPurse + totalSpent);
+                                                        return initialPurse.toLocaleString();
+                                                    })()}</span>
                                                 </div>
                                                 
-                                                {/* Points Left - Remaining Budget */}
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-emerald-600 text-lg">{EMOJIS.MONEY_BAG}</span>
@@ -638,8 +588,8 @@ const TeamsPage = ({
                                             </div>
                                         </div>
                                         
-                                        {/* Squad Section - Distinct Green Theme */}
-                                        {data.players.length > 0 ? (
+                                        {/* Squad Section */}
+                                        {data.players && data.players.length > 0 ? (
                                             <div>
                                                 <div className="mb-2 p-1 rounded-xl border border-emerald-200" style={{
                                                     background: `linear-gradient(135deg, 
@@ -651,28 +601,17 @@ const TeamsPage = ({
                                                         Squad ({data.players.length} players)
                                                     </h4>
                                                 </div>
-                                                <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
+                                                <div className="space-y-2 max-h-60 overflow-y-auto">
                                                     {data.players.map((p, idx) => (
-                                                        <div key={idx} className="p-2 rounded-xl border border-gray-200 group hover:bg-gray-50 transition-all duration-200" style={{
-                                                            background: `linear-gradient(135deg, 
-                                                                rgba(255, 255, 255, 0.9) 0%, 
-                                                                rgba(249, 250, 251, 0.8) 100%)`,
-                                                            boxShadow: `0 2px 4px rgba(0, 0, 0, 0.05)`
-                                                        }}>
-                                                            {/* Player Row - Grid Layout for Alignment */}
+                                                        <div key={idx} className="p-2 rounded-xl border border-gray-200 group hover:bg-gray-50 transition-all duration-200">
                                                             <div className="grid grid-cols-12 gap-1 items-center">
-                                                                {/* Player Name Column */}
                                                                 <div className="col-span-4 flex items-center gap-1 min-w-0">
                                                                     <span className="text-xs flex-shrink-0">{EMOJIS.PERSON}</span>
-                                                                    <span 
-                                                                        className="font-semibold text-gray-800 truncate text-sm"
-                                                                        title={p.name}
-                                                                    >
+                                                                    <span className="font-semibold text-gray-800 truncate text-sm" title={p.name}>
                                                                         {toCamelCase(p.name.length > 10 ? `${p.name.substring(0, 10)}..` : p.name)}
                                                                     </span>
                                                                 </div>
                                                                 
-                                                                {/* Category Column */}
                                                                 <div className="col-span-3 text-center">
                                                                     {p.category && (
                                                                         <span className="text-purple-600 bg-purple-50 px-1 py-0.5 rounded text-xs font-medium">
@@ -681,7 +620,6 @@ const TeamsPage = ({
                                                                     )}
                                                                 </div>
                                                                 
-                                                                {/* Price Column - Increased width and removed emoji */}
                                                                 <div className="col-span-4 text-right">
                                                                     <span className="text-emerald-600 font-bold px-1 py-0.5 rounded text-xs whitespace-nowrap" style={{
                                                                         background: `rgba(209, 250, 229, 0.8)`,
@@ -691,7 +629,6 @@ const TeamsPage = ({
                                                                     </span>
                                                                 </div>
                                                                 
-                                                                {/* Edit Button Column */}
                                                                 <div className="col-span-1 text-center">
                                                                     <button
                                                                         onClick={() => handleEditPlayer(p, teamName)}
@@ -707,11 +644,7 @@ const TeamsPage = ({
                                                 </div>
                                             </div>
                                         ) : (
-                                            <div className="text-center py-8 p-4 rounded-xl border border-gray-200" style={{
-                                                background: `linear-gradient(135deg, 
-                                                    rgba(243, 244, 246, 0.6) 0%, 
-                                                    rgba(249, 250, 251, 0.8) 100%)`
-                                            }}>
+                                            <div className="text-center py-8 p-4 rounded-xl border border-gray-200">
                                                 <div className="text-4xl mb-3 opacity-40">{EMOJIS.MAILBOX}</div>
                                                 <p className="text-gray-600 font-medium">No players yet</p>
                                                 <p className="text-gray-500 text-sm mt-1">Start bidding to build your squad!</p>
@@ -751,24 +684,6 @@ const TeamsPage = ({
                         opacity: 1;
                         transform: translateY(0);
                     }
-                }
-                
-                .custom-scrollbar::-webkit-scrollbar {
-                    width: 4px;
-                }
-                
-                .custom-scrollbar::-webkit-scrollbar-track {
-                    background: #f1f5f9;
-                    border-radius: 2px;
-                }
-                
-                .custom-scrollbar::-webkit-scrollbar-thumb {
-                    background: #cbd5e1;
-                    border-radius: 2px;
-                }
-                
-                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-                    background: #94a3b8;
                 }
             `}</style>
         </div>

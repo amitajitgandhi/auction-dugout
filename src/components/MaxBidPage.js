@@ -61,9 +61,11 @@ const MaxBidPage = ({
                 const basePrice = parseInt(config?.basePrice, 10) || 0;
                 const playersAllowed = parseInt(config?.playersPerCategory, 10) || 0;
                 
-                // Count players already bought in this category
-                const playersBought = teamData.players.filter(p => 
-                    (p.category || 'OPEN') === categoryName
+                // ? FIXED: Count players bought from the actual players array, not teamData.players
+                const playersBought = players.filter(p => 
+                    (p.category || 'OPEN') === categoryName && 
+                    p.soldTo === teamName && 
+                    p.sold === true
                 ).length;
                 
                 // Calculate remaining players to buy in this category
@@ -110,7 +112,7 @@ const MaxBidPage = ({
                 playersToBuy: teamData.playersToBuy
             };
         });
-    }, [teams, categoryConfigs, availableCategories, selectedCategoryForAnalysis, boosterData]);
+    }, [teams, categoryConfigs, availableCategories, selectedCategoryForAnalysis, boosterData, players]); // ? FIXED: Added players to dependency array
 
     // Sort teams by highest max bid (default sorting)
     const sortedTeams = useMemo(() => {

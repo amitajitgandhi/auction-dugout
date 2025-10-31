@@ -20,7 +20,7 @@ export const EMOJIS = {
     CROSS_MARK: String.fromCodePoint(0x274C),
     PARTY: String.fromCodePoint(0x1F389),
     BULLET: String.fromCodePoint(0x2022),
-    CURRENCY_RUPEE: String.fromCodePoint(0x1F4B0), // ?? Money bag emoji
+    CURRENCY_RUPEE: String.fromCodePoint(0x1F4B0), // Money bag emoji
     SPARKLES: String.fromCodePoint(0x2728),
     STAR: String.fromCodePoint(0x2B50),
     DIZZY: String.fromCodePoint(0x1F4AB),
@@ -41,7 +41,9 @@ export const EMOJIS = {
     JERSEY: String.fromCodePoint(0x1F455), // Shirt emoji for jersey
     SAVEDISK: String.fromCodePoint(0x1F4BE), // Floppy disk emoji for save
     FAILURE: String.fromCodePoint(0x1F4A5), // Collision emoji for failure
-    PENCIL: String.fromCodePoint(0x270F, 0xFE0F) // Pencil emoji for edit
+    PENCIL: String.fromCodePoint(0x270F, 0xFE0F), // Pencil emoji for edit
+    EDIT: String.fromCodePoint(0x270F, 0xFE0F), // Pencil emoji for edit (alias)
+    ARCHIVE: String.fromCodePoint(0x1F4C6) // Archive box emoji
 };
 
 // Helper to shuffle an array
@@ -85,7 +87,7 @@ export const getBackupPlayerImage = () => {
 // Progressive image error handler with multiple fallback strategies
 export const handleImageError = (e) => {
     const originalSrc = e.target.src;
-    console.error('? Image failed to load:', originalSrc);
+    console.error('?? Image failed to load:', originalSrc);
     
     // Prevent infinite loops by checking what we've already tried
     const currentState = e.target.dataset.fallbackState || 'original';
@@ -134,7 +136,7 @@ export const handleImageError = (e) => {
             
         case 'backup':
             // Final fallback: Replace with a div
-            console.error('?? All image fallbacks failed, replacing with div');
+            console.error('? All image fallbacks failed, replacing with div');
             const parent = e.target.parentElement;
             if (parent) {
                 parent.innerHTML = `
@@ -152,7 +154,7 @@ export const handleImageError = (e) => {
             return;
             
         default:
-            console.error('?? Unknown fallback state:', currentState);
+            console.error('? Unknown fallback state:', currentState);
             e.target.src = getDefaultPlayerImage();
             e.target.dataset.fallbackState = 'default';
     }

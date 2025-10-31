@@ -1,4 +1,10 @@
-﻿import { useRef, useEffect } from 'react';
+﻿import { useState, useCallback } from 'react';
+import { 
+    processPlayerPurchase, 
+    processPlayerTransfer, 
+    getTeamInfo, 
+    updateTeamInitialPurse // ✅ UPDATED: Import the new function for initial purse updates
+} from '../utils/centralizedTeamData';
 import { EMOJIS } from '../utils/constants';
 
 export const useAuctionBusinessLogic = (
@@ -8,7 +14,7 @@ export const useAuctionBusinessLogic = (
     setTeams, 
     auction, 
     showFancyError, 
-    showManagedToast, // Added missing parameter
+    showManagedToast,
     sendWhatsAppNotification, 
     tournamentName,
     auctionInterfaceRef,
@@ -16,268 +22,254 @@ export const useAuctionBusinessLogic = (
     authUser = null,
     isTournamentNameSet = false,
     whatsappSettings = {},
-    boosterData = null, // Add boosterData parameter
-    categoryConfigs = {} // Add categoryConfigs parameter for validation
+    categoryConfigs = {}
 ) => {
-    // Helper function to calculate adjusted purse including booster points
-    const getAdjustedPurse = (teamName, teamData) => {
-        let adjustedPurse = teamData.purse;
-        
-        // Add booster points if available
-        if (boosterData && boosterData.teamBoosters && boosterData.teamBoosters[teamName]) {
-            const teamBooster = boosterData.teamBoosters[teamName];
-            if (teamBooster.selected && teamBooster.boosterCount > 0 && boosterData.pointsPerBooster) {
-                const boosterPoints = teamBooster.boosterCount * boosterData.pointsPerBooster;
-                adjustedPurse += boosterPoints;
-            }
-        }
-        return adjustedPurse;
-    };
+    const [isSaving, setIsSaving] = useState(false);
 
-    // Helper function to trigger immediate save after auction actions with specific state
-    const triggerAuctionSaveWithState = async (actionType, playerName, teamName = null, price = null, updatedPlayers = null, updatedTeams = null) => {
-        if (!persistence || !authUser?.id || !isTournamentNameSet) {
-            console.log('🔄 Skipping auction save - conditions not met:', {
-                hasPersistence: !!persistence,
-                hasUser: !!authUser?.id,
-                tournamentSet: isTournamentNameSet
-            });
+    // ✅ CENTRALIZED: Function to save auction progress with enhanced error handling
+    const triggerAuctionSaveWithState = async (action, description, teamName, bidAmount, updatedPlayers = null, updatedTeams = null) => {
+        if (!authUser?.id || !isTournamentNameSet || isSaving) {
             return;
         }
 
         try {
+            setIsSaving(true);
+            
             const currentState = {
-                players: updatedPlayers || players,  // ✅ Use provided state or fallback to current
-                teams: updatedTeams || teams,        // ✅ Use provided state or fallback to current
+                players: updatedPlayers || players,
+                teams: updatedTeams || teams,
                 tournamentName,
                 isTournamentNameSet,
                 whatsappSettings,
-                boosterData, // ✅ Include booster data in save
+                categoryConfigs,
                 auctionStarted: auction.auctionStarted,
                 selectedCategory: auction.selectedCategory,
                 completedCategories: Array.from(auction.completedCategories || [])
             };
-
-            console.log(`🔄 Triggering immediate save after ${actionType}:`, {
-                player: playerName,
-                team: teamName,
-                price: price,
-                playersCount: currentState.players.length,
-                teamsCount: Object.keys(currentState.teams).length
-            });
-
-            const success = await persistence.saveState(currentState);
             
-            if (success) {
-                console.log(`✅ Auction progress saved after ${actionType}`);
-            } else {
-                console.error(`❌ Failed to save auction progress after ${actionType}`);
-            }
+            await persistence.saveState(currentState);
+            console.log(`🔄 ${action} - Progress saved:`, description);
+            
         } catch (error) {
-            console.error(`❌ Error saving auction progress after ${actionType}:`, error);
+            console.error('❌ Failed to save progress:', error);
+        } finally {
+            setIsSaving(false);
         }
     };
 
-    // Helper function to trigger immediate save after auction actions
-    const triggerAuctionSave = async (actionType, playerName, teamName = null, price = null) => {
-        // Delegate to the enhanced save function
-        await triggerAuctionSaveWithState(actionType, playerName, teamName, price, null, null);
-    };
-
-    // Sell player logic - Modified to return success/failure status and send WhatsApp notification
-    const sellPlayer = async (teamName, price) => {
-        if (!auction.currentPlayer) return false;
-        if (!teamName || isNaN(price) || price <= 0) {
-            showFancyError("Please enter a valid team name and bid amount.");
-            return false;
-        }
-        const team = teams[teamName];
-        if (!team) {
-            showFancyError("Team not found.");
-            return false;
-        }
+    // ✅ CENTRALIZED: Function to handle player sales using centralized team data management
+    const sellPlayer = useCallback(async (playerName, teamName, bidAmount) => {
+        const updatedTeams = processPlayerPurchase(teams, teamName, { name: playerName }, bidAmount);
         
-        // Use adjusted purse that includes booster points
-        const adjustedPurse = getAdjustedPurse(teamName, team);
-        if (price > adjustedPurse) {
-            const boosterInfo = boosterData && boosterData.teamBoosters && boosterData.teamBoosters[teamName] 
-                ? ` (including ${boosterData.teamBoosters[teamName].boosterCount || 0} booster)`
-                : '';
-            console.log(`❌ Bid of ${price} exceeds adjusted purse of ${adjustedPurse} for team ${teamName}`);
-            console.log('Booster Data:', boosterData);
-            showFancyError(`Bid exceeds team's available budget ${boosterInfo}.`);
-            return false;
-        }
-        
-        if (team.playersToBuy <= 0) {
-            showFancyError("This team cannot buy more players. Player limit reached. Please select a different team.");
-            return false;
-        }
-        
-        const playerName = auction.currentPlayer.name;
-        
-        // ✅ Capture the new state values at transaction time
-        const updatedPlayers = players.map((p) =>
-            p.id === auction.currentPlayer.id
-                ? { ...p, sold: true, soldTo: teamName, soldPrice: price }
-                : p
-        );
-        
-        const updatedTeams = (() => {
-            const team = teams[teamName];
-            if (!team) return teams;
-            
-            // Use adjustedPurse for deduction to match validation logic
-            const newPurse = adjustedPurse - price;
-            
-            // Prevent duplicate players in team
-            const alreadyInTeam = team.players.some(p => p.id === auction.currentPlayer.id);
+        if (!updatedTeams) {
             return {
-                ...teams,
-                [teamName]: {
-                    ...team,
-                    purse: newPurse,
-                    playersToBuy: team.playersToBuy - 1,
-                    players: alreadyInTeam
-                        ? team.players
-                        : [...team.players, { ...auction.currentPlayer, soldPrice: price }],
-                },
+                success: false,
+                message: "Failed to process purchase. Please check team budget and player limits."
             };
-        })();
-        
-        // Update React state
+        }
+
+        // ✅ FIXED: Update players state to mark as sold with sold: true property
+        const updatedPlayers = players.map(player =>
+            player.name === playerName 
+                ? { ...player, soldTo: teamName, soldPrice: bidAmount, sold: true }
+                : player
+        );
+
         setPlayers(updatedPlayers);
         setTeams(updatedTeams);
         
-        auction.setTeamNameInput("");
-        auction.setBidAmountInput("");
-        auction.setShowConfetti(true);
-        setTimeout(() => auction.setShowConfetti(false), 4000);
-        
-        // Add toast notification for sale announcement
-        showManagedToast('success', 
-            `${auction.currentPlayer.name} sold to ${teamName} for ${EMOJIS.CURRENCY_RUPEE}${price.toLocaleString()}!`, {
-            style: {
-                border: '2px solid #10b981',
-                padding: '16px',
-                color: '#047857',
-                fontWeight: 'bold',
-                fontSize: '1.1rem',
-                background: 'linear-gradient(90deg, #d1fae5 0%, #ecfdf5 100%)',
-                boxShadow: '0 4px 24px 0 #10b981',
-            },
-            icon: EMOJIS.PARTY,
-            duration: 4000,
-        });
-        
-        // Send WhatsApp notification for sold player
-        sendWhatsAppNotification(auction.currentPlayer, teamName, price, tournamentName, false);
-        
-        // ✅ Save with the captured updated state immediately
-        setTimeout(async () => {
-            await triggerAuctionSaveWithState('SOLD', playerName, teamName, price, updatedPlayers, updatedTeams);
-        }, 100);
-        
-        return true; // Sale successful
-    };
+        // Trigger autosave after successful sale
+        await triggerAuctionSaveWithState('PLAYER_SOLD', `${playerName} sold to ${teamName}`, teamName, bidAmount, updatedPlayers, updatedTeams);
 
-    // Mark as Sold - Modified to only process player if sale is successful and trigger animation
-    const handleMarkSold = async (teamName, price) => {
-        if (!auction.currentPlayer) return;
+        return { 
+            success: true, 
+            message: `${playerName} successfully sold to ${teamName} for ${bidAmount.toLocaleString()}!`,
+            updatedTeams,
+            updatedPlayers
+        };
+    }, [players, teams, setPlayers, setTeams, triggerAuctionSaveWithState]);
+
+    // ✅ CENTRALIZED: Enhanced handleMarkSold with better error handling
+    const handleMarkSold = async () => {
+        if (!auction.currentPlayer) {
+            showFancyError("No current player selected for auction.");
+            return;
+        }
+
+        if (!auction.teamNameInput?.trim()) {
+            showFancyError("Please enter the team name that bought the player.");
+            return;
+        }
+
+        if (!auction.bidAmountInput || auction.bidAmountInput <= 0) {
+            showFancyError("Please enter a valid bid amount.");
+            return;
+        }
+
+        const bidAmount = parseInt(auction.bidAmountInput);
+        const teamName = auction.teamNameInput.trim();
+
+        // Check if team exists
+        if (!teams[teamName]) {
+            showFancyError(`Team "${teamName}" does not exist. Please check the team name and try again.`);
+            return;
+        }
+
+        // Validate purchase using centralized logic
+        const teamInfo = getTeamInfo(teams[teamName], teamName);
+        if (bidAmount > teamInfo.currentPurse) {
+            showFancyError(`${teamName} has insufficient funds. Available: ${teamInfo.currentPurse.toLocaleString()}, Required: ${bidAmount.toLocaleString()}`);
+            return;
+        }
+
+        if (teamInfo.playersLeft <= 0) {
+            showFancyError(`${teamName} has reached the maximum player limit.`);
+            return;
+        }
+
+        // Process the sale
+        const saleResult = await sellPlayer(auction.currentPlayer.name, teamName, bidAmount);
         
-        // Attempt to sell the player
-        const saleSuccessful = await sellPlayer(teamName, price);
-        
-        // Only proceed with processing if the sale was successful
-        if (saleSuccessful) {
-            // Trigger SOLD stamp animation after successful validation
-            if (auctionInterfaceRef.current) {
-                auctionInterfaceRef.current.triggerSoldStamp();
+        if (saleResult.success) {
+            showManagedToast('success', saleResult.message, {
+                style: {
+                    border: '2px solid #10b981',
+                    padding: '16px',
+                    color: '#065f46',
+                    fontWeight: 'bold',
+                    fontSize: '1.1rem',
+                    background: 'linear-gradient(90deg, #d1fae5 0%, #a7f3d0 100%)',
+                    boxShadow: '0 4px 24px 0 #10b981',
+                },
+                icon: '🏏',
+                duration: 4000,
+            });
+
+            // Send WhatsApp notification if configured
+            if (whatsappSettings.enabled && whatsappSettings.sendPlayerUpdates) {
+                sendWhatsAppNotification(
+                    `🏏 PLAYER SOLD!\n\n` +
+                    `Player: ${auction.currentPlayer.name}\n` +
+                    `Team: ${teamName}\n` +
+                    `Price: ₹${bidAmount.toLocaleString()}\n` +
+                    `Category: ${auction.selectedCategory}\n\n` +
+                    `Tournament: ${tournamentName}`
+                );
             }
-            
-            // ✅ Process auction state immediately without timeouts
-            auction.setSoldQueue(q => new Set(q).add(auction.currentPlayer.id));
-            if (auction.isUnsoldRound) {
-                auction.setUnsoldQueue(q => {
-                    const newSet = new Set(q);
-                    newSet.delete(auction.currentPlayer.id);
-                    return newSet;
-                });
-            }
-            
-            // Mark player as ready for next - but don't auto-load next player
+
+            // ✅ FIXED: Mark player as processed and add to sold queue, let UI show "Next Player" button
+            auction.setSoldQueue(prev => new Set(prev).add(auction.currentPlayer.id));
             auction.setPlayerProcessed(true);
-            auction.setCurrentQueuePointer(ptr => ptr + 1);
             
-            // ✅ Check category completion immediately with proper error handling
-            try {
-                if (auction.checkCategoryCompletion) {
-                    const isComplete = auction.checkCategoryCompletion();
-                    if (isComplete) {
-                        console.log("Category completed! Finishing category...");
-                        if (auction.finishCategory) {
-                            auction.finishCategory();
-                        }
-                    }
-                }
-            } catch (error) {
-                console.error("❌ Error checking category completion:", error);
-                showFancyError("Error checking category completion. Please verify auction state.");
-            }
+            // Clear inputs
+            auction.setBidAmountInput('');
+            auction.setTeamNameInput('');
+        } else {
+            showFancyError(saleResult.message);
         }
-        // If sale failed, do nothing - no animation, player remains in auction
     };
 
-    // Mark as Unsold - Modified to trigger animation after processing and send WhatsApp notification
+    // ✅ CENTRALIZED: Enhanced handleMarkUnsold
     const handleMarkUnsold = async () => {
-        if (!auction.currentPlayer) return;
-        
-        const playerName = auction.currentPlayer.name;
-        
-        // Trigger UNSOLD stamp animation
-        if (auctionInterfaceRef.current) {
-            auctionInterfaceRef.current.triggerUnsoldStamp();
+        if (!auction.currentPlayer) {
+            showFancyError("No current player selected for auction.");
+            return;
         }
-        
-        // ✅ Capture the updated state at transaction time
-        const updatedPlayers = players.map((p) =>
-            p.id === auction.currentPlayer.id
-                ? { ...p, sold: false, soldTo: "Unsold", soldPrice: 0 }
-                : p
+
+        // ✅ FIXED: Mark player as unsold in the players array with sold: false property
+        const updatedPlayers = players.map(player =>
+            player.name === auction.currentPlayer.name 
+                ? { ...player, soldTo: 'Unsold', soldPrice: 0, sold: false }
+                : player
         );
-        
-        // Update React state
+
         setPlayers(updatedPlayers);
         
-        // ✅ Process auction state immediately
-        try {
-            auction.markUnsoldPlayerWithoutNext();
-            
-            // Send WhatsApp notification for unsold player
-            sendWhatsAppNotification(auction.currentPlayer, '', 0, tournamentName, true);
-            
-            // ✅ Save with captured updated state immediately
-            await triggerAuctionSaveWithState('UNSOLD', playerName, null, null, updatedPlayers, null);
-            
-            // ✅ Check category completion immediately with proper error handling
-            if (auction.checkCategoryCompletion) {
-                const isComplete = auction.checkCategoryCompletion();
-                if (isComplete) {
-                    console.log("Category completed! Finishing category...");
-                    if (auction.finishCategory) {
-                        auction.finishCategory();
-                    }
-                }
-            }
-        } catch (error) {
-            console.error("❌ Error processing unsold player:", error);
-            showFancyError("Error processing unsold player. Please try again.");
+        // Save progress after marking unsold
+        await triggerAuctionSaveWithState('PLAYER_UNSOLD', `${auction.currentPlayer.name} marked as unsold`, 'Unsold', 0, updatedPlayers);
+
+        showManagedToast('info', `${auction.currentPlayer.name} marked as unsold and will be available in the next round.`, {
+            style: {
+                border: '2px solid #f59e42',
+                padding: '16px',
+                color: '#92400e',
+                fontWeight: 'bold',
+                fontSize: '1rem',
+                background: 'linear-gradient(90deg, #fef3c7 0%, #fde68a 100%)',
+                boxShadow: '0 4px 24px 0 #fbbf24',
+            },
+            icon: '⏸️',
+            duration: 3000,
+        });
+
+        // ✅ FIXED: Use markUnsoldPlayerWithoutNext to set processed state, let UI show "Next Player" button
+        auction.markUnsoldPlayerWithoutNext();
+        
+        // Clear inputs
+        auction.setBidAmountInput('');
+        auction.setTeamNameInput('');
+    };
+
+    // ✅ UPDATED: Use new updateTeamInitialPurse function for Edit Balance
+    const handleUpdateTeamPurse = (teamName, newPurse) => {
+        const updatedTeams = updateTeamInitialPurse(teams, teamName, newPurse);
+        
+        if (updatedTeams === teams) {
+            showFancyError("Failed to update team purse. Please check the values and try again.");
+            return false;
         }
+
+        setTeams(updatedTeams);
+        
+        // Save the updated state
+        setTimeout(async () => {
+            await triggerAuctionSaveWithState('PURSE_UPDATE', `Team ${teamName} purse updated`, teamName, newPurse, null, updatedTeams);
+        }, 100);
+
+        return true;
+    };
+
+    // ✅ CENTRALIZED: Function to handle player transfers using centralized management
+    const handlePlayerTransfer = (player, fromTeam, toTeam, newPrice) => {
+        const updatedTeams = processPlayerTransfer(teams, player, fromTeam, toTeam, newPrice);
+        
+        if (!updatedTeams) {
+            showFancyError("Failed to transfer player. Please check team budgets and try again.");
+            return false;
+        }
+
+        // ✅ FIXED: Update players state with sold: true for transfers
+        const updatedPlayers = players.map(p => 
+            (p.id === player.id || p.name === player.name) 
+                ? { ...p, soldTo: toTeam, soldPrice: newPrice, sold: true }
+                : p
+        );
+
+        setPlayers(updatedPlayers);
+        setTeams(updatedTeams);
+        
+        // Save the updated state
+        setTimeout(async () => {
+            await triggerAuctionSaveWithState('PLAYER_TRANSFER', `${player.name} transferred from ${fromTeam} to ${toTeam}`, toTeam, newPrice, updatedPlayers, updatedTeams);
+        }, 100);
+
+        return true;
+    };
+
+    // ✅ CENTRALIZED: Get team budget info using centralized calculations
+    const getTeamBudgetInfo = (teamName) => {
+        const team = teams[teamName];
+        if (!team) return null;
+        
+        return getTeamInfo(team, teamName);
     };
 
     return {
         sellPlayer,
         handleMarkSold,
-        handleMarkUnsold
+        handleMarkUnsold,
+        handleUpdateTeamPurse,      // ✅ UPDATED: Now uses updateTeamInitialPurse for Edit Balance
+        handlePlayerTransfer,       // ✅ CENTRALIZED: Player transfers
+        getTeamBudgetInfo          // ✅ CENTRALIZED: Team budget calculations
     };
 };
