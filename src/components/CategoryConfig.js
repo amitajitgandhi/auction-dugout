@@ -150,11 +150,11 @@ const CategoryConfig = ({
 
             // Specific visual validation conditions
             // Highlight Players to Buy field as red ONLY when exceeds total players in category
-            if (playersPerCategory >= totalPlayersInCategory) {
+            if (playersPerCategory <= 0) {
                 isValid = false;
                 criteriaStatus.validPlayerCounts = false;
                 fieldErrors[cat].playersPerCategory = true;
-                errors.push(`${cat}: Players to buy (${playersPerCategory}) cannot exceed total players in category (${totalPlayersInCategory})`);
+                errors.push(`${cat}: Players to buy (${playersPerCategory}) should be more than 0 in category (${totalPlayersInCategory})`);
             }
 
             // Highlight Base Price field as red ONLY when exceeds team budget
@@ -384,7 +384,7 @@ const CategoryConfig = ({
                         <tr className="bg-gray-100">
                             <th className="border border-gray-300 px-4 py-2 text-left font-medium text-gray-800">Category</th>
                             <th className="border border-gray-300 px-4 py-2 text-left font-medium text-gray-800">Total Players</th>
-                            <th className="border border-gray-300 px-4 py-2 text-left font-medium text-gray-800">Players to Buy</th>
+                            <th className="border border-gray-300 px-4 py-2 text-left font-medium text-gray-800">Min. Players to Buy</th>
                             <th className="border border-gray-300 px-4 py-2 text-left font-medium text-gray-800">Base Price</th>
                         </tr>
                     </thead>
@@ -462,7 +462,7 @@ const CategoryConfig = ({
                                             {/* Players to Buy Input */}
                                             <div className="lg:col-span-2">
                                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                    Players to Buy
+                                                    Min. Players to Buy
                                                 </label>
                                                 <input
                                                     type="number"

@@ -59,10 +59,13 @@ export const useAuctionBusinessLogic = (
 
     // ✅ CENTRALIZED: Function to handle player sales using centralized team data management
     const sellPlayer = useCallback(async (playerName, teamName, bidAmount) => {
-        const updatedTeams = processPlayerPurchase(teams, teamName, { name: playerName }, bidAmount);
-        
+        const playerObj = players.find(p => p.name === playerName);
+        if (!playerObj) {
+            return { success: false, message: `Player ${playerName} not found.` };
+        }
+        const updatedTeams = processPlayerPurchase(teams, teamName, playerObj, bidAmount);
         if (!updatedTeams) {
-            return {
+            return { 
                 success: false,
                 message: "Failed to process purchase. Please check team budget and player limits."
             };
@@ -164,6 +167,13 @@ export const useAuctionBusinessLogic = (
             // Clear inputs
             auction.setBidAmountInput('');
             auction.setTeamNameInput('');
+
+            // Advance pointer and pick next player or finish
+            auction.setCurrentQueuePointer(ptr => ptr + 1);
+            const next = auction.isLastPlayerInQueue;
+            if (next) {
+                auction.finishCategory();
+            }
         } else {
             showFancyError(saleResult.message);
         }
@@ -176,19 +186,16 @@ export const useAuctionBusinessLogic = (
             return;
         }
 
-        // ✅ FIXED: Mark player as unsold in the players array with sold: false property
+        // Mark player as unsold with wasUnsold flag retained for later display
         const updatedPlayers = players.map(player =>
             player.name === auction.currentPlayer.name 
-                ? { ...player, soldTo: 'Unsold', soldPrice: 0, sold: false }
+                ? { ...player, soldTo: 'Unsold', soldPrice: 0, sold: false, wasUnsold: true }
                 : player
         );
 
         setPlayers(updatedPlayers);
-        
-        // Save progress after marking unsold
         await triggerAuctionSaveWithState('PLAYER_UNSOLD', `${auction.currentPlayer.name} marked as unsold`, 'Unsold', 0, updatedPlayers);
-
-        showManagedToast('info', `${auction.currentPlayer.name} marked as unsold and will be available in the next round.`, {
+        showManagedToast('info', `${auction.currentPlayer.name} marked as unsold.`, {
             style: {
                 border: '2px solid #f59e42',
                 padding: '16px',
@@ -201,13 +208,20 @@ export const useAuctionBusinessLogic = (
             icon: '⏸️',
             duration: 3000,
         });
-
-        // ✅ FIXED: Use markUnsoldPlayerWithoutNext to set processed state, let UI show "Next Player" button
         auction.markUnsoldPlayerWithoutNext();
-        
-        // Clear inputs
         auction.setBidAmountInput('');
         auction.setTeamNameInput('');
+    };
+
+    // Sell Unsold Player later (keep wasUnsold flag)
+    const sellUnsoldPlayerLater = async (playerObj, teamName, bidAmount) => {
+        const updatedTeams = processPlayerPurchase(teams, teamName, playerObj, bidAmount);
+        if (!updatedTeams) return { success: false, message: 'Failed to process purchase. Budget or limit issue.' };
+        const updatedPlayers = players.map(p => p.id === playerObj.id ? { ...p, soldTo: teamName, soldPrice: bidAmount, sold: true, wasUnsold: p.wasUnsold || true } : p);
+        setPlayers(updatedPlayers);
+        setTeams(updatedTeams);
+        setTimeout(async () => { await triggerAuctionSaveWithState('UNSOLD_PLAYER_SOLD', `${playerObj.name} sold later to ${teamName}`, teamName, bidAmount, updatedPlayers, updatedTeams); }, 100);
+        return { success: true };
     };
 
     // ✅ UPDATED: Use new updateTeamInitialPurse function for Edit Balance
@@ -268,6 +282,7 @@ export const useAuctionBusinessLogic = (
         sellPlayer,
         handleMarkSold,
         handleMarkUnsold,
+        sellUnsoldPlayerLater, // new function
         handleUpdateTeamPurse,      // ✅ UPDATED: Now uses updateTeamInitialPurse for Edit Balance
         handlePlayerTransfer,       // ✅ CENTRALIZED: Player transfers
         getTeamBudgetInfo          // ✅ CENTRALIZED: Team budget calculations

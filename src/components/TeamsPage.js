@@ -18,7 +18,8 @@ const TeamsPage = ({
     whatsappSettings,
     onPlayerEdit,
     onTeamPurseUpdate,
-    updateTeamPurse
+    updateTeamPurse,
+    onViewUnsoldPlayers // ...new prop
 }) => {
     const [showMenu, setShowMenu] = useState(false);
     const [showPlayerSpin, setShowPlayerSpin] = useState(false);
@@ -245,6 +246,13 @@ const TeamsPage = ({
         setShowMenu(false);
     };
 
+    const handleViewUnsoldPlayers = () => {
+        if (onViewUnsoldPlayers) {
+            onViewUnsoldPlayers();
+            setShowMenu(false);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-800 to-gray-900 bg-fixed relative overflow-x-hidden">
             {/* Tournament Name Ticker */}
@@ -274,6 +282,15 @@ const TeamsPage = ({
                 {showMenu && (
                     <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-lg shadow-xl border border-gray-200 z-50 animate-fade-in">
                         <div className="py-2">
+                            {/* Unsold Players navigation */}
+                            <button
+                                onClick={handleViewUnsoldPlayers}
+                                className="w-full text-left px-4 py-3 hover:bg-red-50 transition-colors duration-200 flex items-center gap-3"
+                            >
+                                <span className="text-red-500">{EMOJIS.CROSS_MARK}</span>
+                                <span className="text-gray-700 font-medium">Unsold Players</span>
+                            </button>
+
                             {/* Edit Balance - First Option */}
                             <button
                                 onClick={handleTeamEdit}
@@ -497,7 +514,7 @@ const TeamsPage = ({
                     {/* Header Section */}
                     <div className="mb-8 text-center">
                         <h1 className="text-4xl md:text-5xl font-extrabold mb-4 text-white drop-shadow-lg bg-gradient-to-r from-emerald-400 via-cyan-500 to-blue-500 bg-clip-text text-transparent">
-                            {EMOJIS.TROPHY} Teams Summary
+                            {EMOJIS.TROPHY} EPPL 2025 SQUAD {EMOJIS.TROPHY} 
                         </h1>
                         <p className="text-gray-300 text-lg mb-6">Complete overview of all teams squad and budget</p>
                         

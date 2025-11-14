@@ -43,7 +43,6 @@ const CategorySelection = ({
                     ) : (
                         <div className="text-center py-8">
                             <div className="text-6xl mb-4">{EMOJIS.PARTY}</div>
-                            <h3 className="text-xl font-bold text-purple-800 mb-2">Congratulations!</h3>
                             <p className="text-gray-600 mb-4">All categories have been completed!</p>
                             <div className="space-y-3">
                                 {onViewTeams && (
