@@ -487,7 +487,7 @@ export default function CricketAuctionTool() {
         )}
         <div className="flex-1 flex flex-col justify-center items-center">
           <h1 className="text-4xl md:text-6xl font-extrabold mb-8 text-center text-white drop-shadow-lg bg-gradient-to-r from-yellow-400 via-red-500 to-pink-500 bg-clip-text text-transparent px-6 py-4 rounded-xl mt-8 shadow-lg border-4 border-yellow-300 animate-pulse">
-            {EMOJIS.CRICKET_BAT} EPPL 2025 Auction {EMOJIS.TROPHY}
+            {EMOJIS.CRICKET_BAT} Auction Dugout {EMOJIS.TROPHY}
           </h1>
           <div className="w-full max-w-4xl mx-auto">
             {!isTournamentNameSet && (
@@ -528,6 +528,7 @@ export default function CricketAuctionTool() {
                 currentCategoryUnsoldCount={auction.currentCategoryUnsoldCount}
                 onViewTeams={goToTeamsPage}
                 onViewMaxBid={goToMaxBidPage}
+                onViewUnsoldPlayers={goToUnsoldPlayersPage} // NEW PROP
                 selectedCategory={auction.selectedCategory}
                 round={auction.round}
                 isUnsoldRound={auction.isUnsoldRound}

@@ -19,6 +19,7 @@ const AuctionInterface = forwardRef(({
     currentCategoryUnsoldCount,
     onViewTeams,
     onViewMaxBid,
+    onViewUnsoldPlayers, // NEW PROP
     selectedCategory,
     round,
     isUnsoldRound,
@@ -48,21 +49,12 @@ const AuctionInterface = forwardRef(({
     // Reset animations for new player
     useEffect(() => {
         if (currentPlayer) {
-            console.log('=== PLAYER CHANGE DEBUG ===');
-            console.log('Current player:', currentPlayer.name);
-            console.log('Player sold:', currentPlayer.sold);
-            console.log('Player soldTo:', currentPlayer.soldTo);
-            
             setImageKey(prev => prev + 1);
             setShowSoldStamp(false);
             setShowUnsoldStamp(false);
-            
-            // Note: Removed toast notification for already processed players
-            // The auction logic will handle skipping these players automatically
         }
-    }, [currentPlayer]); // Removed showManagedToast from dependencies to prevent infinite loops
+    }, [currentPlayer]);
 
-    // Bidding handlers
     const handleMarkSold = () => {
         const bidAmount = parseInt(bidAmountInput, 10);
         if (teamNameInput && !isNaN(bidAmount) && bidAmount > 0) {
@@ -73,6 +65,7 @@ const AuctionInterface = forwardRef(({
     const confirmSold = () => {
         const bidAmount = parseInt(bidAmountInput, 10);
         setShowSoldConfirm(false);
+        setShowSoldStamp(true); // Display SOLD stamp
         onMarkSold(teamNameInput, bidAmount);
     };
 
@@ -86,14 +79,12 @@ const AuctionInterface = forwardRef(({
         onMarkUnsold();
     };
 
-    // Navigation handlers
     const handleNextPlayer = () => {
         setShowSoldStamp(false);
         setShowUnsoldStamp(false);
         setIsTransitioning(true);
         
         if (isLastPlayerInQueue) {
-            console.log("Last player in queue - skipping countdown animation");
             setTimeout(() => {
                 onNextPlayer();
                 setIsTransitioning(false);
@@ -104,14 +95,10 @@ const AuctionInterface = forwardRef(({
         }
     };
 
-    // Countdown effect
     useEffect(() => {
         if (countdown === null) return;
-
         if (countdown > 0) {
-            const timer = setTimeout(() => {
-                setCountdown(countdown - 1);
-            }, 1000);
+            const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
             return () => clearTimeout(timer);
         } else {
             const timer = setTimeout(() => {
@@ -123,14 +110,10 @@ const AuctionInterface = forwardRef(({
         }
     }, [countdown, onNextPlayer]);
 
-    // Category change handler
-    const handleCategoryChangeRequest = () => {
-        setShowCategoryChangeConfirm(true);
-    };
+    const handleCategoryChangeRequest = () => setShowCategoryChangeConfirm(true);
 
     const confirmCategoryChange = () => {
         setShowCategoryChangeConfirm(false);
-        
         showManagedToast && showManagedToast('success', `Category changed! Please select a new category.`, {
             style: {
                 border: '2px solid #7c3aed',
@@ -144,22 +127,13 @@ const AuctionInterface = forwardRef(({
             icon: EMOJIS.REFRESH,
             duration: 3000,
         });
-        
         onChangeCategory();
     };
 
-    // Menu handlers
-    const handleViewTeams = () => {
-        onViewTeams();
-        setShowMenu(false);
-    };
+    const handleViewTeams = () => { onViewTeams(); setShowMenu(false); };
+    const handleViewMaxBid = () => { onViewMaxBid && onViewMaxBid(); setShowMenu(false); };
+    const handleViewUnsoldPlayers = () => { onViewUnsoldPlayers && onViewUnsoldPlayers(); setShowMenu(false); }; // NEW HANDLER
 
-    const handleViewMaxBid = () => {
-        onViewMaxBid();
-        setShowMenu(false);
-    };
-
-    // Expose stamp animation functions to parent component
     useImperativeHandle(ref, () => ({
         triggerSoldStamp: () => setShowSoldStamp(true),
         triggerUnsoldStamp: () => setShowUnsoldStamp(true)
@@ -184,7 +158,7 @@ const AuctionInterface = forwardRef(({
 
                     {/* Dropdown Menu */}
                     {showMenu && (
-                        <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 z-50 animate-fade-in">
+                        <div className="absolute right-0 top-full mt-2 w-60 bg-white rounded-lg shadow-xl border border-gray-200 z-50 animate-fade-in">
                             <div className="py-2">
                                 {/* View Team Summary */}
                                 <button
@@ -205,6 +179,18 @@ const AuctionInterface = forwardRef(({
                                     >
                                         <span className="text-purple-500">{EMOJIS.ZAP}</span>
                                         <span className="text-gray-700 font-medium">Max Bid Analysis</span>
+                                    </button>
+                                )}
+
+                                {/* Unsold Players */}
+                                {onViewUnsoldPlayers && (
+                                    <button
+                                        onClick={handleViewUnsoldPlayers}
+                                        className="w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors duration-200 flex items-center gap-3"
+                                        disabled={isTransitioning}
+                                    >
+                                        <span className="text-red-500">{EMOJIS.CROSS_MARK}</span>
+                                        <span className="text-gray-700 font-medium">Unsold Players</span>
                                     </button>
                                 )}
                             </div>

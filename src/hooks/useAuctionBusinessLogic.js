@@ -148,16 +148,20 @@ export const useAuctionBusinessLogic = (
                 duration: 4000,
             });
 
-            // Send WhatsApp notification if configured
-            if (whatsappSettings.enabled && whatsappSettings.sendPlayerUpdates) {
-                sendWhatsAppNotification(
-                    `🏏 PLAYER SOLD!\n\n` +
-                    `Player: ${auction.currentPlayer.name}\n` +
-                    `Team: ${teamName}\n` +
-                    `Price: ₹${bidAmount.toLocaleString()}\n` +
-                    `Category: ${auction.selectedCategory}\n\n` +
-                    `Tournament: ${tournamentName}`
-                );
+            // ✅ FIX: Use autoSend flag and correct signature for WhatsApp notification
+            if (whatsappSettings.enabled) {
+                // sendWhatsAppNotification expects (player, teamName, price, tournamentName, isUnsold=false)
+                try {
+                    await sendWhatsAppNotification(
+                        auction.currentPlayer,
+                        teamName,
+                        bidAmount,
+                        tournamentName,
+                        false
+                    );
+                } catch (e) {
+                    console.error('WhatsApp sold notification error:', e);
+                }
             }
 
             // ✅ FIXED: Mark player as processed and add to sold queue, let UI show "Next Player" button
@@ -208,6 +212,22 @@ export const useAuctionBusinessLogic = (
             icon: '⏸️',
             duration: 3000,
         });
+
+        // ✅ NEW: Auto-send unsold WhatsApp notification
+        if (whatsappSettings.enabled) {
+            try {
+                await sendWhatsAppNotification(
+                    auction.currentPlayer,
+                    'Unsold',
+                    0,
+                    tournamentName,
+                    true // isUnsold
+                );
+            } catch (e) {
+                console.error('WhatsApp unsold notification error:', e);
+            }
+        }
+
         auction.markUnsoldPlayerWithoutNext();
         auction.setBidAmountInput('');
         auction.setTeamNameInput('');

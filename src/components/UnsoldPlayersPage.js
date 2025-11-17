@@ -59,6 +59,7 @@ const UnsoldPlayersPage = ({
                   <tr className="bg-gray-100">
                     <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600">#</th>
                     <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600">Player</th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600">Photo</th>
                     <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600">Category</th>
                     <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600">Assign Price</th>
                     <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600">Sold To Team</th>
@@ -66,7 +67,7 @@ const UnsoldPlayersPage = ({
                   </tr>
                 </thead>
                 <tbody>
-                  {unsoldPlayers.length === 0 && (<tr><td colSpan={6} className="px-4 py-6 text-center text-gray-500 text-sm">No unsold players yet.</td></tr>)}
+                  {unsoldPlayers.length === 0 && (<tr><td colSpan={7} className="px-4 py-6 text-center text-gray-500 text-sm">No unsold players yet.</td></tr>)}
                   {unsoldPlayers.map((player, idx) => {
                     const isProcessed = player.sold && player.soldTo !== 'Unsold';
                     const inputs = playerInputs[player.id] || {};
@@ -74,6 +75,21 @@ const UnsoldPlayersPage = ({
                       <tr key={player.id} className={`border-t border-gray-200 hover:bg-gray-50 ${isProcessed ? 'opacity-70' : ''}`}>
                         <td className="px-4 py-2 text-sm font-medium text-gray-700">{idx + 1}</td>
                         <td className="px-4 py-2 text-sm font-semibold text-gray-800">{player.name}</td>
+                        <td className="px-4 py-2 text-sm text-blue-600">
+                          {player.photo ? (
+                            <a
+                              href={player.photo}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="underline hover:text-blue-800"
+                              title={`Open photo of ${player.name}`}
+                            >
+                              View
+                            </a>
+                          ) : (
+                            <span className="text-gray-400">N/A</span>
+                          )}
+                        </td>
                         <td className="px-4 py-2 text-sm text-gray-600">{player.category}</td>
                         <td className="px-4 py-2">
                           <input type="number" min={1} value={isProcessed ? player.soldPrice : (inputs.price || '')} onChange={e => handleInputChange(player.id, 'price', e.target.value)} disabled={isProcessed} className={`w-28 border rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent ${isProcessed ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-white'}`} placeholder="Price" />

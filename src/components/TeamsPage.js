@@ -4,6 +4,7 @@ import { WHATSAPP_EMOJIS } from "../utils/whatsappUtils";
 import PlayerSpinWheel from "./PlayerSpinWheel";
 import JerseyColorAssignment from "./JerseyColorAssignment";
 import TeamEditPopup from "./TeamEditPopup";
+import WhatsappIcon from "../assets/Whatsapp.png";
 
 const TeamsPage = ({ 
     teams, 
@@ -514,7 +515,7 @@ const TeamsPage = ({
                     {/* Header Section */}
                     <div className="mb-8 text-center">
                         <h1 className="text-4xl md:text-5xl font-extrabold mb-4 text-white drop-shadow-lg bg-gradient-to-r from-emerald-400 via-cyan-500 to-blue-500 bg-clip-text text-transparent">
-                            {EMOJIS.TROPHY} EPPL 2025 SQUAD {EMOJIS.TROPHY} 
+                            {EMOJIS.TROPHY} SQUAD {EMOJIS.TROPHY} 
                         </h1>
                         <p className="text-gray-300 text-lg mb-6">Complete overview of all teams squad and budget</p>
                         
@@ -551,17 +552,37 @@ const TeamsPage = ({
                                         <div className="mb-4">
                                             <div className="flex items-center justify-between mb-2">
                                                 <div className="flex-1 text-left pr-2">
-                                                    <h3 className="font-bold text-xl text-slate-700 flex items-center justify-start gap-2 whitespace-nowrap overflow-hidden">
+                                                    <h3 className="font-bold text-xl text-slate-700 flex items-center gap-2 whitespace-nowrap overflow-hidden">
                                                         <span className="text-lg">{EMOJIS.CRICKET_BAT}</span>
-                                                        <span className="truncate">{teamName}</span>
+                                                        <span className="truncate" title={teamName}>{teamName}</span>
                                                     </h3>
+                                                </div>
+                                                {/* WhatsApp share icon button */}
+                                                <div className="flex-shrink-0">
+                                                    {whatsappSettings?.enabled && whatsappSettings?.groupNumber ? (
+                                                        <button
+                                                            onClick={() => onTeamWhatsAppShare && onTeamWhatsAppShare(teamName, data, tournamentName)}
+                                                            className="text-green-600 hover:text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 rounded-full w-9 h-9 flex items-center justify-center shadow-sm transition-all duration-200"
+                                                            title={`Share ${teamName} summary on WhatsApp`}
+                                                        >
+                                                            <img src={WhatsappIcon} alt="WhatsApp" className="w-5 h-5" />
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            disabled
+                                                            className="text-gray-400 bg-gray-100 border border-gray-200 rounded-full w-9 h-9 flex items-center justify-center cursor-not-allowed"
+                                                            title="Configure WhatsApp settings to enable sharing"
+                                                        >
+                                                            <img src={WhatsappIcon} alt="WhatsApp" className="w-5 h-5 opacity-50" />
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </div>
                                             <div className="text-left">
-                                                <p className="text-slate-500 flex items-center justify-start gap-2 text-sm">
+                                                <p className="text-slate-500 flex items-center gap-2 text-sm">
                                                     <span className="text-xs">{EMOJIS.PERSON}</span>
                                                     <span className="font-medium">Owner:</span> 
-                                                    <span className="text-slate-700 font-semibold">{data.owner}</span>
+                                                    <span className="text-slate-700 font-semibold" title={data.owner}>{data.owner}</span>
                                                 </p>
                                             </div>
                                         </div>

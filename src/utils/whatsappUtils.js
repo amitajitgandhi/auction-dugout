@@ -254,7 +254,7 @@ export const formatAuctionMessage = (playerName, teamName, price, tournamentName
 
 Congratulations to *${teamName}*!
 
-_Live Cricket Auction Tool_`;
+_Auction Dugout Tool - AG VERCEL TECH_`;
 };
 
 // Format unsold message for WhatsApp  
@@ -269,7 +269,7 @@ export const formatUnsoldMessage = (playerName, tournamentName, skill = '', cate
 
 No bids received - player remains unsold
 
-_Live Cricket Auction Tool_`;
+_Auction Dugout Tool - AG VERCEL TECH_`;
 };
 
 // Format team summary message for WhatsApp
