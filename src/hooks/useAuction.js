@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import { shuffle, TOAST_STYLES, EMOJIS } from "../utils/constants";
 
 export const useAuction = (players, showManagedToast) => {
-    // Auction state
     const [currentPlayer, setCurrentPlayer] = useState(null);
     const [auctionStarted, setAuctionStarted] = useState(false);
     const [categoryStarted, setCategoryStarted] = useState(false);
@@ -12,19 +11,13 @@ export const useAuction = (players, showManagedToast) => {
     const [categorySelectionOpen, setCategorySelectionOpen] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState("");
     const [playerProcessed, setPlayerProcessed] = useState(false);
-    
-    // Queues
     const [currentQueue, setCurrentQueue] = useState(new Set());
     const [soldQueue, setSoldQueue] = useState(new Set());
     const [unsoldQueue, setUnsoldQueue] = useState(new Set());
     const [currentQueuePointer, setCurrentQueuePointer] = useState(0);
-    const [round, setRound] = useState(1); // Round will always stay 1 now (no unsold rounds)
-    const [isUnsoldRound, setIsUnsoldRound] = useState(false); // Kept for backward compatibility but no longer used
-    
-    // Track completed categories
+    const [round, setRound] = useState(1);
+    const [isUnsoldRound, setIsUnsoldRound] = useState(false);
     const [completedCategories, setCompletedCategories] = useState(new Set());
-    
-    // Ref guard
     const endOfRoundCalledRef = useRef(false);
 
     // Handle category selection
@@ -36,7 +29,10 @@ export const useAuction = (players, showManagedToast) => {
         setCategorySelectionOpen(false);
         setCurrentPlayer(null);
         setPlayerProcessed(false);
-        const catPlayers = players.filter(p => p.category === cat).map(p => p.id);
+        // Build queue keys robustly: prefer id, fallback to name
+        const catPlayers = players
+            .filter(p => p.category === cat)
+            .map(p => (p.id !== undefined && p.id !== null) ? p.id : `name:${p.name}`);
         setCurrentQueue(new Set(catPlayers));
         setSoldQueue(new Set());
         setUnsoldQueue(new Set());
@@ -71,7 +67,14 @@ export const useAuction = (players, showManagedToast) => {
             finishCategory();
             return;
         }
-        const player = players.find(p => p.id === queueArr[currentQueuePointer]);
+        const key = queueArr[currentQueuePointer];
+        let player;
+        if (typeof key === 'string' && key.startsWith('name:')) {
+            const name = key.slice(5);
+            player = players.find(p => p.name === name && p.category === selectedCategory);
+        } else {
+            player = players.find(p => p.id === key);
+        }
         if (!player) {
             setCurrentQueuePointer(ptr => ptr + 1);
             pickNextPlayer();
@@ -79,13 +82,13 @@ export const useAuction = (players, showManagedToast) => {
         }
         // Skip already processed players (restore scenarios)
         if (player.sold && player.soldTo !== 'Unsold') {
-            setSoldQueue(prev => new Set(prev).add(player.id));
+            setSoldQueue(prev => new Set(prev).add(player.id ?? `name:${player.name}`));
             setCurrentQueuePointer(ptr => ptr + 1);
             pickNextPlayer();
             return;
         }
         if (player.soldTo === 'Unsold') {
-            setUnsoldQueue(prev => new Set(prev).add(player.id));
+            setUnsoldQueue(prev => new Set(prev).add(player.id ?? `name:${player.name}`));
             setCurrentQueuePointer(ptr => ptr + 1);
             pickNextPlayer();
             return;
@@ -97,7 +100,7 @@ export const useAuction = (players, showManagedToast) => {
     // Mark player as unsold (added to unsold queue, advance pointer manually later via Next Player)
     const markUnsoldPlayerWithoutNext = () => {
         if (!currentPlayer) return;
-        setUnsoldQueue(q => new Set(q).add(currentPlayer.id));
+        setUnsoldQueue(q => new Set(q).add(currentPlayer.id ?? `name:${currentPlayer.name}`));
         setPlayerProcessed(true);
         setCurrentQueuePointer(ptr => ptr + 1);
         setTeamNameInput("");
@@ -112,7 +115,7 @@ export const useAuction = (players, showManagedToast) => {
     // Backward compatibility (auto next)
     const markUnsoldPlayer = () => {
         if (!currentPlayer) return;
-        setUnsoldQueue(q => new Set(q).add(currentPlayer.id));
+        setUnsoldQueue(q => new Set(q).add(currentPlayer.id ?? `name:${currentPlayer.name}`));
         setCurrentQueuePointer(ptr => ptr + 1);
         setTeamNameInput("");
         setBidAmountInput("");
