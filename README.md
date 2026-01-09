@@ -504,6 +504,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 For support, questions, or feature requests:
 - **WhatsApp:** [+91 7276319578](https://wa.me/+917276319578)
 - **LinkedIn:** [Amit Gandhi](https://www.linkedin.com/in/amitajitgandhi/)
+- **Gmail:** [Amit Gandhi](mailto:amitajitgandhi@gmail.com)
 - **Email:** Contact through LinkedIn or WhatsApp
 
 ---
