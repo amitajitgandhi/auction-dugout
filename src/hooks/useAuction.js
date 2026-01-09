@@ -28,7 +28,7 @@ export const useAuction = (players, showManagedToast) => {
         const normCat = normalize(cat);
         setSelectedCategory(normCat);
         setAuctionStarted(true);
-        setCategoryStarted(false);
+        // setCategoryStarted(false);
         setCategorySelectionOpen(false);
         setCurrentPlayer(null);
         setPlayerProcessed(false);
@@ -121,28 +121,13 @@ export const useAuction = (players, showManagedToast) => {
         if (currentQueuePointer + 1 >= queueArr.length) {
             finishCategory();
         } else {
-            pickNextPlayer();
+            setTimeout(pickNextPlayer, 0);
         }
     };
 
     const startCategoryAuction = () => {
         endOfRoundCalledRef.current = false;
         setCategoryStarted(true);
-        pickNextPlayer();
-        // Fallback: if no current player picked, scan players list for first eligible
-        setTimeout(() => {
-            if (!currentPlayer) {
-                const candidate = players.find(p => normalize(p.category) === normalize(selectedCategory) && !p.sold && p.soldTo !== 'Unsold');
-                if (candidate) {
-                    setCurrentPlayer(candidate);
-                    // try to align pointer to candidate
-                    const queueArr = Array.from(currentQueue);
-                    const keyForCandidate = candidate.id ?? `name:${candidate.name}`;
-                    const idx = queueArr.findIndex(k => (typeof k === 'string' ? k === keyForCandidate : k === candidate.id));
-                    if (idx >= 0) setCurrentQueuePointer(idx);
-                }
-            }
-        }, 0);
     };
 
     const getUniqueCategories = () => {
@@ -180,6 +165,28 @@ export const useAuction = (players, showManagedToast) => {
         const queueArr = Array.from(currentQueue);
         return currentQueuePointer + 1 >= queueArr.length;
     };
+
+    useEffect(() => {
+        if (
+            auctionStarted &&
+            categoryStarted &&
+            selectedCategory &&
+            currentQueue.size > 0 &&
+            !currentPlayer
+        ) {
+            const t = setTimeout(() => {
+                pickNextPlayer();
+            }, 0);
+
+            return () => clearTimeout(t);
+        }
+    }, [
+        auctionStarted,
+        categoryStarted,
+        selectedCategory,
+        currentQueue,
+        currentPlayer
+    ]);
 
     return {
         currentPlayer,

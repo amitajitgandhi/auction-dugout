@@ -88,11 +88,8 @@ export default function CricketAuctionTool() {
       }
       if (snap.selectedCategory) {
         // Select category and start to pick the current player
-        auction.handleCategorySelect(snap.selectedCategory);
-        // Give React a tick to build the queue before picking next
-        setTimeout(() => {
+          auction.handleCategorySelect(snap.selectedCategory);
           auction.startCategoryAuction();
-        }, 0);
       }
       setRehydrateSnapshot(null);
     }
