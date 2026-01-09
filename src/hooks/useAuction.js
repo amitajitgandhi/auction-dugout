@@ -230,6 +230,8 @@ export const useAuction = (players, showManagedToast) => {
         },
         startAuction: () => {
             setCategorySelectionOpen(true);
+            setAuctionStarted(true);
         },
+        setCompletedCategories,
     };
 };
