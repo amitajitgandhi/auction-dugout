@@ -346,6 +346,26 @@ export default function CricketAuctionTool() {
     return true;
   };
 
+  // Restore button handler: snapshot then confirm
+  const onConfirmRestoreClick = () => {
+    if (startupRestoreData) {
+      setRehydrateSnapshot({
+        auctionStarted: !!startupRestoreData.auctionStarted,
+        selectedCategory: startupRestoreData.selectedCategory || "",
+        completedCategories: Array.from(startupRestoreData.completedCategories || []),
+      });
+    }
+    handleStartupRestoreConfirm(
+      setPlayers,
+      setTeams,
+      setTournamentName,
+      setIsTournamentNameSet,
+      setWhatsappSettings,
+      whatsappSettings,
+      setCategoryConfigs
+    );
+  };
+
   // NEW PAGE RENDER
   if (currentPage === 'unsoldplayers') {
     return (
