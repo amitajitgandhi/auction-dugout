@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { shuffle, TOAST_STYLES, EMOJIS } from "../utils/constants";
 
 export const useAuction = (players, showManagedToast) => {
+    const normalize = (v) => (v ?? "").toString().trim().toUpperCase();
+
     const [currentPlayer, setCurrentPlayer] = useState(null);
     const [auctionStarted, setAuctionStarted] = useState(false);
     const [categoryStarted, setCategoryStarted] = useState(false);
@@ -23,7 +25,8 @@ export const useAuction = (players, showManagedToast) => {
     // Handle category selection
     const handleCategorySelect = (cat) => {
         endOfRoundCalledRef.current = false;
-        setSelectedCategory(cat);
+        const normCat = normalize(cat);
+        setSelectedCategory(normCat);
         setAuctionStarted(true);
         setCategoryStarted(false);
         setCategorySelectionOpen(false);
@@ -31,7 +34,7 @@ export const useAuction = (players, showManagedToast) => {
         setPlayerProcessed(false);
         // Build queue keys robustly: prefer id, fallback to name
         const catPlayers = players
-            .filter(p => p.category === cat)
+            .filter(p => normalize(p.category) === normCat)
             .map(p => (p.id !== undefined && p.id !== null) ? p.id : `name:${p.name}`);
         setCurrentQueue(new Set(catPlayers));
         setSoldQueue(new Set());
@@ -41,7 +44,6 @@ export const useAuction = (players, showManagedToast) => {
         setIsUnsoldRound(false);
     };
 
-    // Finish category immediately once all players processed (sold or marked unsold)
     const finishCategory = () => {
         const categoryName = selectedCategory;
         if (!categoryName) return;
@@ -63,7 +65,6 @@ export const useAuction = (players, showManagedToast) => {
     const pickNextPlayer = () => {
         const queueArr = Array.from(currentQueue);
         if (currentQueuePointer >= queueArr.length) {
-            // End of queue reached, finish category
             finishCategory();
             return;
         }
@@ -71,7 +72,7 @@ export const useAuction = (players, showManagedToast) => {
         let player;
         if (typeof key === 'string' && key.startsWith('name:')) {
             const name = key.slice(5);
-            player = players.find(p => p.name === name && p.category === selectedCategory);
+            player = players.find(p => p.name === name && normalize(p.category) === normalize(selectedCategory));
         } else {
             player = players.find(p => p.id === key);
         }
@@ -97,7 +98,6 @@ export const useAuction = (players, showManagedToast) => {
         setPlayerProcessed(false);
     };
 
-    // Mark player as unsold (added to unsold queue, advance pointer manually later via Next Player)
     const markUnsoldPlayerWithoutNext = () => {
         if (!currentPlayer) return;
         setUnsoldQueue(q => new Set(q).add(currentPlayer.id ?? `name:${currentPlayer.name}`));
@@ -105,14 +105,12 @@ export const useAuction = (players, showManagedToast) => {
         setCurrentQueuePointer(ptr => ptr + 1);
         setTeamNameInput("");
         setBidAmountInput("");
-        // If this was last player, finish category automatically
         const queueArr = Array.from(currentQueue);
         if (currentQueuePointer + 1 >= queueArr.length) {
             finishCategory();
         }
     };
 
-    // Backward compatibility (auto next)
     const markUnsoldPlayer = () => {
         if (!currentPlayer) return;
         setUnsoldQueue(q => new Set(q).add(currentPlayer.id ?? `name:${currentPlayer.name}`));
@@ -127,30 +125,40 @@ export const useAuction = (players, showManagedToast) => {
         }
     };
 
-    // Start category auction
     const startCategoryAuction = () => {
         endOfRoundCalledRef.current = false;
         setCategoryStarted(true);
         pickNextPlayer();
+        // Fallback: if no current player picked, scan players list for first eligible
+        setTimeout(() => {
+            if (!currentPlayer) {
+                const candidate = players.find(p => normalize(p.category) === normalize(selectedCategory) && !p.sold && p.soldTo !== 'Unsold');
+                if (candidate) {
+                    setCurrentPlayer(candidate);
+                    // try to align pointer to candidate
+                    const queueArr = Array.from(currentQueue);
+                    const keyForCandidate = candidate.id ?? `name:${candidate.name}`;
+                    const idx = queueArr.findIndex(k => (typeof k === 'string' ? k === keyForCandidate : k === candidate.id));
+                    if (idx >= 0) setCurrentQueuePointer(idx);
+                }
+            }
+        }, 0);
     };
 
-    // Unique categories excluding completed ones
     const getUniqueCategories = () => {
-        const cats = new Set(players.map(p => p.category).filter(Boolean));
+        const cats = new Set(players.map(p => normalize(p.category)).filter(Boolean));
         return Array.from(cats).filter(cat => !completedCategories.has(cat));
     };
 
-    // Helpers
     const getCurrentCategoryPlayers = () => {
         if (!selectedCategory) return [];
-        return players.filter(p => p.category === selectedCategory);
+        return players.filter(p => normalize(p.category) === normalize(selectedCategory));
     };
 
     const soldCount = getCurrentCategoryPlayers().filter(p => p.sold && p.soldTo !== 'Unsold').length;
     const currentCategoryUnsoldCount = getCurrentCategoryPlayers().filter(p => !p.sold && p.soldTo !== 'Unsold').length;
     const markedUnsoldCount = getCurrentCategoryPlayers().filter(p => p.soldTo === 'Unsold').length;
 
-    // Category completion check (single pass logic already handled in finishCategory)
     const checkCategoryCompletion = () => false;
 
     const handleCategoryChange = () => {
@@ -174,7 +182,6 @@ export const useAuction = (players, showManagedToast) => {
     };
 
     return {
-        // State
         currentPlayer,
         auctionStarted,
         categoryStarted,
@@ -198,7 +205,6 @@ export const useAuction = (players, showManagedToast) => {
         setUnsoldQueue,
         setCurrentPlayer,
         setCurrentQueuePointer,
-        // Actions
         handleCategorySelect,
         handleCategoryChange,
         startCategoryAuction,
@@ -208,12 +214,10 @@ export const useAuction = (players, showManagedToast) => {
         getUniqueCategories,
         checkCategoryCompletion,
         finishCategory,
-        // Computed
         soldCount,
         currentCategoryUnsoldCount,
         markedUnsoldCount,
         isLastPlayerInQueue: getIsLastPlayerInQueue(),
-        // Reset
         resetAuction: () => {
             setCompletedCategories(new Set());
             setCurrentPlayer(null);

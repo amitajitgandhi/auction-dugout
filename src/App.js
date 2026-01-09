@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef } from "react";
+﻿import React, { useState, useRef, useEffect } from "react";
 import ReactConfetti from "react-confetti";
 import { Toaster } from "react-hot-toast";
 
@@ -37,11 +37,14 @@ export default function CricketAuctionTool() {
   const [categoryConfigs, setCategoryConfigs] = useState({});
   const auctionInterfaceRef = useRef(null);
 
+  // New: snapshot of restored state to rehydrate auction after React applies players/teams
+  const [rehydrateSnapshot, setRehydrateSnapshot] = useState(null);
+
   const goToTeamsPage = () => setCurrentPage('teams');
   const goToMaxBidPage = () => setCurrentPage('maxbid');
   const goToAuctionPage = () => setCurrentPage('auction');
   const goToCategoryConfig = () => setCurrentPage('categoryconfig');
-  const goToUnsoldPlayersPage = () => setCurrentPage('unsoldplayers'); // NEW NAV
+  const goToUnsoldPlayersPage = () => setCurrentPage('unsoldplayers');
   const goBackToFileUpload = (configs = {}) => {
     setCategoryConfigs(prev => ({...prev, ...configs}));
     setCurrentPage('auction');
@@ -72,6 +75,28 @@ export default function CricketAuctionTool() {
 
   useAutoSave(players, teams, tournamentName, isTournamentNameSet, whatsappSettings, auction, persistence, authUser, categoryConfigs);
   const { showStartupRestore, startupRestoreData, handleStartupRestoreConfirm, handleStartupRestoreCancel } = useStartupRestore(persistence, showManagedToast, authUser);
+
+  // New: when players/teams are set after restore, rehydrate the auction state
+  useEffect(() => {
+    if (rehydrateSnapshot && players.length > 0 && Object.keys(teams).length > 0) {
+      const snap = rehydrateSnapshot;
+      if (snap.auctionStarted) {
+        auction.startAuction();
+      }
+      if (snap.completedCategories && auction.setCompletedCategories) {
+        auction.setCompletedCategories(new Set(snap.completedCategories));
+      }
+      if (snap.selectedCategory) {
+        // Select category and start to pick the current player
+        auction.handleCategorySelect(snap.selectedCategory);
+        // Give React a tick to build the queue before picking next
+        setTimeout(() => {
+          auction.startCategoryAuction();
+        }, 0);
+      }
+      setRehydrateSnapshot(null);
+    }
+  }, [rehydrateSnapshot, players, teams]);
 
   if (authLoading) {
     return (
@@ -493,7 +518,7 @@ export default function CricketAuctionTool() {
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   <button onClick={handleStartupRestoreCancel} className="flex-1 sm:flex-none px-6 py-3 bg-gray-200 text-gray-800 rounded-lg font-semibold hover:bg-gray-300 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400 flex items-center justify-center gap-2"><span>{EMOJIS.CROSS_MARK}</span>Start Fresh</button>
-                  <button onClick={() => { handleStartupRestoreConfirm(setPlayers, setTeams, setTournamentName, setIsTournamentNameSet, setWhatsappSettings, whatsappSettings, setCategoryConfigs); applyRestoredAuctionState(); }} className="flex-1 sm:flex-none px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-semibold hover:from-blue-600 hover:to-blue-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-lg flex items-center justify-center gap-2"><span>{EMOJIS.RESTORE}</span>Yes, Restore Data</button>
+                  <button onClick={onConfirmRestoreClick} className="flex-1 sm:flex-none px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-semibold hover:from-blue-600 hover:to-blue-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-lg flex items-center justify-center gap-2"><span>{EMOJIS.RESTORE}</span>Yes, Restore Data</button>
                 </div>
               </div>
             </div>
