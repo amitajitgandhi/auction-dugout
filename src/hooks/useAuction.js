@@ -37,7 +37,7 @@ export const useAuction = (players, showManagedToast) => {
         setCurrentPlayer(null);
         setPlayerProcessed(false);
         const catPlayers = players.filter(p => p.category === cat).map(p => p.id);
-        setCurrentQueue(new Set(shuffle(catPlayers)));
+        setCurrentQueue(new Set(catPlayers));
         setSoldQueue(new Set());
         setUnsoldQueue(new Set());
         setCurrentQueuePointer(0);
