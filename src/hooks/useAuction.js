@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+﻿import { useState, useEffect, useRef } from "react";
 import { shuffle, TOAST_STYLES, EMOJIS } from "../utils/constants";
 
 export const useAuction = (players, showManagedToast) => {
@@ -64,39 +64,54 @@ export const useAuction = (players, showManagedToast) => {
     // Pick next player (single pass only)
     const pickNextPlayer = () => {
         const queueArr = Array.from(currentQueue);
-        if (currentQueuePointer >= queueArr.length) {
-            finishCategory();
+        let idx = currentQueuePointer;
+
+        while (idx < queueArr.length) {
+            const key = queueArr[idx];
+            let player;
+
+            if (typeof key === 'string' && key.startsWith('name:')) {
+                const name = key.slice(5);
+                player = players.find(
+                    p =>
+                        p.name === name &&
+                        normalize(p.category) === normalize(selectedCategory)
+                );
+            } else {
+                player = players.find(p => p.id === key);
+            }
+
+            if (!player) {
+                idx += 1;
+                continue;
+            }
+
+            const keyForPlayer = player.id ?? `name:${player.name}`;
+
+            if (player.sold && player.soldTo !== 'Unsold') {
+                setSoldQueue(prev => new Set(prev).add(keyForPlayer));
+                idx += 1;
+                continue;
+            }
+
+            if (player.soldTo === 'Unsold') {
+                setUnsoldQueue(prev => new Set(prev).add(keyForPlayer));
+                idx += 1;
+                continue;
+            }
+
+            // ✅ Found valid player
+            setCurrentQueuePointer(idx);
+            setCurrentPlayer(player);
+            setPlayerProcessed(false);
             return;
         }
-        const key = queueArr[currentQueuePointer];
-        let player;
-        if (typeof key === 'string' && key.startsWith('name:')) {
-            const name = key.slice(5);
-            player = players.find(p => p.name === name && normalize(p.category) === normalize(selectedCategory));
-        } else {
-            player = players.find(p => p.id === key);
-        }
-        if (!player) {
-            setCurrentQueuePointer(ptr => ptr + 1);
-            pickNextPlayer();
-            return;
-        }
-        // Skip already processed players (restore scenarios)
-        if (player.sold && player.soldTo !== 'Unsold') {
-            setSoldQueue(prev => new Set(prev).add(player.id ?? `name:${player.name}`));
-            setCurrentQueuePointer(ptr => ptr + 1);
-            pickNextPlayer();
-            return;
-        }
-        if (player.soldTo === 'Unsold') {
-            setUnsoldQueue(prev => new Set(prev).add(player.id ?? `name:${player.name}`));
-            setCurrentQueuePointer(ptr => ptr + 1);
-            pickNextPlayer();
-            return;
-        }
-        setCurrentPlayer(player);
-        setPlayerProcessed(false);
+
+        // ✅ No valid players left
+        setCurrentQueuePointer(idx);
+        finishCategory();
     };
+
 
     const markUnsoldPlayerWithoutNext = () => {
         if (!currentPlayer) return;
