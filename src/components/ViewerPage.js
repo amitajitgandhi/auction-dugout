@@ -208,17 +208,28 @@ const ViewerPage = ({ userId }) => {
                             )}
                         </div>
                     ) : (
-                        /* Auction Not Started or No Category Selected */
-                        <div className="mb-4 bg-white bg-opacity-90 rounded-xl shadow-lg p-6 text-center">
-                            <div className="text-5xl mb-3">{EMOJIS.CRICKET_BAT}</div>
-                            <h3 className="text-xl font-bold text-gray-700 mb-2">
-                                {auctionStarted ? 'Selecting Category...' : 'Auction Has Not Started Yet'}
-                            </h3>
-                            <p className="text-gray-500 text-sm">
-                                {auctionStarted
-                                    ? 'The auctioneer is selecting a category. Stay tuned!'
-                                    : 'The auction will begin shortly. This page will update automatically.'}
-                            </p>
+                        /* Auction Not Started or No Category Selected — but not when auction is fully done */
+                        totalRemaining > 0 || !auctionStarted ? (
+                            <div className="mb-4 bg-white bg-opacity-90 rounded-xl shadow-lg p-6 text-center">
+                                <div className="text-5xl mb-3">{EMOJIS.CRICKET_BAT}</div>
+                                <h3 className="text-xl font-bold text-gray-700 mb-2">
+                                    {auctionStarted ? 'Selecting Category...' : 'Auction Has Not Started Yet'}
+                                </h3>
+                                <p className="text-gray-500 text-sm">
+                                    {auctionStarted
+                                        ? 'The auctioneer is selecting a category. Stay tuned!'
+                                        : 'The auction will begin shortly. This page will update automatically.'}
+                                </p>
+                            </div>
+                        ) : null
+                    )}
+
+                    {/* Auction Completed Banner */}
+                    {totalPlayers > 0 && totalRemaining === 0 && (
+                        <div className="mb-4 bg-gradient-to-r from-yellow-400 via-amber-500 to-orange-500 rounded-xl shadow-lg p-4 text-center animate-fade-in">
+                            <div className="text-3xl mb-1">{EMOJIS.TROPHY}</div>
+                            <h3 className="text-lg font-extrabold text-white tracking-wide">Auction Completed!</h3>
+                            <p className="text-white text-xs opacity-90 mt-1">All {totalPlayers} players have been auctioned</p>
                         </div>
                     )}
 

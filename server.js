@@ -32,12 +32,28 @@ if (!fs.existsSync(IMAGE_FOLDER)) {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Extract direct download URL from Google Drive link
-const getDriveDownloadUrl = (link) => {
+// Extract Google Drive file ID from various link formats
+const getDriveFileId = (link) => {
     const match = link.match(/(?:id=|\/d\/)([a-zA-Z0-9_-]{25,})/);
-    if (!match) return null;
-    // Use confirm=t to bypass the virus scan confirmation page
-    return `https://drive.google.com/uc?export=download&confirm=t&id=${match[1]}`;
+    return match ? match[1] : null;
+};
+
+// Build multiple download URLs to try in order (most reliable first)
+const getDriveDownloadUrls = (link) => {
+    const fileId = getDriveFileId(link);
+    if (!fileId) return [];
+    return [
+        // 1. Google's content server — most reliable for images, bypasses virus scan entirely
+        `https://lh3.googleusercontent.com/d/${fileId}=s0`,
+        // 2. Classic export download with virus-scan bypass
+        `https://drive.google.com/uc?export=download&confirm=t&id=${fileId}`,
+    ];
+};
+
+// Legacy helper (still used in some places)
+const getDriveDownloadUrl = (link) => {
+    const urls = getDriveDownloadUrls(link);
+    return urls.length > 0 ? urls[0] : null;
 };
 
 // Detect actual image type from buffer magic bytes (file signature)
@@ -93,25 +109,75 @@ app.post('/api/upload-player', async (req, res) => {
     }
 
     try {
-        // Resolve Google Drive links if needed
-        const finalUrl = photoUrl.includes('drive.google.com')
-            ? getDriveDownloadUrl(photoUrl)
-            : photoUrl;
+        let buffer = null;
+        let lastError = null;
 
-        if (!finalUrl) {
-            return res.status(400).json({ message: 'Invalid photo URL' });
+        if (photoUrl.includes('drive.google.com')) {
+            // Try multiple Google Drive download strategies
+            const urls = getDriveDownloadUrls(photoUrl);
+            for (const url of urls) {
+                try {
+                    console.log(`📥 [${name}] Trying: ${url.substring(0, 80)}...`);
+                    const response = await fetch(url, {
+                        headers: {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                        },
+                        redirect: 'follow',
+                    });
+
+                    if (!response.ok) {
+                        lastError = `HTTP ${response.status} from ${url.substring(0, 60)}`;
+                        console.warn(`⚠️ [${name}] ${lastError}`);
+                        continue;
+                    }
+
+                    const arrayBuffer = await response.arrayBuffer();
+                    const candidateBuffer = Buffer.from(arrayBuffer);
+
+                    // Validate: must be at least 1KB (error pages are usually tiny HTML snippets)
+                    if (candidateBuffer.length < 1024) {
+                        lastError = `Response too small (${candidateBuffer.length} bytes), likely not an image`;
+                        console.warn(`⚠️ [${name}] ${lastError}`);
+                        continue;
+                    }
+
+                    // Validate: must be a real image (magic bytes)
+                    if (!detectImageType(candidateBuffer)) {
+                        lastError = `Not a valid image (first bytes: ${candidateBuffer.slice(0, 16).toString('hex')})`;
+                        console.warn(`⚠️ [${name}] ${lastError}`);
+                        continue;
+                    }
+
+                    buffer = candidateBuffer;
+                    console.log(`✅ [${name}] Downloaded ${buffer.length} bytes from ${url.substring(0, 60)}`);
+                    break;
+                } catch (fetchErr) {
+                    lastError = fetchErr.message;
+                    console.warn(`⚠️ [${name}] Fetch failed: ${lastError}`);
+                }
+            }
+        } else {
+            // Non-Drive URL — direct download
+            const response = await fetch(photoUrl, {
+                headers: { 'User-Agent': 'Mozilla/5.0' },
+                redirect: 'follow',
+            });
+            if (!response.ok) throw new Error(`Failed to download image: HTTP ${response.status}`);
+            const arrayBuffer = await response.arrayBuffer();
+            buffer = Buffer.from(arrayBuffer);
         }
 
-        const response = await fetch(finalUrl);
-        if (!response.ok) throw new Error('Failed to download image');
+        if (!buffer) {
+            console.error(`❌ [${name}] All download attempts failed. Last error: ${lastError}`);
+            return res.status(400).json({
+                message: `Could not download image for ${name}. Ensure the Google Drive file is shared as "Anyone with the link". Last error: ${lastError}`,
+            });
+        }
 
-        const buffer = await response.buffer();
-
-        // Detect actual image type from file signature (magic bytes)
-        // Do NOT trust response Content-Type — Google Drive often returns text/html or application/octet-stream
+        // Detect image type from magic bytes
         const detected = detectImageType(buffer);
         if (!detected) {
-            console.error(`Downloaded file for ${name} is not a recognized image format. First bytes:`, buffer.slice(0, 16).toString('hex'));
+            console.error(`❌ [${name}] Downloaded file is not a recognized image. Size: ${buffer.length}, first bytes: ${buffer.slice(0, 16).toString('hex')}`);
             return res.status(400).json({ message: 'Downloaded file is not a valid image. Google Drive may have returned an HTML page instead. Check that the file is shared publicly.' });
         }
 
@@ -124,6 +190,8 @@ app.post('/api/upload-player', async (req, res) => {
             .from(BUCKET_NAME)
             .getPublicUrl(fileName);
         const imageUrl = publicData?.publicUrl || '';
+
+        console.log(`✅ [${name}] Uploaded to Supabase: ${imageUrl} (${contentType}, ${buffer.length} bytes)`);
 
         // Save to Supabase DB
         await supabase.from('players').upsert([
@@ -204,6 +272,69 @@ app.post('/api/fix-storage-content-types', async (req, res) => {
     } catch (err) {
         console.error('Fix storage error:', err.message);
         res.status(500).json({ message: 'Fix failed', error: err.message });
+    }
+});
+
+// Endpoint: Diagnose bucket — check files, sizes, content types, and public URL accessibility
+app.get('/api/diagnose-bucket', async (req, res) => {
+    try {
+        const { data: files, error: listError } = await supabase.storage
+            .from(BUCKET_NAME)
+            .list('', { limit: 100 });
+
+        if (listError) {
+            return res.json({ status: 'error', message: 'Cannot list bucket files', error: listError.message });
+        }
+
+        const diagnosis = {
+            bucket: BUCKET_NAME,
+            totalFiles: files.length,
+            files: [],
+        };
+
+        for (const file of files.slice(0, 10)) {  // Check first 10 files
+            const fileInfo = { name: file.name, size: file.metadata?.size || 'unknown' };
+
+            // Generate public URL
+            const { data: publicData } = supabase.storage.from(BUCKET_NAME).getPublicUrl(file.name);
+            fileInfo.publicUrl = publicData?.publicUrl || 'N/A';
+
+            // Download and check content
+            try {
+                const { data: fileData, error: dlError } = await supabase.storage.from(BUCKET_NAME).download(file.name);
+                if (dlError) {
+                    fileInfo.status = 'download_failed';
+                    fileInfo.error = dlError.message;
+                } else {
+                    const ab = await fileData.arrayBuffer();
+                    const buf = Buffer.from(ab);
+                    fileInfo.actualSize = buf.length;
+                    fileInfo.firstBytes = buf.slice(0, 8).toString('hex');
+                    const detected = detectImageType(buf);
+                    fileInfo.detectedType = detected ? detected.contentType : 'not_image';
+                    fileInfo.isHtml = buf.slice(0, 15).toString('utf8').trim().startsWith('<');
+                    fileInfo.status = detected ? 'valid_image' : (fileInfo.isHtml ? 'html_not_image' : 'unknown_format');
+                }
+            } catch (e) {
+                fileInfo.status = 'check_error';
+                fileInfo.error = e.message;
+            }
+
+            // Test public URL accessibility
+            try {
+                const pubRes = await fetch(fileInfo.publicUrl, { method: 'HEAD', headers: { 'User-Agent': 'Mozilla/5.0' } });
+                fileInfo.publicUrlStatus = pubRes.status;
+                fileInfo.publicUrlContentType = pubRes.headers.get('content-type');
+            } catch (e) {
+                fileInfo.publicUrlStatus = 'unreachable';
+            }
+
+            diagnosis.files.push(fileInfo);
+        }
+
+        res.json(diagnosis);
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message });
     }
 });
 
