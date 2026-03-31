@@ -45,7 +45,8 @@ export const useAutoSave = (
                         categoryConfigs, // Include category configurations
                         auctionStarted: auction.auctionStarted,
                         selectedCategory: auction.selectedCategory,
-                        completedCategories: Array.from(auction.completedCategories || [])
+                        completedCategories: Array.from(auction.completedCategories || []),
+                        currentPlayerName: auction.currentPlayer?.name || null
                     };
                     
                     try {
@@ -94,7 +95,8 @@ export const useAutoSave = (
                     categoryConfigs, // Include category configurations
                     auctionStarted: auction.auctionStarted,
                     selectedCategory: auction.selectedCategory,
-                    completedCategories: Array.from(auction.completedCategories || [])
+                    completedCategories: Array.from(auction.completedCategories || []),
+                    currentPlayerName: auction.currentPlayer?.name || null
                 };
                 
                 try {

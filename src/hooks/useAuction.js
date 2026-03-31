@@ -120,10 +120,7 @@ export const useAuction = (players, showManagedToast) => {
         setCurrentQueuePointer(ptr => ptr + 1);
         setTeamNameInput("");
         setBidAmountInput("");
-        const queueArr = Array.from(currentQueue);
-        if (currentQueuePointer + 1 >= queueArr.length) {
-            finishCategory();
-        }
+        // Let pickNextPlayer (via "Next Player" button) handle finishCategory when queue is exhausted
     };
 
     const markUnsoldPlayer = () => {

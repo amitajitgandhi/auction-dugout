@@ -175,6 +175,7 @@ const FileUpload = ({
                             skill,
                             category,
                             photo: result.image_url || rawPhotoUrl, // Use processed image or fallback to raw URL
+                            driveLink: row["Photo Link"]?.trim() || "", // Original Google Drive link from CSV
                             cricHeroesProfile, // Store the CricHeroes profile URL
                             sold: false,
                             soldTo: null,
@@ -208,6 +209,7 @@ const FileUpload = ({
                             skill,
                             category,
                             photo: fallbackPhoto, // Use fallback photo (either original or default)
+                            driveLink: row["Photo Link"]?.trim() || "", // Original Google Drive link from CSV
                             cricHeroesProfile,
                             sold: false,
                             soldTo: null,

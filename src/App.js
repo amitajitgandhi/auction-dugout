@@ -181,7 +181,8 @@ export default function CricketAuctionTool() {
           categoryConfigs: configs,
           auctionStarted: true,
           selectedCategory: auction.selectedCategory,
-          completedCategories: Array.from(auction.completedCategories || [])
+          completedCategories: Array.from(auction.completedCategories || []),
+          currentPlayerName: auction.currentPlayer?.name || null
         };
         await persistence.saveState(currentState);
         showManagedToast('success', `Auction started and progress saved!`, {
@@ -287,7 +288,8 @@ export default function CricketAuctionTool() {
           categoryConfigs,
           auctionStarted: auction.auctionStarted,
           selectedCategory: auction.selectedCategory,
-          completedCategories: Array.from(auction.completedCategories || [])
+          completedCategories: Array.from(auction.completedCategories || []),
+          currentPlayerName: auction.currentPlayer?.name || null
         };
         await persistence.saveState(currentState);
       } catch (error) {
@@ -323,7 +325,8 @@ export default function CricketAuctionTool() {
           categoryConfigs,
           auctionStarted: auction.auctionStarted,
           selectedCategory: auction.selectedCategory,
-          completedCategories: Array.from(auction.completedCategories || [])
+          completedCategories: Array.from(auction.completedCategories || []),
+          currentPlayerName: auction.currentPlayer?.name || null
         };
         await persistence.saveState(currentState);
         showManagedToast('success', 'Team purse updated and saved successfully!', {
@@ -605,7 +608,30 @@ export default function CricketAuctionTool() {
         </div>
       </div>
       <footer className="fixed bottom-0 left-0 w-full text-center text-base font-semibold text-white py-3 bg-black shadow z-50" style={{letterSpacing: '1px', textShadow: '0 1px 8px #111'}}>
-        Powered by <a href="https://www.linkedin.com/in/amitajitgandhi/" className="underline hover:text-yellow-400" target="_blank" rel="noopener noreferrer">Amit Gandhi</a>
+        <div className="flex items-center justify-center gap-4 flex-wrap">
+          {authUser?.id && isTournamentNameSet && (
+            <button
+              onClick={() => {
+                const viewerUrl = `${window.location.origin}${window.location.pathname}#/viewer/${authUser.id}`;
+                navigator.clipboard.writeText(viewerUrl).then(() => {
+                  showManagedToast('success', 'Viewer link copied to clipboard! Share it with viewers.', {
+                    style: TOAST_STYLES.success,
+                    icon: EMOJIS.TEAMOWNERVIEW,
+                    duration: 4000,
+                  });
+                }).catch(() => {
+                  // Fallback: show the URL in a prompt
+                  window.prompt('Copy this viewer link:', viewerUrl);
+                });
+              }}
+              className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-3 py-1 rounded-lg text-sm font-semibold hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg"
+              title="Copy the read-only viewer link for spectators"
+            >
+              {EMOJIS.TEAMOWNERVIEW} Copy Viewer Link
+            </button>
+          )}
+          <span>Powered by <a href="https://www.linkedin.com/in/amitajitgandhi/" className="underline hover:text-yellow-400" target="_blank" rel="noopener noreferrer">Amit Gandhi</a></span>
+        </div>
       </footer>
     </>
   );

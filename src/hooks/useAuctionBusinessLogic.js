@@ -44,7 +44,8 @@ export const useAuctionBusinessLogic = (
                 categoryConfigs,
                 auctionStarted: auction.auctionStarted,
                 selectedCategory: auction.selectedCategory,
-                completedCategories: Array.from(auction.completedCategories || [])
+                completedCategories: Array.from(auction.completedCategories || []),
+                currentPlayerName: auction.currentPlayer?.name || null
             };
             
             await persistence.saveState(currentState);
@@ -165,19 +166,15 @@ export const useAuctionBusinessLogic = (
             }
 
             // ✅ FIXED: Mark player as processed and add to sold queue, let UI show "Next Player" button
-            auction.setSoldQueue(prev => new Set(prev).add(auction.currentPlayer.id));
+            auction.setSoldQueue(prev => new Set(prev).add(auction.currentPlayer.id ?? `name:${auction.currentPlayer.name}`));
             auction.setPlayerProcessed(true);
-            
+
             // Clear inputs
             auction.setBidAmountInput('');
             auction.setTeamNameInput('');
 
-            // Advance pointer and pick next player or finish
+            // Advance pointer; let pickNextPlayer (via "Next Player" button) handle finishCategory
             auction.setCurrentQueuePointer(ptr => ptr + 1);
-            const next = auction.isLastPlayerInQueue;
-            if (next) {
-                auction.finishCategory();
-            }
         } else {
             showFancyError(saleResult.message);
         }
@@ -229,8 +226,7 @@ export const useAuctionBusinessLogic = (
         }
 
         auction.markUnsoldPlayerWithoutNext();
-        auction.setBidAmountInput('');
-        auction.setTeamNameInput('');
+        // Note: markUnsoldPlayerWithoutNext already clears bid/team inputs
     };
 
     // Sell Unsold Player later (keep wasUnsold flag)
