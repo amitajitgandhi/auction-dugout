@@ -16,8 +16,7 @@ const MaxBidPage = ({
     // New props for proper analysis
     currentPlayer,
     selectedCategory,
-    categoryConfigs,
-    boosterData // New prop for booster data
+    categoryConfigs
 }) => {
     const [showMenu, setShowMenu] = useState(false);
     const [selectedCategoryForAnalysis, setSelectedCategoryForAnalysis] = useState(currentPlayer?.category || 'OPEN');
@@ -28,20 +27,9 @@ const MaxBidPage = ({
         return Object.keys(categoryConfigs || {});
     }, [categoryConfigs]);
 
-    // Helper function to get adjusted purse including booster points
+    // Purse is canonical and already includes boosters when applied.
     const getAdjustedPurse = (teamName, teamData) => {
-        let adjustedPurse = teamData.purse;
-        
-        // Add booster points if available
-        if (boosterData && boosterData.teamBoosters && boosterData.teamBoosters[teamName]) {
-            const teamBooster = boosterData.teamBoosters[teamName];
-            if (teamBooster.selected && teamBooster.boosterCount > 0 && boosterData.pointsPerBooster) {
-                const boosterPoints = teamBooster.boosterCount * boosterData.pointsPerBooster;
-                adjustedPurse += boosterPoints;
-            }
-        }
-        
-        return adjustedPurse;
+        return teamData.purse;
     };
 
     // Calculate comprehensive team analysis with category-wise breakdown
@@ -112,7 +100,7 @@ const MaxBidPage = ({
                 playersToBuy: teamData.playersToBuy
             };
         });
-    }, [teams, categoryConfigs, availableCategories, selectedCategoryForAnalysis, boosterData, players]); // ? FIXED: Added players to dependency array
+    }, [teams, categoryConfigs, availableCategories, selectedCategoryForAnalysis, players]); // ? FIXED: Added players to dependency array
 
     // Sort teams by highest max bid (default sorting)
     const sortedTeams = useMemo(() => {

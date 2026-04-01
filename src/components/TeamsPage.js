@@ -4,6 +4,7 @@ import { WHATSAPP_EMOJIS } from "../utils/whatsappUtils";
 import PlayerSpinWheel from "./PlayerSpinWheel";
 import JerseyColorAssignment from "./JerseyColorAssignment";
 import TeamEditPopup from "./TeamEditPopup";
+import BoosterPopup from "./BoosterPopup";
 import WhatsappIcon from "../assets/Whatsapp.png";
 
 const TeamsPage = ({ 
@@ -19,6 +20,7 @@ const TeamsPage = ({
     whatsappSettings,
     onPlayerEdit,
     onTeamPurseUpdate,
+    onApplyBoosterPoints,
     updateTeamPurse,
     onViewUnsoldPlayers // ...new prop
 }) => {
@@ -26,6 +28,7 @@ const TeamsPage = ({
     const [showPlayerSpin, setShowPlayerSpin] = useState(false);
     const [showJerseyColor, setShowJerseyColor] = useState(false);
     const [showTeamEdit, setShowTeamEdit] = useState(false);
+    const [showBoosterPopup, setShowBoosterPopup] = useState(false);
     const [editingPlayer, setEditingPlayer] = useState(null);
     const [showConfirmation, setShowConfirmation] = useState(false);
     const [editForm, setEditForm] = useState({
@@ -254,6 +257,19 @@ const TeamsPage = ({
         }
     };
 
+    const handleBoosterOpen = () => {
+        if (Object.keys(teams).length === 0) {
+            showManagedToast('error', 'No teams available for boosters! Please add teams first.', {
+                icon: EMOJIS.WARNING,
+                duration: 3000,
+            });
+            setShowMenu(false);
+            return;
+        }
+        setShowBoosterPopup(true);
+        setShowMenu(false);
+    };
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-800 to-gray-900 bg-fixed relative overflow-x-hidden">
             {/* Tournament Name Ticker */}
@@ -299,6 +315,14 @@ const TeamsPage = ({
                             >
                                 <span className="text-blue-500">{EMOJIS.EDIT}</span>
                                 <span className="text-gray-700 font-medium">Edit Balance</span>
+                            </button>
+
+                            <button
+                                onClick={handleBoosterOpen}
+                                className="w-full text-left px-4 py-3 hover:bg-yellow-50 transition-colors duration-200 flex items-center gap-3"
+                            >
+                                <span className="text-yellow-500">{EMOJIS.ZAP}</span>
+                                <span className="text-gray-700 font-medium">Add Booster Points</span>
                             </button>
 
                             {/* Export Teams */}
@@ -488,6 +512,14 @@ const TeamsPage = ({
                 onClose={() => setShowTeamEdit(false)}
                 teams={teams}
                 onUpdateTeamPurse={onTeamPurseUpdate}
+                showManagedToast={showManagedToast}
+            />
+
+            <BoosterPopup
+                isOpen={showBoosterPopup}
+                onClose={() => setShowBoosterPopup(false)}
+                teams={teams}
+                onApplyBoosterPoints={onApplyBoosterPoints}
                 showManagedToast={showManagedToast}
             />
 

@@ -1,9 +1,11 @@
-﻿import { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { 
     processPlayerPurchase, 
     processPlayerTransfer, 
     getTeamInfo, 
-    updateTeamInitialPurse // ✅ UPDATED: Import the new function for initial purse updates
+    updateTeamInitialPurse, // ✅ UPDATED: Import the new function for initial purse updates
+    updatePlayerPriceInTeam,
+    setTeamBoosterCount
 } from '../utils/centralizedTeamData';
 import { EMOJIS } from '../utils/constants';
 
@@ -59,10 +61,15 @@ export const useAuctionBusinessLogic = (
     };
 
     // ✅ CENTRALIZED: Function to handle player sales using centralized team data management
-    const sellPlayer = useCallback(async (playerName, teamName, bidAmount) => {
-        const playerObj = players.find(p => p.name === playerName);
+    // IMPORTANT: Use player id when available to avoid duplicate-name bugs.
+    const sellPlayer = useCallback(async (playerRef, teamName, bidAmount) => {
+        const playerObj = players.find(p =>
+            (playerRef?.id !== undefined && playerRef?.id !== null)
+                ? p.id === playerRef.id
+                : p.name === playerRef?.name
+        );
         if (!playerObj) {
-            return { success: false, message: `Player ${playerName} not found.` };
+            return { success: false, message: `Player not found.` };
         }
         const updatedTeams = processPlayerPurchase(teams, teamName, playerObj, bidAmount);
         if (!updatedTeams) {
@@ -74,20 +81,20 @@ export const useAuctionBusinessLogic = (
 
         // ✅ FIXED: Update players state to mark as sold with sold: true property
         const updatedPlayers = players.map(player =>
-            player.name === playerName 
-                ? { ...player, soldTo: teamName, soldPrice: bidAmount, sold: true }
-                : player
+            (playerObj.id !== undefined && playerObj.id !== null)
+                ? (player.id === playerObj.id ? { ...player, soldTo: teamName, soldPrice: bidAmount, sold: true } : player)
+                : (player.name === playerObj.name ? { ...player, soldTo: teamName, soldPrice: bidAmount, sold: true } : player)
         );
 
         setPlayers(updatedPlayers);
         setTeams(updatedTeams);
         
         // Trigger autosave after successful sale
-        await triggerAuctionSaveWithState('PLAYER_SOLD', `${playerName} sold to ${teamName}`, teamName, bidAmount, updatedPlayers, updatedTeams);
+        await triggerAuctionSaveWithState('PLAYER_SOLD', `${playerObj.name} sold to ${teamName}`, teamName, bidAmount, updatedPlayers, updatedTeams);
 
         return { 
             success: true, 
-            message: `${playerName} successfully sold to ${teamName} for ${bidAmount.toLocaleString()}!`,
+            message: `${playerObj.name} successfully sold to ${teamName} for ${bidAmount.toLocaleString()}!`,
             updatedTeams,
             updatedPlayers
         };
@@ -131,8 +138,8 @@ export const useAuctionBusinessLogic = (
             return;
         }
 
-        // Process the sale
-        const saleResult = await sellPlayer(auction.currentPlayer.name, teamName, bidAmount);
+        // Process the sale (use id to avoid duplicate-name bugs)
+        const saleResult = await sellPlayer(auction.currentPlayer, teamName, bidAmount);
         
         if (saleResult.success) {
             showManagedToast('success', saleResult.message, {
@@ -189,9 +196,9 @@ export const useAuctionBusinessLogic = (
 
         // Mark player as unsold with wasUnsold flag retained for later display
         const updatedPlayers = players.map(player =>
-            player.name === auction.currentPlayer.name 
-                ? { ...player, soldTo: 'Unsold', soldPrice: 0, sold: false, wasUnsold: true }
-                : player
+            (auction.currentPlayer.id !== undefined && auction.currentPlayer.id !== null)
+                ? (player.id === auction.currentPlayer.id ? { ...player, soldTo: 'Unsold', soldPrice: 0, sold: false, wasUnsold: true } : player)
+                : (player.name === auction.currentPlayer.name ? { ...player, soldTo: 'Unsold', soldPrice: 0, sold: false, wasUnsold: true } : player)
         );
 
         setPlayers(updatedPlayers);
@@ -259,6 +266,27 @@ export const useAuctionBusinessLogic = (
         return true;
     };
 
+    const handleApplyBoosterPoints = async (teamName, boosterCount, pointsPerBooster = 10) => {
+        const updatedTeams = setTeamBoosterCount(teams, teamName, boosterCount, pointsPerBooster);
+        if (updatedTeams === teams) {
+            showFancyError("Failed to set booster count. Please check values and try again.");
+            return false;
+        }
+
+        setTeams(updatedTeams);
+
+        await triggerAuctionSaveWithState(
+            'BOOSTER_APPLIED',
+            `Booster count set to ${boosterCount} for ${teamName}`,
+            teamName,
+            boosterCount,
+            null,
+            updatedTeams
+        );
+
+        return true;
+    };
+
     // ✅ CENTRALIZED: Function to handle player transfers using centralized management
     const handlePlayerTransfer = (player, fromTeam, toTeam, newPrice) => {
         const updatedTeams = processPlayerTransfer(teams, player, fromTeam, toTeam, newPrice);
@@ -286,6 +314,49 @@ export const useAuctionBusinessLogic = (
         return true;
     };
 
+    // Centralized edit for sold players from Teams page
+    // Supports both transfers and same-team price edits and ensures viewer/cloud stays in sync.
+    const handlePlayerEdit = async (player, currentTeam, newTeam, newPrice) => {
+        if (!player || !currentTeam || !newTeam || typeof newPrice !== 'number' || newPrice <= 0) {
+            showFancyError('Invalid player edit parameters.');
+            return false;
+        }
+
+        const sameTeam = currentTeam === newTeam;
+        const updatedTeams = sameTeam
+            ? updatePlayerPriceInTeam(teams, player, currentTeam, newPrice)
+            : processPlayerTransfer(teams, player, currentTeam, newTeam, newPrice);
+
+        if (!updatedTeams) {
+            showFancyError(
+                sameTeam
+                    ? 'Failed to update player price. Check team budget and try again.'
+                    : 'Failed to transfer player. Please check team budgets and player limits.'
+            );
+            return false;
+        }
+
+        const updatedPlayers = players.map(p =>
+            (p.id === player.id || p.name === player.name)
+                ? { ...p, soldTo: newTeam, soldPrice: newPrice, sold: true }
+                : p
+        );
+
+        setPlayers(updatedPlayers);
+        setTeams(updatedTeams);
+
+        await triggerAuctionSaveWithState(
+            'PLAYER_EDIT',
+            `${player.name} ${sameTeam ? 'price updated' : `moved ${currentTeam} -> ${newTeam}`}`,
+            newTeam,
+            newPrice,
+            updatedPlayers,
+            updatedTeams
+        );
+
+        return true;
+    };
+
     // ✅ CENTRALIZED: Get team budget info using centralized calculations
     const getTeamBudgetInfo = (teamName) => {
         const team = teams[teamName];
@@ -300,7 +371,9 @@ export const useAuctionBusinessLogic = (
         handleMarkUnsold,
         sellUnsoldPlayerLater, // new function
         handleUpdateTeamPurse,      // ✅ UPDATED: Now uses updateTeamInitialPurse for Edit Balance
+        handleApplyBoosterPoints,
         handlePlayerTransfer,       // ✅ CENTRALIZED: Player transfers
+        handlePlayerEdit,
         getTeamBudgetInfo          // ✅ CENTRALIZED: Team budget calculations
     };
 };

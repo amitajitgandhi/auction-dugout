@@ -273,6 +273,10 @@ const FileUpload = ({
                         loadedTeams[teamName] = {
                             owner: team["Owner Name"]?.trim() || "",
                             purse: parseInt(team["Total Points"], 10) || 0,
+                            initialPurse: parseInt(team["Total Points"], 10) || 0,
+                            baseInitialPurse: parseInt(team["Total Points"], 10) || 0,
+                            boosterCount: 0,
+                            pointsPerBooster: 10,
                             playersToBuy: parseInt(team["Players per Team"], 10) || 0,
                             originalPlayersPerTeam: parseInt(team["Players per Team"], 10) || 0, // Store original value
                             players: [],

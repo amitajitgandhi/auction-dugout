@@ -26,6 +26,7 @@ A complete web-based cricket auction management system — run your IPL-style au
 - **📱 WhatsApp Integration** — Send auction updates and team summaries directly to WhatsApp groups
 - **🎡 Spin Wheel** — Interactive random team selector for fun decision-making
 - **🎨 Jersey Color Assignment** — Randomly assign jersey colors to each team
+- **⚡ Booster Points** — Increase a team's budget by applying boosters (count × points-per-booster), reflected across Auction, Teams, Viewer, and Max Bid
 - **📈 Max Bid Calculator** — Analytics dashboard showing each team's maximum affordable bid
 - **🔗 CricHeroes Profiles** — Link each player to their CricHeroes profile for quick stats lookup
 

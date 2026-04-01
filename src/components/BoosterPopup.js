@@ -1,220 +1,134 @@
-﻿/**
- * ✅ ARCHIVED COMPONENT - BOOSTER FUNCTIONALITY
- * This component has been archived in favor of simplified team purse editing.
- * The booster system was too complex and has been replaced with direct purse editing.
- * 
- * Date Archived: [Current Date]
- * Reason: Simplification - direct team purse editing preferred over booster system
- * 
- * ⚠️ DO NOT USE THIS COMPONENT - Use TeamEditPopup instead
- */
-
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { EMOJIS } from "../utils/constants";
 
-// ✅ ARCHIVED: This entire component is now archived
-const BoosterPopup = ({ 
-    isOpen, 
-    onClose, 
-    teams, 
-    showManagedToast,
-    boosterData,
-    onApplyBoosters
-}) => {
-    const [pointsPerBooster, setPointsPerBooster] = useState('');
-    const [teamBoosters, setTeamBoosters] = useState({});
+const BoosterPopup = ({ isOpen, onClose, teams, onApplyBoosterPoints, showManagedToast }) => {
+    const [teamName, setTeamName] = useState("");
+    const [boosterCount, setBoosterCount] = useState("");
+    const [pointsPerBooster, setPointsPerBooster] = useState("10");
+    const teamNames = useMemo(() => Object.keys(teams || {}), [teams]);
 
-    // ✅ ARCHIVED: All booster logic below is archived
-    
-    // Initialize team boosters when popup opens
-    React.useEffect(() => {
-        if (isOpen && Object.keys(teams).length > 0) {
-            // Load existing booster data if available
-            if (boosterData && boosterData.pointsPerBooster && Object.keys(boosterData.teamBoosters || {}).length > 0) {
-                setPointsPerBooster(boosterData.pointsPerBooster.toString());
-                setTeamBoosters(boosterData.teamBoosters);
-            } else {
-                // Initialize with empty booster data
-                const initialBoosters = {};
-                Object.keys(teams).forEach(teamName => {
-                    initialBoosters[teamName] = {
-                        selected: false,
-                        boosterCount: 0
-                    };
-                });
-                setTeamBoosters(initialBoosters);
-            }
-        }
-    }, [isOpen, teams, boosterData]);
-
-    // ✅ ARCHIVED: Return null to disable this component
     if (!isOpen) return null;
 
-    // ✅ ARCHIVED: Show archived message instead of booster interface
+    const selectedTeam = teamName ? teams?.[teamName] : null;
+
+    const handleApply = async () => {
+        const count = parseInt(boosterCount, 10);
+        const ppb = parseInt(pointsPerBooster, 10);
+        if (!teamName || !selectedTeam) {
+            showManagedToast?.("error", "Please select a team first.", { icon: EMOJIS.WARNING, duration: 3000 });
+            return;
+        }
+        if (Number.isNaN(count) || count < 0) {
+            showManagedToast?.("error", "Enter valid booster count (0 or more).", { icon: EMOJIS.WARNING, duration: 3000 });
+            return;
+        }
+        if (Number.isNaN(ppb) || ppb <= 0) {
+            showManagedToast?.("error", "Enter valid points per booster.", { icon: EMOJIS.WARNING, duration: 3000 });
+            return;
+        }
+
+        const base = selectedTeam.baseInitialPurse ?? selectedTeam.initialPurse ?? selectedTeam.purse ?? 0;
+        const spent = (selectedTeam.players || []).reduce((sum, p) => sum + (p.soldPrice || 0), 0);
+        const projectedTotal = base + count * ppb;
+        if (projectedTotal < spent) {
+            showManagedToast?.("error", "Booster count too low for already spent points.", { icon: EMOJIS.WARNING, duration: 3000 });
+            return;
+        }
+
+        const ok = await onApplyBoosterPoints?.(teamName, count, ppb);
+        if (ok) {
+            showManagedToast?.(
+                "success",
+                `${EMOJIS.ZAP} Booster set: ${teamName} -> ${count} booster(s) x ${ppb} points.`,
+                { icon: EMOJIS.CHECK_MARK, duration: 3500 }
+            );
+            setBoosterCount("");
+            onClose?.();
+        }
+    };
+
     return (
         <>
-            {/* Overlay */}
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm">
-                <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-lg w-full mx-4">
-                    {/* Header */}
-                    <div className="text-center mb-6">
-                        <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-gray-100 mb-4">
-                            <span className="text-3xl">{EMOJIS.ARCHIVE}</span>
+                <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-xl w-full mx-4">
+                    <div className="text-center mb-5">
+                        <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-yellow-100 mb-4">
+                            <span className="text-3xl">{EMOJIS.ZAP}</span>
                         </div>
-                        <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                            Feature Archived
-                        </h3>
+                        <h3 className="text-2xl font-bold text-gray-900 mb-1">Set Booster Count</h3>
                         <p className="text-gray-600 text-sm">
-                            Please use the team edit feature.
+                            Booster increases team budget everywhere: Auction, Teams, Viewer, and Max Bid.
                         </p>
                     </div>
 
-                    {/* Action Button */}
-                    <div className="flex justify-center">
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Team</label>
+                            <select
+                                value={teamName}
+                                onChange={(e) => setTeamName(e.target.value)}
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                            >
+                                <option value="">Select Team</option>
+                                {teamNames.map((name) => (
+                                    <option key={name} value={name}>{name}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Booster Count</label>
+                            <input
+                                type="number"
+                                min="0"
+                                value={boosterCount}
+                                onChange={(e) => setBoosterCount(e.target.value)}
+                                placeholder="Enter booster count"
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Points Per Booster</label>
+                            <input
+                                type="number"
+                                min="1"
+                                value={pointsPerBooster}
+                                onChange={(e) => setPointsPerBooster(e.target.value)}
+                                placeholder="Default 10"
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                            />
+                        </div>
+
+                        {selectedTeam && (
+                            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm">
+                                <div><strong>Base Points:</strong> {EMOJIS.CURRENCY_RUPEE}{(selectedTeam.baseInitialPurse ?? selectedTeam.initialPurse ?? selectedTeam.purse ?? 0).toLocaleString()}</div>
+                                <div><strong>Current Booster:</strong> {(selectedTeam.boosterCount ?? 0)} x {(selectedTeam.pointsPerBooster ?? 10)}</div>
+                                <div><strong>Current Total Points:</strong> {EMOJIS.CURRENCY_RUPEE}{(selectedTeam.initialPurse ?? selectedTeam.purse ?? 0).toLocaleString()}</div>
+                                <div><strong>Current Points Left:</strong> {EMOJIS.CURRENCY_RUPEE}{(selectedTeam.purse ?? 0).toLocaleString()}</div>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="flex justify-end gap-3 mt-6">
                         <button
                             onClick={onClose}
-                            className="px-6 py-3 bg-gray-200 text-gray-800 rounded-lg font-semibold hover:bg-gray-300 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400 flex items-center justify-center gap-2"
+                            className="px-5 py-2.5 bg-gray-200 text-gray-800 rounded-lg font-semibold hover:bg-gray-300"
                         >
-                            <span>{EMOJIS.CHECK_MARK}</span>
-                            OK
+                            Cancel
+                        </button>
+                        <button
+                            onClick={handleApply}
+                            className="px-5 py-2.5 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-lg font-semibold hover:from-yellow-600 hover:to-orange-600"
+                        >
+                            Apply Booster
                         </button>
                     </div>
                 </div>
             </div>
-
-            {/* Click outside to close */}
-            <div
-                className="fixed inset-0 z-40"
-                onClick={onClose}
-            ></div>
+            <div className="fixed inset-0 z-40" onClick={onClose}></div>
         </>
     );
-
-    // ✅ ARCHIVED: All the original booster functionality code below (commented out)
-    /*
-    const handleCheckboxChange = (teamName, checked) => {
-        setTeamBoosters(prev => ({
-            ...prev,
-            [teamName]: {
-                ...prev[teamName],
-                selected: checked,
-                boosterCount: checked ? prev[teamName]?.boosterCount || 0 : 0
-            }
-        }));
-    };
-
-    const handleBoosterCountChange = (teamName, increment) => {
-        setTeamBoosters(prev => {
-            const currentCount = prev[teamName]?.boosterCount || 0;
-            const newCount = Math.max(0, Math.min(10, currentCount + increment));
-            
-            return {
-                ...prev,
-                [teamName]: {
-                    ...prev[teamName],
-                    boosterCount: newCount
-                }
-            };
-        });
-    };
-
-    const calculateUpdatedPoints = (teamName) => {
-        const team = teams[teamName];
-        if (!team) return 0;
-        
-        // Get initial points (purse + spent amount)
-        const spentAmount = team.players.reduce((total, player) => total + player.soldPrice, 0);
-        const initialPoints = team.purse + spentAmount;
-        
-        const boosterData = teamBoosters[teamName];
-        const boosterPoints = boosterData?.selected && pointsPerBooster ? 
-            (boosterData.boosterCount * parseInt(pointsPerBooster)) : 0;
-        
-        return initialPoints + boosterPoints;
-    };
-
-    const getInitialPoints = (teamName) => {
-        const team = teams[teamName];
-        if (!team) return 0;
-        
-        // Calculate initial points (purse + spent amount)
-        const spentAmount = team.players.reduce((total, player) => total + player.soldPrice, 0);
-        return team.purse + spentAmount;
-    };
-
-    const handleClose = () => {
-        // Don't reset state when closing - keep the existing values
-        onClose();
-    };
-
-    const handleApplyBoosters = () => {
-        if (!pointsPerBooster || parseInt(pointsPerBooster) <= 0) {
-            showManagedToast('error', 'Please enter valid points per booster!', {
-                style: {
-                    border: '2px solid #f59e42',
-                    padding: '16px',
-                    color: '#b91c1c',
-                    fontWeight: 'bold',
-                    fontSize: '1.1rem',
-                    background: 'linear-gradient(90deg, #fffbe6 0%, #ffe4e6 100%)',
-                    boxShadow: '0 4px 24px 0 #fbbf24',
-                },
-                icon: EMOJIS.WARNING,
-                duration: 3000,
-            });
-            return;
-        }
-
-        const selectedTeams = Object.entries(teamBoosters).filter(([_, data]) => data.selected && data.boosterCount > 0);
-        
-        if (selectedTeams.length === 0) {
-            showManagedToast('error', 'Please select at least one team with boosters!', {
-                style: {
-                    border: '2px solid #f59e42',
-                    padding: '16px',
-                    color: '#b91c1c',
-                    fontWeight: 'bold',
-                    fontSize: '1.1rem',
-                    background: 'linear-gradient(90deg, #fffbe6 0%, #ffe4e6 100%)',
-                    boxShadow: '0 4px 24px 0 #fbbf24',
-                },
-                icon: EMOJIS.WARNING,
-                duration: 3000,
-            });
-            return;
-        }
-
-        // Pass the booster data to parent component
-        const boosterDataToSave = {
-            pointsPerBooster: parseInt(pointsPerBooster),
-            teamBoosters: teamBoosters
-        };
-
-        onApplyBoosters(boosterDataToSave);
-
-        const boosterSummary = selectedTeams.map(([teamName, data]) => 
-            `${teamName}: ${data.boosterCount} booster(s)`
-        ).join(', ');
-
-        showManagedToast('success', `Boosters applied successfully! ${boosterSummary}`, {
-            style: {
-                border: '2px solid #10b981',
-                padding: '16px',
-                color: '#065f46',
-                fontWeight: 'bold',
-                fontSize: '1.05rem',
-                background: 'linear-gradient(90deg, #d1fae5 0%, #a7f3d0 100%)',
-                boxShadow: '0 4px 24px 0 #10b981',
-            },
-            icon: EMOJIS.ZAP,
-            duration: 4000,
-        });
-
-        handleClose();
-    };
-
-    // Original JSX return statement archived below 
-    */
 };
 
 export default BoosterPopup;

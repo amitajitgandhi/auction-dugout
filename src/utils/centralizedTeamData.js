@@ -151,8 +151,56 @@ export const updateTeamInitialPurse = (teams, teamName, newInitialPurse) => {
         ...teams,
         [teamName]: {
             ...team,
+            baseInitialPurse: newInitialPurse,
+            boosterCount: 0,
             initialPurse: newInitialPurse,  // Update initial purse
             purse: newCurrentPurse          // Recalculate current purse
+        }
+    };
+};
+
+/**
+ * Add booster points to a team budget.
+ * Simplified model: initialPurse already represents (base + boosters).
+ * So adding booster points increases both initialPurse and current purse.
+ * @param {Object} teams - Current teams state
+ * @param {string} teamName - Team to update
+ * @param {number} boosterPoints - Booster points to add
+ * @returns {Object} - Updated teams object
+ */
+export const setTeamBoosterCount = (teams, teamName, boosterCount, pointsPerBooster = 10) => {
+    if (
+        !teams ||
+        !teamName ||
+        typeof boosterCount !== 'number' ||
+        boosterCount < 0 ||
+        typeof pointsPerBooster !== 'number' ||
+        pointsPerBooster <= 0
+    ) {
+        console.error('Invalid parameters for setTeamBoosterCount:', { teams: !!teams, teamName, boosterCount, pointsPerBooster });
+        return teams;
+    }
+
+    const team = teams[teamName];
+    if (!team) {
+        console.error(`Team ${teamName} not found`);
+        return teams;
+    }
+
+    const baseInitialPurse = team.baseInitialPurse ?? team.initialPurse ?? team.purse ?? 0;
+    const totalSpent = (team.players || []).reduce((sum, player) => sum + (player.soldPrice || 0), 0);
+    const boostedInitial = baseInitialPurse + (boosterCount * pointsPerBooster);
+    const recalculatedPurse = boostedInitial - totalSpent;
+
+    return {
+        ...teams,
+        [teamName]: {
+            ...team,
+            baseInitialPurse,
+            boosterCount,
+            pointsPerBooster,
+            initialPurse: boostedInitial,
+            purse: recalculatedPurse
         }
     };
 };
@@ -264,6 +312,57 @@ export const processPlayerTransfer = (teams, player, fromTeam, toTeam, newPrice)
             purse: destTeam.purse - newPrice,                     // Deduct new price
             playersToBuy: destTeam.playersToBuy - 1,             // Decrease available slots
             players: [...destTeam.players, { ...player, soldPrice: newPrice }] // Add player with new price
+        }
+    };
+};
+
+/**
+ * Update a sold player's price within the same team.
+ * Keeps playersToBuy unchanged, adjusts purse by the price delta.
+ * @param {Object} teams - Current teams state
+ * @param {Object} player - Player to update (must exist in team players[])
+ * @param {string} teamName - Team that owns the player
+ * @param {number} newPrice - New sold price
+ * @returns {Object} - Updated teams object or null if invalid
+ */
+export const updatePlayerPriceInTeam = (teams, player, teamName, newPrice) => {
+    if (!teams || !player || !teamName || typeof newPrice !== 'number' || newPrice <= 0) {
+        console.error('Invalid parameters for updatePlayerPriceInTeam');
+        return null;
+    }
+
+    const team = teams[teamName];
+    if (!team) {
+        console.error(`Team ${teamName} not found`);
+        return null;
+    }
+
+    const playerIndex = (team.players || []).findIndex(p => p.id === player.id || p.name === player.name);
+    if (playerIndex === -1) {
+        console.error(`Player ${player.name} not found in team ${teamName}`);
+        return null;
+    }
+
+    const existingPlayer = team.players[playerIndex];
+    const oldPrice = existingPlayer.soldPrice || 0;
+    const delta = newPrice - oldPrice;
+
+    // If increasing price, ensure team can afford the delta
+    if (delta > 0 && team.purse < delta) {
+        console.error(`Insufficient funds to increase price: purse ${team.purse} < delta ${delta}`);
+        return null;
+    }
+
+    const updatedPlayersInTeam = team.players.map((p, idx) =>
+        idx === playerIndex ? { ...p, soldPrice: newPrice } : p
+    );
+
+    return {
+        ...teams,
+        [teamName]: {
+            ...team,
+            purse: team.purse - delta,
+            players: updatedPlayersInTeam
         }
     };
 };

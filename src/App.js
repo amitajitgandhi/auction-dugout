@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import ReactConfetti from "react-confetti";
 import { Toaster } from "react-hot-toast";
 
@@ -55,7 +55,7 @@ export default function CricketAuctionTool() {
   const auction = useAuction(players, showManagedToast);
   const persistence = usePersistence(showManagedToast, authUser);
 
-  const { handleMarkSold, handleMarkUnsold, sellUnsoldPlayerLater, handleUpdateTeamPurse, handlePlayerTransfer, getTeamBudgetInfo } = useAuctionBusinessLogic(
+  const { handleMarkSold, handleMarkUnsold, sellUnsoldPlayerLater, handleUpdateTeamPurse, handleApplyBoosterPoints, handlePlayerTransfer, handlePlayerEdit, getTeamBudgetInfo } = useAuctionBusinessLogic(
     players, 
     setPlayers, 
     teams, 
@@ -253,98 +253,8 @@ export default function CricketAuctionTool() {
     });
   };
 
-  const handlePlayerEdit = async (player, newTeamName, newPrice) => {
-    const currentTeamName = player.currentTeam;
-    setTeams(prevTeams => {
-      const updatedTeams = { ...prevTeams };
-      if (updatedTeams[currentTeamName]) {
-        updatedTeams[currentTeamName] = {
-          ...updatedTeams[currentTeamName],
-          players: updatedTeams[currentTeamName].players.filter(p => p.name !== player.name)
-        };
-        updatedTeams[currentTeamName].purse += player.soldPrice;
-        updatedTeams[currentTeamName].playersToBuy += 1;
-      }
-      if (updatedTeams[newTeamName]) {
-        const updatedPlayer = { ...player, soldPrice: newPrice };
-        updatedTeams[newTeamName] = {
-          ...updatedTeams[newTeamName],
-          players: [...updatedTeams[newTeamName].players, updatedPlayer]
-        };
-        updatedTeams[newTeamName].purse -= newPrice;
-        updatedTeams[newTeamName].playersToBuy -= 1;
-      }
-      return updatedTeams;
-    });
-    setPlayers(prevPlayers => prevPlayers.map(p => p.name === player.name ? { ...p, soldTo: newTeamName, soldPrice: newPrice, sold: true } : p));
-    if (authUser?.id && isTournamentNameSet) {
-      try {
-        const currentState = {
-          players: players.map(p => p.name === player.name ? { ...p, soldTo: newTeamName, soldPrice: newPrice, sold: true } : p),
-          teams,
-          tournamentName,
-          isTournamentNameSet,
-          whatsappSettings,
-          categoryConfigs,
-          auctionStarted: auction.auctionStarted,
-          selectedCategory: auction.selectedCategory,
-          completedCategories: Array.from(auction.completedCategories || []),
-          currentPlayerName: auction.currentPlayer?.name || null
-        };
-        await persistence.saveState(currentState);
-      } catch (error) {
-        console.error('Failed to save progress after player edit:', error);
-      }
-    }
-  };
-
-  const handleTeamPurseUpdate = async (teamName, newPurse) => {
-    setTeams(prevTeams => ({
-      ...prevTeams,
-      [teamName]: {
-        ...prevTeams[teamName],
-        purse: newPurse,
-        initialPurse: newPurse
-      }
-    }));
-    if (authUser?.id && isTournamentNameSet) {
-      try {
-        const currentState = {
-          players,
-          teams: {
-            ...teams,
-            [teamName]: {
-              ...teams[teamName],
-              purse: newPurse,
-              initialPurse: newPurse
-            }
-          },
-          tournamentName,
-          isTournamentNameSet,
-          whatsappSettings,
-          categoryConfigs,
-          auctionStarted: auction.auctionStarted,
-          selectedCategory: auction.selectedCategory,
-          completedCategories: Array.from(auction.completedCategories || []),
-          currentPlayerName: auction.currentPlayer?.name || null
-        };
-        await persistence.saveState(currentState);
-        showManagedToast('success', 'Team purse updated and saved successfully!', {
-          style: TOAST_STYLES.success,
-          icon: EMOJIS.SAVEDISK,
-          duration: 3000,
-        });
-      } catch (error) {
-        console.error('Failed to save progress after team purse update:', error);
-        showManagedToast('error', 'Team purse updated but failed to save to cloud', {
-          style: TOAST_STYLES.error,
-          icon: EMOJIS.FAILURE,
-          duration: 4000,
-        });
-      }
-    }
-    return true;
-  };
+  // NOTE: Player edits and purse edits are handled via `useAuctionBusinessLogic`
+  // so the updated state is persisted atomically (keeps Auction/Teams/Viewer in sync).
 
   // Restore button handler: snapshot then confirm
   const onConfirmRestoreClick = () => {
@@ -399,7 +309,24 @@ export default function CricketAuctionTool() {
     return (
       <>
         <Toaster position="top-center" />
-        <TeamsPage teams={teams} players={players} tournamentName={tournamentName} onResetAuction={handleResetAuction} onBackToAuction={goToAuctionPage} showManagedToast={showManagedToast} onWhatsAppSettings={handleWhatsAppSettings} onTeamWhatsAppShare={(teamName, teamData) => handleTeamWhatsAppShare(teamName, teamData, tournamentName)} whatsappSettings={whatsappSettings} onPlayerEdit={handlePlayerEdit} onTeamPurseUpdate={handleTeamPurseUpdate} updateTeamPurse={handleUpdateTeamPurse} onViewUnsoldPlayers={goToUnsoldPlayersPage} />
+        <TeamsPage
+          teams={teams}
+          players={players}
+          tournamentName={tournamentName}
+          onResetAuction={handleResetAuction}
+          onBackToAuction={goToAuctionPage}
+          showManagedToast={showManagedToast}
+          onWhatsAppSettings={handleWhatsAppSettings}
+          onTeamWhatsAppShare={(teamName, teamData) => handleTeamWhatsAppShare(teamName, teamData, tournamentName)}
+          whatsappSettings={whatsappSettings}
+          onPlayerEdit={(player, newTeamName, newPrice) =>
+            handlePlayerEdit(player, player?.currentTeam, newTeamName, newPrice)
+          }
+          onTeamPurseUpdate={handleUpdateTeamPurse}
+          onApplyBoosterPoints={handleApplyBoosterPoints}
+          updateTeamPurse={handleUpdateTeamPurse}
+          onViewUnsoldPlayers={goToUnsoldPlayersPage}
+        />
         <ResetConfirmation 
           isOpen={showResetConfirmation}
           onConfirm={confirmResetAuction}
