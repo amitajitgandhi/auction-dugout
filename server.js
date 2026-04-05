@@ -100,9 +100,28 @@ async function uploadToSupabase(buffer, fileName, contentType = 'image/jpeg') {
     return data;
 }
 
+// Sanitize a player name for use as a storage filename
+// Strips non-ASCII chars (e.g. BOM artifacts, encoding garbage like \uFFFD)
+const sanitizeFileName = (name) => {
+    return name
+        .replace(/[^\x20-\x7E]/g, '') // remove non-printable / non-ASCII characters
+        .replace(/\s+/g, '_')          // spaces → underscores
+        .replace(/[^a-zA-Z0-9_.-]/g, '') // keep only safe filename chars
+        .toLowerCase();
+};
+
+// Sanitize a player name from CSV (remove invisible / control characters but keep readable text)
+const sanitizePlayerName = (name) => {
+    return name
+        .replace(/[\u200B-\u200D\uFEFF\uFFFD]/g, '') // zero-width chars & replacement char
+        .replace(/[^\x20-\x7E\u00C0-\u024F]/g, '')    // keep ASCII + accented Latin chars
+        .trim();
+};
+
 // Endpoint: Upload Player
 app.post('/api/upload-player', async (req, res) => {
-    const { name, skill, category = 'OPEN', photoUrl } = req.body;
+    const { name: rawName, skill, category = 'OPEN', photoUrl } = req.body;
+    const name = sanitizePlayerName(rawName || '');
 
     if (!name || !photoUrl) {
         return res.status(400).json({ message: 'Missing required fields' });
@@ -182,7 +201,7 @@ app.post('/api/upload-player', async (req, res) => {
         }
 
         const { contentType, ext } = detected;
-        const fileName = `${name.replace(/\s+/g, '_').toLowerCase()}${ext}`;
+        const fileName = `${sanitizeFileName(name)}${ext}`;
         const uploadInfo = await uploadToSupabase(buffer, fileName, contentType);
 
         // Get public URL

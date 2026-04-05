@@ -132,9 +132,10 @@ const FileUpload = ({
                 const totalPlayers = data.length;
 
                 for (const [index, row] of data.entries()) {
-                    const name = row["Name"]?.trim() || "";
-                    const skill = row["Skillset"]?.trim() || "";
-                    const category = row["Category"]?.trim() || "OPEN";
+                    // Strip invisible/control/replacement characters from CSV values
+                    const name = (row["Name"] || "").replace(/[\u200B-\u200D\uFEFF\uFFFD]/g, '').trim();
+                    const skill = (row["Skillset"] || "").replace(/[\u200B-\u200D\uFEFF\uFFFD]/g, '').trim();
+                    const category = (row["Category"] || "").replace(/[\u200B-\u200D\uFEFF\uFFFD]/g, '').trim() || "OPEN";
                     const rawPhotoUrl = formatDriveLink(row["Photo Link"] || "");
                     const cricHeroesProfile = formatCricHeroesProfile(row["CricHeroes_Profile"] || ""); // Extract and format URL
 
@@ -147,21 +148,31 @@ const FileUpload = ({
                     try {
                         // Use your Render backend API for image processing
                         const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "https://auction-backend-xeai.onrender.com";
-                        // console.log('?? Using API URL:', API_BASE_URL); // Debug log
-                        
-                        const response = await fetch(`${API_BASE_URL}/api/upload-player`, {
-                            method: "POST",
-                            headers: {
-                                "Content-Type": "application/json"
-                            },
-                            body: JSON.stringify({
-                                name,
-                                skill,
-                                category,
-                                photoUrl: rawPhotoUrl,
-                                cricHeroesProfile // Include the new field in the API call
-                            })
-                        });
+
+                        // Retry up to 2 times for transient 500 errors (Render free tier can be flaky)
+                        let response;
+                        const MAX_RETRIES = 2;
+                        for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+                            response = await fetch(`${API_BASE_URL}/api/upload-player`, {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/json"
+                                },
+                                body: JSON.stringify({
+                                    name,
+                                    skill,
+                                    category,
+                                    photoUrl: rawPhotoUrl,
+                                    cricHeroesProfile
+                                })
+                            });
+
+                            if (response.ok || response.status < 500 || attempt === MAX_RETRIES) break;
+
+                            // Wait before retrying (1s, then 2s)
+                            console.warn(`?? Retry ${attempt + 1}/${MAX_RETRIES} for ${name} (HTTP ${response.status})`);
+                            await new Promise(r => setTimeout(r, (attempt + 1) * 1000));
+                        }
 
                         if (!response.ok) {
                             throw new Error(`API request failed: ${response.status} ${response.statusText}`);
@@ -186,29 +197,18 @@ const FileUpload = ({
 
                     } catch (err) {
                         console.warn(`?? Server upload failed for ${name}:`, err.message);
-                        
-                        // Fallback: Add player with original photo URL if API fails
-                        // If the original photo URL also fails, use default placeholder
-                        let fallbackPhoto = rawPhotoUrl;
-                        
-                        // Check if the original photo URL is accessible
-                        try {
-                            const photoResponse = await fetch(rawPhotoUrl, { method: 'HEAD' });
-                            if (!photoResponse.ok) {
-                                console.warn(`?? Original photo URL also failed for ${name}, using default image`);
-                                fallbackPhoto = getDefaultPlayerImage();
-                            }
-                        } catch (photoErr) {
-                            console.warn(`?? Photo accessibility check failed for ${name}, using default image`);
-                            fallbackPhoto = getDefaultPlayerImage();
-                        }
-                        
+
+                        // Fallback: Use the Google Drive thumbnail URL directly as photo.
+                        // Don't try a fetch/HEAD check here — Google Drive blocks CORS for
+                        // fetch requests, but the URL works fine inside <img> tags.
+                        const fallbackPhoto = rawPhotoUrl || getDefaultPlayerImage();
+
                         enrichedPlayers.push({
                             id: index,
                             name,
                             skill,
                             category,
-                            photo: fallbackPhoto, // Use fallback photo (either original or default)
+                            photo: fallbackPhoto,
                             driveLink: row["Photo Link"]?.trim() || "", // Original Google Drive link from CSV
                             cricHeroesProfile,
                             sold: false,
@@ -216,7 +216,7 @@ const FileUpload = ({
                             soldPrice: null,
                         });
 
-                        console.log(`?? Added ${name} with fallback image`);
+                        console.log(`?? Added ${name} with fallback image (Drive thumbnail)`);
                     }
 
                     // Update progress after each player
