@@ -8,7 +8,7 @@ A complete web-based cricket auction management system — run your IPL-style au
 
 ### Core Auction
 - **🎯 Live Auction Interface** — Real-time bidding with player photos, category-wise rounds, sold/unsold stamps, and confetti celebrations
-- **📊 Player & Team CSV Upload** — Bulk-import players and teams from CSV files with built-in validation and sample templates
+- **📊 Player & Team CSV File Upload** — Bulk-import players and teams from CSV files with built-in validation and sample templates
 - **⚙️ Category Configuration** — Set base price and player count per category (Platinum, Icon, Gold, Silver, Open, or custom) with smart budget validation
 - **🔄 Multi-Round Support** — Unsold players carry forward to the next round for re-auction
 
