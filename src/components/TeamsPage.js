@@ -20,7 +20,9 @@ const TeamsPage = ({
     whatsappSettings,
     onPlayerEdit,
     onTeamPurseUpdate,
-    onApplyBoosterPoints,
+    onIncrementTeamBooster,
+    onUpdatePointsPerBooster,
+    boosterPointsPerBooster,
     updateTeamPurse,
     onViewUnsoldPlayers // ...new prop
 }) => {
@@ -519,7 +521,9 @@ const TeamsPage = ({
                 isOpen={showBoosterPopup}
                 onClose={() => setShowBoosterPopup(false)}
                 teams={teams}
-                onApplyBoosterPoints={onApplyBoosterPoints}
+                boosterPointsPerBooster={boosterPointsPerBooster}
+                onIncrementTeamBooster={onIncrementTeamBooster}
+                onUpdatePointsPerBooster={onUpdatePointsPerBooster}
                 showManagedToast={showManagedToast}
             />
 

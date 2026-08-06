@@ -9,7 +9,8 @@ export const useAutoSave = (
     auction,
     persistence,
     user = null,
-    categoryConfigs = {} // Removed boosterData parameter
+    categoryConfigs = {}, // Removed boosterData parameter
+    boosterPointsPerBooster = 10 // Tournament-wide points-per-booster value
 ) => {
     // Auto-save interval ref
     const autoSaveIntervalRef = useRef(null);
@@ -43,6 +44,7 @@ export const useAutoSave = (
                         isTournamentNameSet,
                         whatsappSettings,
                         categoryConfigs, // Include category configurations
+                        boosterPointsPerBooster,
                         auctionStarted: auction.auctionStarted,
                         selectedCategory: auction.selectedCategory,
                         completedCategories: Array.from(auction.completedCategories || []),
@@ -93,12 +95,13 @@ export const useAutoSave = (
                     isTournamentNameSet,
                     whatsappSettings,
                     categoryConfigs, // Include category configurations
+                    boosterPointsPerBooster,
                     auctionStarted: auction.auctionStarted,
                     selectedCategory: auction.selectedCategory,
                     completedCategories: Array.from(auction.completedCategories || []),
                     currentPlayerName: auction.currentPlayer?.name || null
                 };
-                
+
                 try {
                     // Force save without toast notification (browser closing)
                     await persistence.saveState(currentState);
@@ -126,7 +129,8 @@ export const useAutoSave = (
         isTournamentNameSet, 
         whatsappSettings, 
         categoryConfigs, // Add categoryConfigs to dependencies
-        auction.auctionStarted, 
+        boosterPointsPerBooster,
+        auction.auctionStarted,
         auction.selectedCategory, 
         auction.completedCategories, 
         persistence, 

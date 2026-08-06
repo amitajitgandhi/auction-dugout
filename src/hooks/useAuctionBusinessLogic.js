@@ -1,42 +1,45 @@
 import { useState, useCallback } from 'react';
-import { 
-    processPlayerPurchase, 
-    processPlayerTransfer, 
-    getTeamInfo, 
+import {
+    processPlayerPurchase,
+    processPlayerTransfer,
+    getTeamInfo,
     updateTeamInitialPurse, // ✅ UPDATED: Import the new function for initial purse updates
     updatePlayerPriceInTeam,
-    setTeamBoosterCount
+    incrementTeamBooster,
+    applyGlobalPointsPerBooster
 } from '../utils/centralizedTeamData';
 import { EMOJIS } from '../utils/constants';
 
 export const useAuctionBusinessLogic = (
-    players, 
-    setPlayers, 
-    teams, 
-    setTeams, 
-    auction, 
-    showFancyError, 
+    players,
+    setPlayers,
+    teams,
+    setTeams,
+    auction,
+    showFancyError,
     showManagedToast,
-    sendWhatsAppNotification, 
+    sendWhatsAppNotification,
     tournamentName,
     auctionInterfaceRef,
     persistence = null,
     authUser = null,
     isTournamentNameSet = false,
     whatsappSettings = {},
-    categoryConfigs = {}
+    categoryConfigs = {},
+    boosterPointsPerBooster = 10,
+    setBoosterPointsPerBooster = null
 ) => {
     const [isSaving, setIsSaving] = useState(false);
 
     // ✅ CENTRALIZED: Function to save auction progress with enhanced error handling
-    const triggerAuctionSaveWithState = async (action, description, teamName, bidAmount, updatedPlayers = null, updatedTeams = null) => {
+    const triggerAuctionSaveWithState = async (action, description, teamName, bidAmount, updatedPlayers = null, updatedTeams = null, overrides = {}) => {
         if (!authUser?.id || !isTournamentNameSet || isSaving) {
             return;
         }
 
         try {
             setIsSaving(true);
-            
+
             const currentState = {
                 players: updatedPlayers || players,
                 teams: updatedTeams || teams,
@@ -44,10 +47,12 @@ export const useAuctionBusinessLogic = (
                 isTournamentNameSet,
                 whatsappSettings,
                 categoryConfigs,
+                boosterPointsPerBooster,
                 auctionStarted: auction.auctionStarted,
                 selectedCategory: auction.selectedCategory,
                 completedCategories: Array.from(auction.completedCategories || []),
-                currentPlayerName: auction.currentPlayer?.name || null
+                currentPlayerName: auction.currentPlayer?.name || null,
+                ...overrides
             };
             
             await persistence.saveState(currentState);
@@ -266,22 +271,50 @@ export const useAuctionBusinessLogic = (
         return true;
     };
 
-    const handleApplyBoosterPoints = async (teamName, boosterCount, pointsPerBooster = 10) => {
-        const updatedTeams = setTeamBoosterCount(teams, teamName, boosterCount, pointsPerBooster);
+    // ✅ Booster "+" button: bump one team's booster count by 1 using the
+    // tournament-wide points-per-booster value (never a per-team value).
+    const handleIncrementTeamBooster = async (teamName) => {
+        const updatedTeams = incrementTeamBooster(teams, teamName, boosterPointsPerBooster);
         if (updatedTeams === teams) {
-            showFancyError("Failed to set booster count. Please check values and try again.");
+            showFancyError("Failed to add booster. Please check values and try again.");
             return false;
         }
 
         setTeams(updatedTeams);
 
+        const newCount = updatedTeams[teamName]?.boosterCount ?? 0;
         await triggerAuctionSaveWithState(
             'BOOSTER_APPLIED',
-            `Booster count set to ${boosterCount} for ${teamName}`,
+            `Booster count for ${teamName} increased to ${newCount}`,
             teamName,
-            boosterCount,
+            newCount,
             null,
             updatedTeams
+        );
+
+        return true;
+    };
+
+    // ✅ Update the single tournament-wide points-per-booster value and keep every
+    // team's purse in sync with it.
+    const handleUpdatePointsPerBooster = async (newPointsPerBooster) => {
+        const updatedTeams = applyGlobalPointsPerBooster(teams, newPointsPerBooster);
+        if (updatedTeams === teams) {
+            showFancyError("Failed to update points per booster. Please enter a valid value.");
+            return false;
+        }
+
+        setTeams(updatedTeams);
+        setBoosterPointsPerBooster?.(newPointsPerBooster);
+
+        await triggerAuctionSaveWithState(
+            'BOOSTER_PPB_UPDATED',
+            `Points per booster set to ${newPointsPerBooster} for all teams`,
+            null,
+            newPointsPerBooster,
+            null,
+            updatedTeams,
+            { boosterPointsPerBooster: newPointsPerBooster }
         );
 
         return true;
@@ -371,7 +404,8 @@ export const useAuctionBusinessLogic = (
         handleMarkUnsold,
         sellUnsoldPlayerLater, // new function
         handleUpdateTeamPurse,      // ✅ UPDATED: Now uses updateTeamInitialPurse for Edit Balance
-        handleApplyBoosterPoints,
+        handleIncrementTeamBooster,
+        handleUpdatePointsPerBooster,
         handlePlayerTransfer,       // ✅ CENTRALIZED: Player transfers
         handlePlayerEdit,
         getTeamBudgetInfo          // ✅ CENTRALIZED: Team budget calculations

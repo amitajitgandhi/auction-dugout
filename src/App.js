@@ -35,6 +35,9 @@ export default function CricketAuctionTool() {
   const [showResetConfirmation, setShowResetConfirmation] = useState(false);
   const [showWhatsAppSettings, setShowWhatsAppSettings] = useState(false);
   const [categoryConfigs, setCategoryConfigs] = useState({});
+  // Tournament-wide points awarded per booster — a single value shared by every
+  // team for the whole tournament (never a per-team value).
+  const [boosterPointsPerBooster, setBoosterPointsPerBooster] = useState(10);
   const auctionInterfaceRef = useRef(null);
 
   // New: snapshot of restored state to rehydrate auction after React applies players/teams
@@ -55,25 +58,27 @@ export default function CricketAuctionTool() {
   const auction = useAuction(players, showManagedToast);
   const persistence = usePersistence(showManagedToast, authUser);
 
-  const { handleMarkSold, handleMarkUnsold, sellUnsoldPlayerLater, handleUpdateTeamPurse, handleApplyBoosterPoints, handlePlayerTransfer, handlePlayerEdit, getTeamBudgetInfo } = useAuctionBusinessLogic(
-    players, 
-    setPlayers, 
-    teams, 
-    setTeams, 
-    auction, 
-    showFancyError, 
+  const { handleMarkSold, handleMarkUnsold, sellUnsoldPlayerLater, handleUpdateTeamPurse, handleIncrementTeamBooster, handleUpdatePointsPerBooster, handlePlayerTransfer, handlePlayerEdit, getTeamBudgetInfo } = useAuctionBusinessLogic(
+    players,
+    setPlayers,
+    teams,
+    setTeams,
+    auction,
+    showFancyError,
     showManagedToast,
-    sendWhatsAppNotification, 
+    sendWhatsAppNotification,
     tournamentName,
     auctionInterfaceRef,
     persistence,
     authUser,
     isTournamentNameSet,
     whatsappSettings,
-    categoryConfigs
+    categoryConfigs,
+    boosterPointsPerBooster,
+    setBoosterPointsPerBooster
   );
 
-  useAutoSave(players, teams, tournamentName, isTournamentNameSet, whatsappSettings, auction, persistence, authUser, categoryConfigs);
+  useAutoSave(players, teams, tournamentName, isTournamentNameSet, whatsappSettings, auction, persistence, authUser, categoryConfigs, boosterPointsPerBooster);
   const { showStartupRestore, startupRestoreData, handleStartupRestoreConfirm, handleStartupRestoreCancel } = useStartupRestore(persistence, showManagedToast, authUser);
 
   // New: when players/teams are set after restore, rehydrate the auction state
@@ -94,6 +99,38 @@ export default function CricketAuctionTool() {
       setRehydrateSnapshot(null);
     }
   }, [rehydrateSnapshot, players, teams]);
+
+  // ✅ LIVE VIEWER SYNC: Broadcast the current player to the viewer link the moment
+  // they appear on the auction block, not just once sold/unsold. This keeps the
+  // live streaming viewer page in near real-time with the auctioneer's screen.
+  useEffect(() => {
+    if (!auction.currentPlayer || !authUser?.id || !isTournamentNameSet) {
+      return;
+    }
+
+    const broadcastCurrentPlayer = async () => {
+      try {
+        const currentState = {
+          players,
+          teams,
+          tournamentName,
+          isTournamentNameSet,
+          whatsappSettings,
+          categoryConfigs,
+          boosterPointsPerBooster,
+          auctionStarted: auction.auctionStarted,
+          selectedCategory: auction.selectedCategory,
+          completedCategories: Array.from(auction.completedCategories || []),
+          currentPlayerName: auction.currentPlayer?.name || null
+        };
+        await persistence.saveState(currentState);
+      } catch (error) {
+        console.error('❌ Failed to broadcast live current player to viewer:', error);
+      }
+    };
+
+    broadcastCurrentPlayer();
+  }, [auction.currentPlayer]);
 
   if (authLoading) {
     return (
@@ -179,6 +216,7 @@ export default function CricketAuctionTool() {
           isTournamentNameSet,
           whatsappSettings,
           categoryConfigs: configs,
+          boosterPointsPerBooster,
           auctionStarted: true,
           selectedCategory: auction.selectedCategory,
           completedCategories: Array.from(auction.completedCategories || []),
@@ -227,6 +265,7 @@ export default function CricketAuctionTool() {
     setPlayers([]);
     setTeams({});
     setCategoryConfigs({});
+    setBoosterPointsPerBooster(10);
     auction.resetAuction();
     setShowResetConfirmation(false);
     persistence.clearState();
@@ -272,7 +311,8 @@ export default function CricketAuctionTool() {
       setIsTournamentNameSet,
       setWhatsappSettings,
       whatsappSettings,
-      setCategoryConfigs
+      setCategoryConfigs,
+      setBoosterPointsPerBooster
     );
   };
 
@@ -323,7 +363,9 @@ export default function CricketAuctionTool() {
             handlePlayerEdit(player, player?.currentTeam, newTeamName, newPrice)
           }
           onTeamPurseUpdate={handleUpdateTeamPurse}
-          onApplyBoosterPoints={handleApplyBoosterPoints}
+          onIncrementTeamBooster={handleIncrementTeamBooster}
+          onUpdatePointsPerBooster={handleUpdatePointsPerBooster}
+          boosterPointsPerBooster={boosterPointsPerBooster}
           updateTeamPurse={handleUpdateTeamPurse}
           onViewUnsoldPlayers={goToUnsoldPlayersPage}
         />

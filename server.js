@@ -137,12 +137,16 @@ app.post('/api/upload-player', async (req, res) => {
             for (const url of urls) {
                 try {
                     console.log(`📥 [${name}] Trying: ${url.substring(0, 80)}...`);
+                    const controller = new AbortController();
+                    const timeout = setTimeout(() => controller.abort(), 30000); // 30s timeout
                     const response = await fetch(url, {
                         headers: {
                             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                         },
                         redirect: 'follow',
+                        signal: controller.signal,
                     });
+                    clearTimeout(timeout);
 
                     if (!response.ok) {
                         lastError = `HTTP ${response.status} from ${url.substring(0, 60)}`;
@@ -177,10 +181,14 @@ app.post('/api/upload-player', async (req, res) => {
             }
         } else {
             // Non-Drive URL — direct download
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 30000); // 30s timeout
             const response = await fetch(photoUrl, {
                 headers: { 'User-Agent': 'Mozilla/5.0' },
                 redirect: 'follow',
+                signal: controller.signal,
             });
+            clearTimeout(timeout);
             if (!response.ok) throw new Error(`Failed to download image: HTTP ${response.status}`);
             const arrayBuffer = await response.arrayBuffer();
             buffer = Buffer.from(arrayBuffer);

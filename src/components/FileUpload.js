@@ -139,84 +139,120 @@ const FileUpload = ({
                     const rawPhotoUrl = formatDriveLink(row["Photo Link"] || "");
                     const cricHeroesProfile = formatCricHeroesProfile(row["CricHeroes_Profile"] || ""); // Extract and format URL
 
-                    if (!name || !rawPhotoUrl) {
-                        // Update progress even for skipped players
+                    if (!name) {
+                        // Name is required â€” skip only when missing
                         setUploadProgress(Math.round(((index + 1) / totalPlayers) * 100));
                         continue;
                     }
 
-                    try {
-                        // Use your Render backend API for image processing
-                        const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "https://auction-backend-xeai.onrender.com";
-
-                        // Retry up to 2 times for transient 500 errors (Render free tier can be flaky)
-                        let response;
-                        const MAX_RETRIES = 2;
-                        for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-                            response = await fetch(`${API_BASE_URL}/api/upload-player`, {
-                                method: "POST",
-                                headers: {
-                                    "Content-Type": "application/json"
-                                },
-                                body: JSON.stringify({
-                                    name,
-                                    skill,
-                                    category,
-                                    photoUrl: rawPhotoUrl,
-                                    cricHeroesProfile
-                                })
-                            });
-
-                            if (response.ok || response.status < 500 || attempt === MAX_RETRIES) break;
-
-                            // Wait before retrying (1s, then 2s)
-                            console.warn(`?? Retry ${attempt + 1}/${MAX_RETRIES} for ${name} (HTTP ${response.status})`);
-                            await new Promise(r => setTimeout(r, (attempt + 1) * 1000));
-                        }
-
-                        if (!response.ok) {
-                            throw new Error(`API request failed: ${response.status} ${response.statusText}`);
-                        }
-
-                        const result = await response.json();
-
+                    if (!rawPhotoUrl) {
+                        // No photo link provided â€” still include the player with a dummy image
                         enrichedPlayers.push({
                             id: index,
                             name,
                             skill,
                             category,
-                            photo: result.image_url || rawPhotoUrl, // Use processed image or fallback to raw URL
-                            driveLink: row["Photo Link"]?.trim() || "", // Original Google Drive link from CSV
-                            cricHeroesProfile, // Store the CricHeroes profile URL
-                            sold: false,
-                            soldTo: null,
-                            soldPrice: null,
-                        });
-
-                        console.log(`? Successfully processed ${name} with backend API`);
-
-                    } catch (err) {
-                        console.warn(`?? Server upload failed for ${name}:`, err.message);
-
-                        // Fallback: Use the Google Drive thumbnail URL directly as photo.
-                        // Don't try a fetch/HEAD check here — Google Drive blocks CORS for
-                        // fetch requests, but the URL works fine inside <img> tags.
-                        const fallbackPhoto = rawPhotoUrl || getDefaultPlayerImage();
-
-                        enrichedPlayers.push({
-                            id: index,
-                            name,
-                            skill,
-                            category,
-                            photo: fallbackPhoto,
-                            driveLink: row["Photo Link"]?.trim() || "", // Original Google Drive link from CSV
+                            photo: getDefaultPlayerImage(),
+                            driveLink: "",
                             cricHeroesProfile,
                             sold: false,
                             soldTo: null,
                             soldPrice: null,
                         });
 
-                        console.log(`?? Added ${name} with fallback image (Drive thumbnail)`);
+                        console.log(`?? Added ${name} with dummy image (no Photo Link provided)`);
+                        setUploadProgress(Math.round(((index + 1) / totalPlayers) * 100));
+                        continue;
+                    }
+
+                    {
+                        // Use your Render backend API for image processing
+                        const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "https://auction-backend-xeai.onrender.com";
+
+                        // Retry up to 2 times for transient errors (500s, 502 Bad Gateway, network failures)
+                        const MAX_RETRIES = 2;
+                        let lastErr = null;
+                        let success = false;
+
+                        for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+                            try {
+                                const response = await fetch(`${API_BASE_URL}/api/upload-player`, {
+                                    method: "POST",
+                                    headers: {
+                                        "Content-Type": "application/json"
+                                    },
+                                    body: JSON.stringify({
+                                        name,
+                                        skill,
+                                        category,
+                                        photoUrl: rawPhotoUrl,
+                                        cricHeroesProfile
+                                    })
+                                });
+
+                                if (response.ok) {
+                                    const result = await response.json();
+
+                                    enrichedPlayers.push({
+                                        id: index,
+                                        name,
+                                        skill,
+                                        category,
+                                        photo: result.image_url || rawPhotoUrl,
+                                        driveLink: row["Photo Link"]?.trim() || "",
+                                        cricHeroesProfile,
+                                        sold: false,
+                                        soldTo: null,
+                                        soldPrice: null,
+                                    });
+
+                                    console.log(`? Successfully processed ${name} with backend API`);
+                                    success = true;
+                                    break;
+                                }
+
+                                // Client error (4xx) ï¿½ don't retry, it won't help
+                                if (response.status < 500) {
+                                    lastErr = new Error(`API request failed: ${response.status} ${response.statusText}`);
+                                    break;
+                                }
+
+                                // Server error (5xx) ï¿½ retry
+                                lastErr = new Error(`API request failed: ${response.status} ${response.statusText}`);
+                            } catch (fetchErr) {
+                                // Network error (e.g. 502 + CORS block = "Failed to fetch")
+                                lastErr = fetchErr;
+                            }
+
+                            if (attempt < MAX_RETRIES) {
+                                console.warn(`?? Retry ${attempt + 1}/${MAX_RETRIES} for ${name}: ${lastErr?.message}`);
+                                await new Promise(r => setTimeout(r, (attempt + 1) * 1000));
+                            }
+                        }
+
+                        if (!success) {
+                            console.warn(`?? Server upload failed for ${name}:`, lastErr?.message);
+
+                            // Fallback: Use the Google Drive thumbnail URL directly as photo.
+                            // Don't try a fetch/HEAD check here ï¿½ Google Drive blocks CORS for
+                            // fetch requests, but the URL works fine inside <img> tags.
+                            const fallbackPhoto = rawPhotoUrl || getDefaultPlayerImage();
+
+                            enrichedPlayers.push({
+                                id: index,
+                                name,
+                                skill,
+                                category,
+                                photo: fallbackPhoto,
+                                driveLink: row["Photo Link"]?.trim() || "",
+                                cricHeroesProfile,
+                                sold: false,
+                                soldTo: null,
+                                soldPrice: null,
+                            });
+
+                            console.log(`?? Added ${name} with fallback image (Drive thumbnail)`);
+                        }
                     }
 
                     // Update progress after each player
@@ -225,7 +261,7 @@ const FileUpload = ({
 
                 // Show appropriate message based on results
                 if (enrichedPlayers.length === 0) {
-                    onError(`${EMOJIS.WARNING} No valid players were processed! Please check your CSV file format and ensure:\n• Players have both Name and Photo Link\n• Photo links are accessible\n• CSV follows the required format`);
+                    onError(`${EMOJIS.WARNING} No valid players were processed! Please check your CSV file format and ensure:\nï¿½ Players have both Name and Photo Link\nï¿½ Photo links are accessible\nï¿½ CSV follows the required format`);
                     // Don't call onPlayersLoad for empty results
                 } else {
                     onPlayersLoad(enrichedPlayers);

@@ -163,9 +163,14 @@ export const updateTeamInitialPurse = (teams, teamName, newInitialPurse) => {
  * Add booster points to a team budget.
  * Simplified model: initialPurse already represents (base + boosters).
  * So adding booster points increases both initialPurse and current purse.
+ *
+ * NOTE: pointsPerBooster is a single tournament-wide setting (same value for every
+ * team, for the whole tournament) — never a per-team value. Callers should always
+ * pass the shared/global pointsPerBooster here.
  * @param {Object} teams - Current teams state
  * @param {string} teamName - Team to update
- * @param {number} boosterPoints - Booster points to add
+ * @param {number} boosterCount - New total booster count for this team
+ * @param {number} pointsPerBooster - Tournament-wide points awarded per booster
  * @returns {Object} - Updated teams object
  */
 export const setTeamBoosterCount = (teams, teamName, boosterCount, pointsPerBooster = 10) => {
@@ -203,6 +208,64 @@ export const setTeamBoosterCount = (teams, teamName, boosterCount, pointsPerBoos
             purse: recalculatedPurse
         }
     };
+};
+
+/**
+ * Increment a single team's booster count by one, using the tournament-wide
+ * points-per-booster value. This is the "+" button action in the Booster popup.
+ * @param {Object} teams - Current teams state
+ * @param {string} teamName - Team to increment
+ * @param {number} pointsPerBooster - Tournament-wide points awarded per booster
+ * @returns {Object} - Updated teams object
+ */
+export const incrementTeamBooster = (teams, teamName, pointsPerBooster = 10) => {
+    if (!teams || !teamName) {
+        console.error('Invalid parameters for incrementTeamBooster:', { teams: !!teams, teamName });
+        return teams;
+    }
+
+    const team = teams[teamName];
+    if (!team) {
+        console.error(`Team ${teamName} not found`);
+        return teams;
+    }
+
+    const currentCount = team.boosterCount ?? 0;
+    return setTeamBoosterCount(teams, teamName, currentCount + 1, pointsPerBooster);
+};
+
+/**
+ * Apply a new tournament-wide points-per-booster value to every team, recalculating
+ * each team's purse from its existing booster count so all teams stay in sync
+ * (points-per-booster is never a per-team value).
+ * @param {Object} teams - Current teams state
+ * @param {number} pointsPerBooster - New tournament-wide points awarded per booster
+ * @returns {Object} - Updated teams object
+ */
+export const applyGlobalPointsPerBooster = (teams, pointsPerBooster) => {
+    if (!teams || typeof pointsPerBooster !== 'number' || pointsPerBooster <= 0) {
+        console.error('Invalid parameters for applyGlobalPointsPerBooster:', { teams: !!teams, pointsPerBooster });
+        return teams;
+    }
+
+    const updatedTeams = {};
+    for (const [teamName, team] of Object.entries(teams)) {
+        const boosterCount = team.boosterCount ?? 0;
+        const baseInitialPurse = team.baseInitialPurse ?? team.initialPurse ?? team.purse ?? 0;
+        const totalSpent = (team.players || []).reduce((sum, player) => sum + (player.soldPrice || 0), 0);
+        const boostedInitial = baseInitialPurse + (boosterCount * pointsPerBooster);
+
+        updatedTeams[teamName] = {
+            ...team,
+            baseInitialPurse,
+            boosterCount,
+            pointsPerBooster,
+            initialPurse: boostedInitial,
+            purse: boostedInitial - totalSpent
+        };
+    }
+
+    return updatedTeams;
 };
 
 /**
