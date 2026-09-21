@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { exportTeamsData, EMOJIS } from "../utils/constants";
 import { WHATSAPP_EMOJIS } from "../utils/whatsappUtils";
+import { exportTeamCardImage, exportAllTeamsImage } from "../utils/teamImageExport";
 import PlayerSpinWheel from "./PlayerSpinWheel";
 import JerseyColorAssignment from "./JerseyColorAssignment";
 import TeamEditPopup from "./TeamEditPopup";
@@ -272,6 +273,55 @@ const TeamsPage = ({
         setShowMenu(false);
     };
 
+    // ✅ Export a single team's squad card as a shareable PNG (opens the native
+    // share sheet — WhatsApp included — on mobile, or downloads on desktop).
+    const handleExportTeamImage = async (teamName, data) => {
+        try {
+            const result = await exportTeamCardImage(teamName, data, tournamentName);
+            if (result === 'downloaded') {
+                showManagedToast('success', `${teamName} squad image saved! Attach it to WhatsApp to share.`, {
+                    icon: EMOJIS.DOWNLOAD,
+                    duration: 3500,
+                });
+            }
+        } catch (error) {
+            console.error('Failed to export team image:', error);
+            showManagedToast('error', 'Failed to generate the team image. Please try again.', {
+                icon: EMOJIS.WARNING,
+                duration: 3500,
+            });
+        }
+    };
+
+    // ✅ Export one combined image with every team's squad — a single "final
+    // results" poster to share on WhatsApp.
+    const handleExportAllTeamsImage = async () => {
+        if (Object.keys(teams).length === 0) {
+            showManagedToast('error', 'No teams available to export! Please add teams first.', {
+                icon: EMOJIS.WARNING,
+                duration: 3000,
+            });
+            setShowMenu(false);
+            return;
+        }
+        setShowMenu(false);
+        try {
+            const result = await exportAllTeamsImage(teams, tournamentName);
+            if (result === 'downloaded') {
+                showManagedToast('success', 'All-teams image saved! Attach it to WhatsApp to share.', {
+                    icon: EMOJIS.DOWNLOAD,
+                    duration: 3500,
+                });
+            }
+        } catch (error) {
+            console.error('Failed to export all-teams image:', error);
+            showManagedToast('error', 'Failed to generate the combined image. Please try again.', {
+                icon: EMOJIS.WARNING,
+                duration: 3500,
+            });
+        }
+    };
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-800 to-gray-900 bg-fixed relative overflow-x-hidden">
             {/* Tournament Name Ticker */}
@@ -339,6 +389,20 @@ const TeamsPage = ({
                             >
                                 <span className="text-blue-500">{EMOJIS.CHART}</span>
                                 <span className="text-gray-700 font-medium">Export Teams</span>
+                            </button>
+
+                            {/* Export All Teams as one shareable image (WhatsApp) */}
+                            <button
+                                onClick={handleExportAllTeamsImage}
+                                className={`w-full text-left px-4 py-3 hover:bg-emerald-50 transition-colors duration-200 flex items-center gap-3 ${
+                                    Object.keys(teams).length === 0
+                                    ? 'opacity-50 cursor-not-allowed'
+                                    : ''
+                                }`}
+                                disabled={Object.keys(teams).length === 0}
+                            >
+                                <span className="text-emerald-500">{EMOJIS.CAMERA}</span>
+                                <span className="text-gray-700 font-medium">Export All Teams (Image)</span>
                             </button>
 
                             {/* Player Spin */}
@@ -593,8 +657,15 @@ const TeamsPage = ({
                                                         <span className="truncate" title={teamName}>{teamName}</span>
                                                     </h3>
                                                 </div>
-                                                {/* WhatsApp share icon button */}
-                                                <div className="flex-shrink-0">
+                                                {/* WhatsApp text share + image export/share icon buttons */}
+                                                <div className="flex-shrink-0 flex items-center gap-1.5">
+                                                    <button
+                                                        onClick={() => handleExportTeamImage(teamName, data)}
+                                                        className="text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-full w-9 h-9 flex items-center justify-center shadow-sm transition-all duration-200"
+                                                        title={`Share ${teamName} squad as an image`}
+                                                    >
+                                                        <span className="text-base">{EMOJIS.CAMERA}</span>
+                                                    </button>
                                                     {whatsappSettings?.enabled && whatsappSettings?.groupNumber ? (
                                                         <button
                                                             onClick={() => onTeamWhatsAppShare && onTeamWhatsAppShare(teamName, data, tournamentName)}

@@ -43,7 +43,8 @@ export const EMOJIS = {
     FAILURE: String.fromCodePoint(0x1F4A5), // Collision emoji for failure
     PENCIL: String.fromCodePoint(0x270F, 0xFE0F), // Pencil emoji for edit
     EDIT: String.fromCodePoint(0x270F, 0xFE0F), // Pencil emoji for edit (alias)
-    ARCHIVE: String.fromCodePoint(0x1F4C6) // Archive box emoji
+    ARCHIVE: String.fromCodePoint(0x1F4C6), // Archive box emoji
+    CAMERA: String.fromCodePoint(0x1F4F7) // Camera emoji, for image export/share actions
 };
 
 // Helper to shuffle an array
