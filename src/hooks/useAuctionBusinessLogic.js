@@ -3,9 +3,10 @@ import {
     processPlayerPurchase,
     processPlayerTransfer,
     getTeamInfo,
-    updateTeamInitialPurse, // ✅ UPDATED: Import the new function for initial purse updates
+    updateTeamInitialPurse,
     updatePlayerPriceInTeam,
     incrementTeamBooster,
+    decrementTeamBooster,
     applyGlobalPointsPerBooster
 } from '../utils/centralizedTeamData';
 import { EMOJIS } from '../utils/constants';
