@@ -440,15 +440,16 @@ const handleDecrementTeamBooster = async (teamName) => {
     };
 
     return {
-        sellPlayer,
-        handleMarkSold,
-        handleMarkUnsold,
-        sellUnsoldPlayerLater, // new function
-        handleUpdateTeamPurse,      // ✅ UPDATED: Now uses updateTeamInitialPurse for Edit Balance
-        handleIncrementTeamBooster,
-        handleUpdatePointsPerBooster,
-        handlePlayerTransfer,       // ✅ CENTRALIZED: Player transfers
-        handlePlayerEdit,
-        getTeamBudgetInfo          // ✅ CENTRALIZED: Team budget calculations
-    };
+    sellPlayer,
+    handleMarkSold,
+    handleMarkUnsold,
+    sellUnsoldPlayerLater,
+    handleUpdateTeamPurse,
+    handleIncrementTeamBooster,
+    handleDecrementTeamBooster,
+    handleUpdatePointsPerBooster,
+    handlePlayerTransfer,
+    handlePlayerEdit,
+    getTeamBudgetInfo
+};
 };
