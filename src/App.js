@@ -58,8 +58,19 @@ export default function CricketAuctionTool() {
   const auction = useAuction(players, showManagedToast);
   const persistence = usePersistence(showManagedToast, authUser);
 
-  const { handleMarkSold, handleMarkUnsold, sellUnsoldPlayerLater, handleUpdateTeamPurse, handleIncrementTeamBooster, handleUpdatePointsPerBooster, handlePlayerTransfer, handlePlayerEdit, getTeamBudgetInfo } = useAuctionBusinessLogic(
-    players,
+  const {
+  handleMarkSold,
+  handleMarkUnsold,
+  sellUnsoldPlayerLater,
+  handleUpdateTeamPurse,
+  handleIncrementTeamBooster,
+  handleDecrementTeamBooster,
+  handleUpdatePointsPerBooster,
+  handlePlayerTransfer,
+  handlePlayerEdit,
+  getTeamBudgetInfo
+} = useAuctionBusinessLogic(
+          players,
     setPlayers,
     teams,
     setTeams,
@@ -363,8 +374,9 @@ export default function CricketAuctionTool() {
             handlePlayerEdit(player, player?.currentTeam, newTeamName, newPrice)
           }
           onTeamPurseUpdate={handleUpdateTeamPurse}
-          onIncrementTeamBooster={handleIncrementTeamBooster}
-          onUpdatePointsPerBooster={handleUpdatePointsPerBooster}
+onIncrementTeamBooster={handleIncrementTeamBooster}
+onDecrementTeamBooster={handleDecrementTeamBooster}
+onUpdatePointsPerBooster={handleUpdatePointsPerBooster}
           boosterPointsPerBooster={boosterPointsPerBooster}
           updateTeamPurse={handleUpdateTeamPurse}
           onViewUnsoldPlayers={goToUnsoldPlayersPage}
