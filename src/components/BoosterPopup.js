@@ -6,7 +6,16 @@ import { EMOJIS } from "../utils/constants";
 //   for the whole tournament) — never a per-team value.
 // - Each team just shows its current booster count with a "+" button. Clicking it
 //   increments that team's booster count by 1 and immediately recalculates its purse.
-const BoosterPopup = ({ isOpen, onClose, teams, boosterPointsPerBooster, onIncrementTeamBooster, onUpdatePointsPerBooster, showManagedToast }) => {
+const BoosterPopup = ({
+    isOpen,
+    onClose,
+    teams,
+    boosterPointsPerBooster,
+    onIncrementTeamBooster,
+    onDecrementTeamBooster,
+    onUpdatePointsPerBooster,
+    showManagedToast
+}) => {
     const [ppbInput, setPpbInput] = useState(String(boosterPointsPerBooster ?? 10));
     const [busyTeam, setBusyTeam] = useState(null);
     const teamNames = useMemo(() => Object.keys(teams || {}), [teams]);
