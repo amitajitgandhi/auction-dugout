@@ -154,7 +154,8 @@ const ViewerPage = ({ userId }) => {
                                             </span>
                                         </div>
 
-                                        {/* Drive Link — Clickable */}
+                                        {/* Drive Link — Clickable (Disabled for now; uncomment to enable in future) */}
+                                        {/*
                                         {currentPlayer.driveLink && (
                                             <div className="text-center mb-3">
                                                 <a
@@ -167,6 +168,7 @@ const ViewerPage = ({ userId }) => {
                                                 </a>
                                             </div>
                                         )}
+                                        */}
 
                                         {/* CricHeroes Link */}
                                         {currentPlayer.cricHeroesProfile && (
