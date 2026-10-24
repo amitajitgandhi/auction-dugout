@@ -170,9 +170,9 @@ export const validateTeamCSV = (data) => {
         const csvType = detectCSVType(actualColumns);
         
         if (csvType === 'players') {
-            throw new Error(`${EMOJIS.CROSS_MARK} Wrong file type! You uploaded a Players CSV file.\n\n${EMOJIS.CLIPBOARD} Please upload a Teams CSV file with columns:\n• Team Name (Required)\n• Owner Name (Required)\n• Total Points (Required, same for all teams)\n• Players per Team (Required, same for all teams)\n\n${EMOJIS.SPARKLES} Tip: Use the 'Download Sample Teams CSV' button for the correct format.`);
+            throw new Error(`${EMOJIS.CROSS_MARK} Wrong file type! You uploaded a Players CSV file.\n\n${EMOJIS.CLIPBOARD} Please upload a Teams CSV file with columns:\nï¿½ Team Name (Required)\nï¿½ Owner Name (Required)\nï¿½ Total Points (Required, same for all teams)\nï¿½ Players per Team (Required, same for all teams)\n\n${EMOJIS.SPARKLES} Tip: Use the 'Download Sample Teams CSV' button for the correct format.`);
         } else if (csvType === 'unknown') {
-            throw new Error(`${EMOJIS.CROSS_MARK} Invalid CSV format!\n\n${EMOJIS.CLIPBOARD} Required columns:\n• Team Name, Owner Name, Total Points, Players per Team\n\n${EMOJIS.FOLDER} Your file has: ${actualColumns.join(', ')}\n\n${EMOJIS.SPARKLES} Tip: Download the sample file to see the correct format.`);
+            throw new Error(`${EMOJIS.CROSS_MARK} Invalid CSV format!\n\n${EMOJIS.CLIPBOARD} Required columns:\nï¿½ Team Name, Owner Name, Total Points, Players per Team\n\n${EMOJIS.FOLDER} Your file has: ${actualColumns.join(', ')}\n\n${EMOJIS.SPARKLES} Tip: Download the sample file to see the correct format.`);
         } else {
             throw new Error(`${EMOJIS.CROSS_MARK} Missing required columns: ${missingColumns.join(', ')}\n\n${EMOJIS.SPARKLES} Please ensure your CSV has the exact column headers shown in the sample file.`);
         }
@@ -215,7 +215,7 @@ export const validateTeamCSV = (data) => {
 
     // Be more lenient - only throw error if more than 50% of rows have issues
     if (errorCount > validRows.length * 0.5) {
-        throw new Error(`${EMOJIS.CROSS_MARK} Too many validation errors in Teams CSV (${errorCount}/${validRows.length} rows).\n\n${EMOJIS.SPARKLES} Please ensure each team has:\n• Team Name and Owner Name\n• Valid Total Points and Players per Team (positive numbers)\n• No duplicate team names\n\n${EMOJIS.INFO} Numeric values should not contain currency symbols or commas`);
+        throw new Error(`${EMOJIS.CROSS_MARK} Too many validation errors in Teams CSV (${errorCount}/${validRows.length} rows).\n\n${EMOJIS.SPARKLES} Please ensure each team has:\nï¿½ Team Name and Owner Name\nï¿½ Valid Total Points and Players per Team (positive numbers)\nï¿½ No duplicate team names\n\n${EMOJIS.INFO} Numeric values should not contain currency symbols or commas`);
     }
 
     console.log(`${EMOJIS.CHECK_MARK} Team CSV validation passed: ${validRows.length} valid teams found`);
@@ -223,21 +223,6 @@ export const validateTeamCSV = (data) => {
 };
 
 // Extract and format CricHeroes profile URL
-export const formatCricHeroesProfile = (profileText) => {
-    if (!profileText || typeof profileText !== 'string') return '';
-    
-    const trimmedText = profileText.trim();
-    if (!trimmedText) return '';
-    
-    // Extract URL starting with https://cricheroes\.com/player-profile/
-    const urlMatch = trimmedText.match(/https:\/\/cricheroes\.com\/player-profile\/[^\s]*/);
-    if (urlMatch) {
-        const extractedUrl = urlMatch[0];
-        // Remove any trailing characters that might not be part of the URL
-        const cleanUrl = extractedUrl.replace(/[.,;!?]*$/, '');
-        // Append /stats at the end
-        return cleanUrl + '/stats';
-    }
-    
-    return ''; // Return empty if no valid URL found
+export const formatCricHeroesProfile = (link) => {
+    return (link ?? "").toString().trim();
 };
