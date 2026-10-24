@@ -235,6 +235,48 @@ export const incrementTeamBooster = (teams, teamName, pointsPerBooster = 10) => 
 };
 
 /**
+ * Decrement a single team's booster count by one, using the tournament-wide
+ * points-per-booster value.
+ * Does nothing if the team's booster count is already zero.
+ *
+ * @param {Object} teams - Current teams state
+ * @param {string} teamName - Team to decrement
+ * @param {number} pointsPerBooster - Tournament-wide points awarded per booster
+ * @returns {Object} - Updated teams object
+ */
+export const decrementTeamBooster = (teams, teamName, pointsPerBooster = 10) => {
+    if (!teams || !teamName) {
+        console.error('Invalid parameters for decrementTeamBooster:', {
+            teams: !!teams,
+            teamName
+        });
+        return teams;
+    }
+
+    const team = teams[teamName];
+
+    if (!team) {
+        console.error(`Team ${teamName} not found`);
+        return teams;
+    }
+
+    const currentCount = team.boosterCount ?? 0;
+
+    // Prevent the booster count from going below zero.
+    if (currentCount <= 0) {
+        return teams;
+    }
+
+    // Reuse centralized calculations to recalculate both purses correctly.
+    return setTeamBoosterCount(
+        teams,
+        teamName,
+        currentCount - 1,
+        pointsPerBooster
+    );
+};
+
+/**
  * Apply a new tournament-wide points-per-booster value to every team, recalculating
  * each team's purse from its existing booster count so all teams stay in sync
  * (points-per-booster is never a per-team value).
