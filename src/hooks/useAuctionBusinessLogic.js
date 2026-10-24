@@ -295,6 +295,46 @@ export const useAuctionBusinessLogic = (
 
         return true;
     };
+    
+    // Booster "-" button: decrease one team's booster count by 1.
+const handleDecrementTeamBooster = async (teamName) => {
+    const currentCount = teams[teamName]?.boosterCount ?? 0;
+
+    // Do not allow a negative booster count.
+    if (currentCount <= 0) {
+        showManagedToast('error', 'Booster count cannot be less than 0.', {
+            icon: EMOJIS.WARNING,
+            duration: 2500
+        });
+        return false;
+    }
+
+    const updatedTeams = decrementTeamBooster(
+        teams,
+        teamName,
+        boosterPointsPerBooster
+    );
+
+    if (updatedTeams === teams) {
+        showFancyError('Failed to remove booster. Please try again.');
+        return false;
+    }
+
+    setTeams(updatedTeams);
+
+    const newCount = updatedTeams[teamName]?.boosterCount ?? 0;
+
+    await triggerAuctionSaveWithState(
+        'BOOSTER_REMOVED',
+        `Booster count for ${teamName} decreased to ${newCount}`,
+        teamName,
+        newCount,
+        null,
+        updatedTeams
+    );
+
+    return true;
+};
 
     // ✅ Update the single tournament-wide points-per-booster value and keep every
     // team's purse in sync with it.
