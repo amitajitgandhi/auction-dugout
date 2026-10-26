@@ -63,6 +63,8 @@ export default function CricketAuctionTool() {
   const {
   handleMarkSold,
   handleMarkUnsold,
+  handleRetainPlayer,
+  sellPlayer,
   sellUnsoldPlayerLater,
   handleUpdateTeamPurse,
   handleIncrementTeamBooster,
@@ -330,6 +332,30 @@ export default function CricketAuctionTool() {
   };
 
   // NEW PAGE RENDER
+  if (currentPage === 'masterplayers') {
+    return (
+      <>
+        <Toaster position="top-center" />
+        <MasterPlayersPage
+          players={players}
+          teams={teams}
+          tournamentName={tournamentName}
+          categoryConfigs={categoryConfigs}
+          onBackToTeams={goToTeamsPage}
+          onRetainPlayer={handleRetainPlayer}
+          onSellPlayer={async (player, teamName, amount, wasUnsold, category) =>
+            wasUnsold
+              ? await sellUnsoldPlayerLater(player, teamName, amount, category)
+              : await sellPlayer(player, teamName, amount, category)
+          }
+          showManagedToast={showManagedToast}
+        />
+        <ResetConfirmation isOpen={showResetConfirmation} onConfirm={confirmResetAuction} onCancel={() => setShowResetConfirmation(false)} />
+        <WhatsAppSettings isOpen={showWhatsAppSettings} settings={whatsappSettings} onSave={handleSaveWhatsAppSettings} onClose={() => setShowWhatsAppSettings(false)} onTest={handleWhatsAppTest} />
+      </>
+    );
+  }
+
   if (currentPage === 'unsoldplayers') {
     return (
       <>
@@ -382,6 +408,9 @@ onUpdatePointsPerBooster={handleUpdatePointsPerBooster}
           boosterPointsPerBooster={boosterPointsPerBooster}
           updateTeamPurse={handleUpdateTeamPurse}
           onViewUnsoldPlayers={goToUnsoldPlayersPage}
+          onViewMasterPlayers={goToMasterPlayersPage}
+          onViewAuction={goToAuctionPage}
+          onViewMaxBid={goToMaxBidPage}
         />
         <ResetConfirmation 
           isOpen={showResetConfirmation}
@@ -574,7 +603,9 @@ onUpdatePointsPerBooster={handleUpdatePointsPerBooster}
                 currentCategoryUnsoldCount={auction.currentCategoryUnsoldCount}
                 onViewTeams={goToTeamsPage}
                 onViewMaxBid={goToMaxBidPage}
-                onViewUnsoldPlayers={goToUnsoldPlayersPage} // NEW PROP
+                onViewUnsoldPlayers={goToUnsoldPlayersPage}
+                onViewMasterPlayers={goToMasterPlayersPage}
+                onResetAuction={handleResetAuction}
                 selectedCategory={auction.selectedCategory}
                 round={auction.round}
                 isUnsoldRound={auction.isUnsoldRound}

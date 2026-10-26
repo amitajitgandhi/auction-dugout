@@ -23,7 +23,6 @@ const FILTERS = [
     { key: 'ALL', label: 'All Players' },
     { key: 'AVAILABLE', label: 'Available Players' },
     { key: 'RETAINED', label: 'Retained Owner-Players' },
-    { key: 'SOLD', label: 'Sold Players' },
     { key: 'UNSOLD', label: 'Unsold Players' }
 ];
 
@@ -34,6 +33,7 @@ const MasterPlayersPage = ({
     categoryConfigs = {},
     onBackToTeams,
     onRetainPlayer,
+    onSellPlayer,
     showManagedToast
 }) => {
     const [statusFilter, setStatusFilter] = useState('ALL');
@@ -62,6 +62,8 @@ const MasterPlayersPage = ({
 
     const filteredPlayers = useMemo(() => {
         return (players || []).filter(p => {
+            // This page is for assigning/selling players; already-sold players are intentionally hidden.
+            if (getPlayerStatus(p) === 'SOLD') return false;
             if (statusFilter !== 'ALL' && getPlayerStatus(p) !== statusFilter) return false;
             if (categoryFilter !== 'ALL' && p.category !== categoryFilter) return false;
             return true;
@@ -76,6 +78,32 @@ const MasterPlayersPage = ({
             ...prev,
             [playerId]: { ...getRowInputs(playerId), [field]: value }
         }));
+    };
+
+    const handleSubmitSale = async (player) => {
+        if (submittingId === player.id) return;
+        const inputs = getRowInputs(player.id);
+        const teamName = inputs.team;
+        const category = inputs.category || player.category;
+        const amount = parseInt(inputs.amount, 10);
+        if (!teamName || !category || isNaN(amount) || amount <= 0) {
+            showManagedToast?.('error', 'Select a team and category, and enter a valid sale price.', { icon: EMOJIS.WARNING, duration: 3000 });
+            return;
+        }
+        setSubmittingId(player.id);
+        try {
+            const result = player.soldTo === 'Unsold'
+                ? await onSellPlayer?.(player, teamName, amount, true, category)
+                : await onSellPlayer?.(player, teamName, amount, false, category);
+            if (result?.success) {
+                showManagedToast?.('success', result.message || `${player.name} sold to ${teamName}.`, { icon: EMOJIS.CHECK_MARK, duration: 3500 });
+                setRowInputs(prev => { const next = { ...prev }; delete next[player.id]; return next; });
+            } else {
+                showManagedToast?.('error', result?.message || 'Sale failed.', { icon: EMOJIS.CROSS_MARK, duration: 3500 });
+            }
+        } finally {
+            setSubmittingId(null);
+        }
     };
 
     const handleSubmitRetention = async (player) => {
@@ -123,8 +151,9 @@ const MasterPlayersPage = ({
     };
 
     const statusCounts = useMemo(() => {
-        const counts = { ALL: players?.length || 0, AVAILABLE: 0, RETAINED: 0, SOLD: 0, UNSOLD: 0 };
-        (players || []).forEach(p => { counts[getPlayerStatus(p)] += 1; });
+        const visiblePlayers = (players || []).filter(p => getPlayerStatus(p) !== 'SOLD');
+        const counts = { ALL: visiblePlayers.length, AVAILABLE: 0, RETAINED: 0, UNSOLD: 0 };
+        visiblePlayers.forEach(p => { counts[getPlayerStatus(p)] += 1; });
         return counts;
     }, [players]);
 
@@ -145,7 +174,7 @@ const MasterPlayersPage = ({
                             {EMOJIS.CROWN} Master Players
                         </h1>
                         <p className="text-gray-300 text-lg mb-6">
-                            Review every player and retain owner-players directly to a team before bidding begins.
+                            Review every player, sell available or unsold players directly to a team, or retain owner-players before bidding begins.
                         </p>
                         <button
                             onClick={onBackToTeams}
@@ -246,7 +275,7 @@ const MasterPlayersPage = ({
                                         <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600">Category</th>
                                         <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600">Status</th>
                                         <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600">Assigned Team</th>
-                                        <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600">Retention Amount</th>
+                                        <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600">Sale / Retention Price</th>
                                         <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600">Action</th>
                                     </tr>
                                 </thead>
@@ -275,7 +304,7 @@ const MasterPlayersPage = ({
                                                         : '-'}
                                                 </td>
                                                 <td className="px-4 py-2">
-                                                    {status === 'AVAILABLE' ? (
+                                                    {(status === 'AVAILABLE' || status === 'UNSOLD') ? (
                                                         <div className="flex flex-wrap items-center gap-1.5">
                                                             <select
                                                                 value={inputs.team}
@@ -305,6 +334,13 @@ const MasterPlayersPage = ({
                                                                 className="w-24 border rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
                                                             />
                                                             <button
+                                                                onClick={() => handleSubmitSale(player)}
+                                                                disabled={isSubmitting}
+                                                                className="px-3 py-1.5 rounded-lg text-xs font-semibold shadow-md bg-gradient-to-r from-emerald-500 to-green-600 text-white hover:from-emerald-600 hover:to-green-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                            >
+                                                                {isSubmitting ? 'Selling…' : status === 'UNSOLD' ? 'Sell Again' : 'Sell'}
+                                                            </button>
+                                                            <button
                                                                 onClick={() => handleSubmitRetention(player)}
                                                                 disabled={isSubmitting}
                                                                 className="px-3 py-1.5 rounded-lg text-xs font-semibold shadow-md bg-gradient-to-r from-purple-500 to-indigo-600 text-white hover:from-purple-600 hover:to-indigo-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -313,7 +349,7 @@ const MasterPlayersPage = ({
                                                             </button>
                                                         </div>
                                                     ) : status === 'UNSOLD' ? (
-                                                        <span className="text-xs text-gray-500">Manage from the Unsold Players page</span>
+                                                        <span className="text-xs text-gray-500"></span>
                                                     ) : (
                                                         <span className="text-xs text-gray-400">—</span>
                                                     )}

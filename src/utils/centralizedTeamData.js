@@ -318,7 +318,7 @@ export const applyGlobalPointsPerBooster = (teams, pointsPerBooster) => {
  * @param {number} price - Purchase price
  * @returns {Object} - Updated teams object or null if invalid
  */
-export const processPlayerPurchase = (teams, teamName, player, price) => {
+export const processPlayerPurchase = (teams, teamName, player, price, category = player?.category, categoryConfigs = {}) => {
     if (!teams || !teamName || !player || typeof price !== 'number' || price <= 0) {
         console.error('Invalid parameters for processPlayerPurchase');
         return null;
@@ -348,6 +348,15 @@ export const processPlayerPurchase = (teams, teamName, player, price) => {
         return null;
     }
 
+    // Apply the selected category and enforce its configured per-team limit.
+    const assignedPlayer = { ...player, category: category || player.category };
+    const categoryLimit = parseInt(categoryConfigs?.[assignedPlayer.category]?.playersPerCategory, 10) || 0;
+    const currentCategoryCount = (team.players || []).filter(p => p.category === assignedPlayer.category).length;
+    if (categoryLimit > 0 && currentCategoryCount >= categoryLimit) {
+        console.error(`Team ${teamName} has no remaining ${assignedPlayer.category} slots (${currentCategoryCount}/${categoryLimit})`);
+        return null;
+    }
+
     // Process the purchase
     return {
         ...teams,
@@ -355,7 +364,7 @@ export const processPlayerPurchase = (teams, teamName, player, price) => {
             ...team,
             purse: team.purse - price,                          // Deduct from budget
             playersToBuy: team.playersToBuy - 1,               // Decrease remaining slots
-            players: [...team.players, { ...player, soldPrice: price }] // Add player
+            players: [...team.players, { ...assignedPlayer, soldPrice: price }] // Add player
         }
     };
 };

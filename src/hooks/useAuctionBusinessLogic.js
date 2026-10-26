@@ -83,7 +83,7 @@ export const useAuctionBusinessLogic = (
 
     // ✅ CENTRALIZED: Function to handle player sales using centralized team data management
     // IMPORTANT: Use player id when available to avoid duplicate-name bugs.
-    const sellPlayer = useCallback(async (playerRef, teamName, bidAmount) => {
+    const sellPlayer = useCallback(async (playerRef, teamName, bidAmount, selectedCategory = null) => {
         const playerObj = players.find(p =>
             (playerRef?.id !== undefined && playerRef?.id !== null)
                 ? p.id === playerRef.id
@@ -92,7 +92,9 @@ export const useAuctionBusinessLogic = (
         if (!playerObj) {
             return { success: false, message: `Player not found.` };
         }
-        const updatedTeams = processPlayerPurchase(teams, teamName, playerObj, bidAmount);
+        const assignedCategory = selectedCategory || playerObj.category;
+        if (!assignedCategory) return { success: false, message: 'Select a category before selling this player.' };
+        const updatedTeams = processPlayerPurchase(teams, teamName, { ...playerObj, category: assignedCategory }, bidAmount, assignedCategory, categoryConfigs);
         if (!updatedTeams) {
             return { 
                 success: false,
@@ -103,8 +105,8 @@ export const useAuctionBusinessLogic = (
         // ✅ FIXED: Update players state to mark as sold with sold: true property
         const updatedPlayers = players.map(player =>
             (playerObj.id !== undefined && playerObj.id !== null)
-                ? (player.id === playerObj.id ? { ...player, soldTo: teamName, soldPrice: bidAmount, sold: true } : player)
-                : (player.name === playerObj.name ? { ...player, soldTo: teamName, soldPrice: bidAmount, sold: true } : player)
+                ? (player.id === playerObj.id ? { ...player, category: assignedCategory, soldTo: teamName, soldPrice: bidAmount, sold: true } : player)
+                : (player.name === playerObj.name ? { ...player, category: assignedCategory, soldTo: teamName, soldPrice: bidAmount, sold: true } : player)
         );
 
         // Commit UI state only after Supabase confirms the proposed transaction.
@@ -261,10 +263,12 @@ export const useAuctionBusinessLogic = (
     };
 
     // Sell Unsold Player later (keep wasUnsold flag)
-    const sellUnsoldPlayerLater = async (playerObj, teamName, bidAmount) => {
-        const updatedTeams = processPlayerPurchase(teams, teamName, playerObj, bidAmount);
+    const sellUnsoldPlayerLater = async (playerObj, teamName, bidAmount, selectedCategory = null) => {
+        const assignedCategory = selectedCategory || playerObj.category;
+        if (!assignedCategory) return { success: false, message: 'Select a category before selling this player.' };
+        const updatedTeams = processPlayerPurchase(teams, teamName, { ...playerObj, category: assignedCategory }, bidAmount, assignedCategory, categoryConfigs);
         if (!updatedTeams) return { success: false, message: 'Failed to process purchase. Budget or limit issue.' };
-        const updatedPlayers = players.map(p => p.id === playerObj.id ? { ...p, soldTo: teamName, soldPrice: bidAmount, sold: true, wasUnsold: p.wasUnsold || true } : p);
+        const updatedPlayers = players.map(p => p.id === playerObj.id ? { ...p, category: assignedCategory, soldTo: teamName, soldPrice: bidAmount, sold: true, wasUnsold: p.wasUnsold || true } : p);
         const saved = await triggerAuctionSaveWithState('UNSOLD_PLAYER_SOLD', `${playerObj.name} sold later to ${teamName}`, teamName, bidAmount, updatedPlayers, updatedTeams);
         if (!saved) return { success: false, message: 'Sale not completed because the server save failed.' };
         setPlayers(updatedPlayers);
@@ -562,6 +566,7 @@ const handleDecrementTeamBooster = async (teamName) => {
     sellPlayer,
     handleMarkSold,
     handleMarkUnsold,
+    handleRetainPlayer,
     sellUnsoldPlayerLater,
     handleUpdateTeamPurse,
     handleIncrementTeamBooster,
