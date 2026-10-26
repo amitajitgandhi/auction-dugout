@@ -8,8 +8,7 @@ import {
     incrementTeamBooster,
     applyGlobalPointsPerBooster,
     retainPlayer,
-    decrementTeamBooster,
-    applyGlobalPointsPerBooster
+    decrementTeamBooster
 } from '../utils/centralizedTeamData';
 import { EMOJIS } from '../utils/constants';
 
