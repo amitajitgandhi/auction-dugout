@@ -40,7 +40,7 @@ export const useAuctionBusinessLogic = (
 
     // ✅ CENTRALIZED: Function to save auction progress with enhanced error handling
     const triggerAuctionSaveWithState = async (action, description, teamName, bidAmount, updatedPlayers = null, updatedTeams = null, overrides = {}) => {
-        if (!authUser?.id || !isTournamentNameSet || isSaving) {
+        if (!authUser?.id || !isTournamentNameSet) {
             return;
         }
 
@@ -62,8 +62,13 @@ export const useAuctionBusinessLogic = (
                 ...overrides
             };
             
-            await persistence.saveState(currentState);
-            console.log(`🔄 ${action} - Progress saved:`, description);
+            const saved = await persistence.saveState(currentState);
+            if (!saved) {
+                console.error(`❌ ${action} is saved locally but cloud confirmation is missing:`, description);
+                showManagedToast?.('error', 'Cloud save not confirmed. Keep this tab open and check your connection.', { duration: 6000 });
+            } else {
+                console.log(`🔄 ${action} - Progress saved to cloud:`, description);
+            }
             
         } catch (error) {
             console.error('❌ Failed to save progress:', error);

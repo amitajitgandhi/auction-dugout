@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 import {
     saveAuctionState,
@@ -14,139 +14,135 @@ import {
 export const usePersistence = (showManagedToast, user = null) => {
     const [lastSaveTime, setLastSaveTime] = useState(null);
     const [autoBackupEnabled, setAutoBackupEnabled] = useState(true);
+    // Serialize writes so rapid auction actions cannot be dropped during another save.
+    const saveQueueRef = useRef(Promise.resolve());
+    const revisionRef = useRef(0);
 
     // Get localStorage key based on user email
     const getLocalStorageKey = useCallback((userEmail) => {
         return userEmail ? `auction_${userEmail}` : 'cricketAuction_state';
     }, []);
 
-    // Save auction state to both localStorage and Supabase
-    const saveState = useCallback(async (stateData) => {
-        let localSuccess = false;
-        let supabaseSuccess = false;
+    // Persist each full snapshot in invocation order. Keep the previous local snapshot
+    // as a recovery point and only report authenticated saves successful after cloud ack.
+    const saveState = useCallback((stateData) => {
+        const saveOperation = async () => {
+            const now = new Date().toISOString();
+            const dataToSave = { ...stateData, timestamp: now, revision: ++revisionRef.current, version: '2.0' };
+            let localSuccess = false;
+            let cloudSuccess = false;
 
-        console.log('?? Starting save operation for user:', user?.email);
-
-        // Always save to localStorage first (immediate feedback)
-        if (user?.email) {
-            try {
-                const dataToSave = {
-                    ...stateData,
-                    timestamp: new Date().toISOString(),
-                    version: '1.0'
-                };
-                localStorage.setItem(getLocalStorageKey(user.email), JSON.stringify(dataToSave));
-                localSuccess = true;
-                console.log('?? Auction state saved to localStorage');
-            } catch (error) {
-                console.error('? Failed to save to localStorage:', error);
+            if (user?.email) {
+                try {
+                    const key = getLocalStorageKey(user.email);
+                    const previous = localStorage.getItem(key);
+                    if (previous) localStorage.setItem(`${key}__backup`, previous);
+                    localStorage.setItem(key, JSON.stringify(dataToSave));
+                    localSuccess = true;
+                } catch (error) {
+                    console.error('Failed to save auction state to localStorage:', error);
+                }
+            } else {
+                localSuccess = saveAuctionState(dataToSave);
             }
-        } else {
-            // Fallback to old method if no user
-            localSuccess = saveAuctionState(stateData);
-        }
 
-        // Save to Supabase if user is authenticated
-        if (user?.id && user?.email) {
-            try {
-                console.log('?? Attempting to save to Supabase...', {
-                    userId: user.id,
-                    userEmail: user.email,
-                    tournamentName: stateData.tournamentName || 'Untitled Tournament',
-                    hasPlayers: (stateData.players?.length || 0) > 0,
-                    hasTeams: Object.keys(stateData.teams || {}).length > 0
-                });
-
-                const payloadToSave = {
+            if (user?.id && user?.email) {
+                const payload = {
                     user_id: user.id,
                     user_email: user.email,
-                    tournament_name: stateData.tournamentName || 'Untitled Tournament',
-                    data: stateData,
-                    updated_at: new Date().toISOString()
+                    tournament_name: dataToSave.tournamentName || 'Untitled Tournament',
+                    data: dataToSave,
+                    updated_at: now
                 };
-
-                const { data, error } = await supabase
-                    .from('auction_data')
-                    .upsert(payloadToSave, {
-                        onConflict: 'user_id'
-                    })
-                    .select();
-
-                if (error) {
-                    console.error('? Failed to save to Supabase:', error);
-                    console.error('? Error details:', {
-                        message: error.message,
-                        details: error.details,
-                        hint: error.hint,
-                        code: error.code
-                    });
-                } else {
-                    supabaseSuccess = true;
-                    console.log('?? Auction state saved to Supabase successfully:', data);
+                let lastError = null;
+                for (let attempt = 0; attempt < 3; attempt += 1) {
+                    try {
+                        const { error } = await supabase.from('auction_data')
+                            .upsert(payload, { onConflict: 'user_id' });
+                        if (!error) {
+                            cloudSuccess = true;
+                            break;
+                        }
+                        lastError = error;
+                    } catch (error) {
+                        lastError = error;
+                    }
+                    if (attempt < 2) await new Promise(resolve => setTimeout(resolve, 500 * (2 ** attempt)));
                 }
-            } catch (error) {
-                console.error('? Supabase save error (exception):', error);
+                if (!cloudSuccess) console.error('Supabase save failed after retries:', lastError);
+            } else {
+                cloudSuccess = !user?.id;
             }
-        } else {
-            console.log('?? Skipping Supabase save - user not properly authenticated:', {
-                hasUserId: !!user?.id,
-                hasUserEmail: !!user?.email
-            });
-        }
 
-        if (localSuccess || supabaseSuccess) {
-            setLastSaveTime(new Date().toISOString());
-        }
+            if (localSuccess || cloudSuccess) setLastSaveTime(now);
+            // Cloud failure must not be presented to callers as a successful save.
+            return user?.id ? cloudSuccess : localSuccess;
+        };
 
-        return localSuccess || supabaseSuccess;
+        const queuedSave = saveQueueRef.current.then(saveOperation, saveOperation);
+        saveQueueRef.current = queuedSave.catch(error => {
+            console.error('Unexpected persistence queue failure:', error);
+        });
+        return queuedSave;
     }, [user, getLocalStorageKey]);
 
-    // Load auction state from Supabase first, then localStorage as fallback
+    // Load both sources and select the most recently timestamped snapshot. This avoids
+    // blindly restoring an older cloud snapshot when local storage has newer progress.
     const loadState = useCallback(async () => {
-        // Try Supabase first if user is authenticated
+        let cloudState = null;
         if (user?.id) {
             try {
-                console.log('?? Attempting to load from Supabase for user:', user.id);
-                
-                // Check if user session is valid before making the request
                 const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-                
-                if (sessionError || !session) {
-                    console.log('? No valid session found, falling back to localStorage');
-                    // Fallback to localStorage immediately
-                    return await loadFromLocalStorage();
-                }
-                
-                const { data, error } = await supabase
-                    .from('auction_data')
-                    .select('*')
-                    .eq('user_id', user.id)
-                    .order('updated_at', { ascending: false })
-                    .limit(1)
-                    .maybeSingle(); // Use maybeSingle() instead of single()
-
-                if (error) {
-                    console.log('?? Supabase load error:', error.message);
-                    // Fallback to localStorage on error
-                    return await loadFromLocalStorage();
-                } else if (data?.data) {
-                    console.log('? Auction state loaded from Supabase', {
-                        timestamp: data.updated_at,
-                        playersCount: data.data.players?.length || 0,
-                        teamsCount: Object.keys(data.data.teams || {}).length
-                    });
-                    return {
-                        ...data.data,
-                        source: 'supabase',
-                        updated_at: data.updated_at
-                    };
+                if (!sessionError && session) {
+                    const { data, error } = await supabase
+                        .from('auction_data')
+                        .select('*')
+                        .eq('user_id', user.id)
+                        .maybeSingle();
+                    if (!error && data?.data) {
+                        cloudState = {
+                            ...data.data,
+                            timestamp: data.data.timestamp || data.updated_at,
+                            source: 'supabase',
+                            updated_at: data.updated_at
+                        };
+                    } else if (error) {
+                        console.warn('Supabase load failed; checking local recovery copy:', error.message);
+                    }
                 }
             } catch (error) {
-                console.log('?? No Supabase data found, falling back to localStorage:', error.message);
+                console.warn('Unable to read Supabase snapshot:', error);
             }
         }
 
-        return await loadFromLocalStorage();
+        let localState = null;
+        if (user?.email) {
+            try {
+                const savedData = localStorage.getItem(getLocalStorageKey(user.email));
+                if (savedData) {
+                    const parsedData = JSON.parse(savedData);
+                    if (parsedData && Array.isArray(parsedData.players) && parsedData.teams && typeof parsedData.teams === 'object') {
+                        localState = { ...parsedData, source: 'localStorage' };
+                    } else {
+                        console.warn('Ignoring malformed local auction snapshot.');
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to read local auction snapshot:', error);
+            }
+        }
+        if (!localState) localState = loadAuctionState();
+
+        if (cloudState && localState) {
+            const cloudTime = Date.parse(cloudState.timestamp || cloudState.updated_at || '') || 0;
+            const localTime = Date.parse(localState.timestamp || '') || 0;
+            if (localTime > cloudTime) {
+                console.warn('Local snapshot is newer than Supabase; selecting local snapshot.');
+                return localState;
+            }
+            return cloudState;
+        }
+        return cloudState || localState || null;
     }, [user, getLocalStorageKey]);
 
     // Helper function to load from localStorage
