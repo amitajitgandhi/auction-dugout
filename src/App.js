@@ -408,6 +408,9 @@ onUpdatePointsPerBooster={handleUpdatePointsPerBooster}
           boosterPointsPerBooster={boosterPointsPerBooster}
           updateTeamPurse={handleUpdateTeamPurse}
           onViewUnsoldPlayers={goToUnsoldPlayersPage}
+          onViewMasterPlayers={goToMasterPlayersPage}
+          onViewAuction={goToAuctionPage}
+          onViewMaxBid={goToMaxBidPage}
         />
         <ResetConfirmation 
           isOpen={showResetConfirmation}
@@ -600,7 +603,9 @@ onUpdatePointsPerBooster={handleUpdatePointsPerBooster}
                 currentCategoryUnsoldCount={auction.currentCategoryUnsoldCount}
                 onViewTeams={goToTeamsPage}
                 onViewMaxBid={goToMaxBidPage}
-                onViewUnsoldPlayers={goToUnsoldPlayersPage} // NEW PROP
+                onViewUnsoldPlayers={goToUnsoldPlayersPage}
+                onViewMasterPlayers={goToMasterPlayersPage}
+                onResetAuction={handleResetAuction}
                 selectedCategory={auction.selectedCategory}
                 round={auction.round}
                 isUnsoldRound={auction.isUnsoldRound}
