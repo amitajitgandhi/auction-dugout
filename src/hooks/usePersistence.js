@@ -23,28 +23,13 @@ export const usePersistence = (showManagedToast, user = null) => {
         return userEmail ? `auction_${userEmail}` : 'cricketAuction_state';
     }, []);
 
-    // Persist each full snapshot in invocation order. Keep the previous local snapshot
-    // as a recovery point and only report authenticated saves successful after cloud ack.
+    // A successful authenticated save means Supabase has acknowledged the write.
+    // Only then update the local confirmed snapshot. Failed writes never replace it.
     const saveState = useCallback((stateData) => {
         const saveOperation = async () => {
             const now = new Date().toISOString();
-            const dataToSave = { ...stateData, timestamp: now, revision: ++revisionRef.current, version: '2.0' };
-            let localSuccess = false;
+            const dataToSave = { ...stateData, timestamp: now, revision: ++revisionRef.current, version: '3.0' };
             let cloudSuccess = false;
-
-            if (user?.email) {
-                try {
-                    const key = getLocalStorageKey(user.email);
-                    const previous = localStorage.getItem(key);
-                    if (previous) localStorage.setItem(`${key}__backup`, previous);
-                    localStorage.setItem(key, JSON.stringify(dataToSave));
-                    localSuccess = true;
-                } catch (error) {
-                    console.error('Failed to save auction state to localStorage:', error);
-                }
-            } else {
-                localSuccess = saveAuctionState(dataToSave);
-            }
 
             if (user?.id && user?.email) {
                 const payload = {
@@ -69,13 +54,33 @@ export const usePersistence = (showManagedToast, user = null) => {
                     }
                     if (attempt < 2) await new Promise(resolve => setTimeout(resolve, 500 * (2 ** attempt)));
                 }
-                if (!cloudSuccess) console.error('Supabase save failed after retries:', lastError);
-            } else {
-                cloudSuccess = !user?.id;
+                if (!cloudSuccess) {
+                    console.error('Supabase save failed after retries:', lastError);
+                    return false;
+                }
+            } else if (user?.id) {
+                // Authenticated transactions may never be treated as saved without cloud confirmation.
+                return false;
             }
 
-            if (localSuccess || cloudSuccess) setLastSaveTime(now);
-            // Cloud failure must not be presented to callers as a successful save.
+            // Keep localStorage as a backup of the last confirmed state, not a queue
+            // of uncommitted transactions. Never replace it when the cloud write fails.
+            let localSuccess = false;
+            if (user?.email) {
+                try {
+                    const key = getLocalStorageKey(user.email);
+                    const previous = localStorage.getItem(key);
+                    if (previous) localStorage.setItem(`${key}__backup`, previous);
+                    localStorage.setItem(key, JSON.stringify(dataToSave));
+                    localSuccess = true;
+                } catch (error) {
+                    console.error('Cloud save succeeded, but local backup failed:', error);
+                }
+            } else {
+                localSuccess = saveAuctionState(dataToSave);
+            }
+
+            if (cloudSuccess || localSuccess) setLastSaveTime(now);
             return user?.id ? cloudSuccess : localSuccess;
         };
 
