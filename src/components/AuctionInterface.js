@@ -19,7 +19,9 @@ const AuctionInterface = forwardRef(({
     currentCategoryUnsoldCount,
     onViewTeams,
     onViewMaxBid,
-    onViewUnsoldPlayers, // NEW PROP
+    onViewUnsoldPlayers,
+    onViewMasterPlayers,
+    onResetAuction // shared menu actions
     selectedCategory,
     round,
     isUnsoldRound,
@@ -132,7 +134,9 @@ const AuctionInterface = forwardRef(({
 
     const handleViewTeams = () => { onViewTeams(); setShowMenu(false); };
     const handleViewMaxBid = () => { onViewMaxBid && onViewMaxBid(); setShowMenu(false); };
-    const handleViewUnsoldPlayers = () => { onViewUnsoldPlayers && onViewUnsoldPlayers(); setShowMenu(false); }; // NEW HANDLER
+    const handleViewUnsoldPlayers = () => { onViewUnsoldPlayers && onViewUnsoldPlayers(); setShowMenu(false); };
+    const handleViewMasterPlayers = () => { onViewMasterPlayers && onViewMasterPlayers(); setShowMenu(false); };
+    const handleReset = () => { onResetAuction && onResetAuction(); setShowMenu(false); };
 
     useImperativeHandle(ref, () => ({
         triggerSoldStamp: () => setShowSoldStamp(true),
@@ -193,6 +197,8 @@ const AuctionInterface = forwardRef(({
                                         <span className="text-gray-700 font-medium">Unsold Players</span>
                                     </button>
                                 )}
+                                {onViewMasterPlayers && <button onClick={handleViewMasterPlayers} className="w-full text-left px-4 py-3 hover:bg-indigo-50 transition-colors duration-200 flex items-center gap-3"><span>📋</span><span className="text-gray-700 font-medium">Master Players</span></button>}
+                                {onResetAuction && <button onClick={handleReset} className="w-full text-left px-4 py-3 hover:bg-red-50 transition-colors duration-200 flex items-center gap-3"><span>🔄</span><span className="text-gray-700 font-medium">Reset Auction</span></button>}
                             </div>
                         </div>
                     )}
