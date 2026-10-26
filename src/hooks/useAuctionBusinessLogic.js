@@ -562,6 +562,7 @@ const handleDecrementTeamBooster = async (teamName) => {
     sellPlayer,
     handleMarkSold,
     handleMarkUnsold,
+    handleRetainPlayer,
     sellUnsoldPlayerLater,
     handleUpdateTeamPurse,
     handleIncrementTeamBooster,
