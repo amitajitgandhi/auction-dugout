@@ -41,7 +41,8 @@ export const useAuctionBusinessLogic = (
     // ✅ CENTRALIZED: Function to save auction progress with enhanced error handling
     const triggerAuctionSaveWithState = async (action, description, teamName, bidAmount, updatedPlayers = null, updatedTeams = null, overrides = {}) => {
         if (!authUser?.id || !isTournamentNameSet) {
-            return;
+            showManagedToast?.('error', 'Auction is locked: sign in and complete tournament setup before making changes.', { duration: 6000 });
+            return false;
         }
 
         try {
@@ -65,13 +66,17 @@ export const useAuctionBusinessLogic = (
             const saved = await persistence.saveState(currentState);
             if (!saved) {
                 console.error(`❌ ${action} is saved locally but cloud confirmation is missing:`, description);
-                showManagedToast?.('error', 'Cloud save not confirmed. Keep this tab open and check your connection.', { duration: 6000 });
+                showManagedToast?.('error', 'Transaction NOT completed. Unable to confirm the server save. Check your internet connection and retry.', { duration: 7000 });
+                return false;
             } else {
                 console.log(`🔄 ${action} - Progress saved to cloud:`, description);
+                return true;
             }
             
         } catch (error) {
             console.error('❌ Failed to save progress:', error);
+            showManagedToast?.('error', 'Transaction NOT completed. Server save failed. Check your connection and retry.', { duration: 7000 });
+            return false;
         } finally {
             setIsSaving(false);
         }
@@ -103,11 +108,13 @@ export const useAuctionBusinessLogic = (
                 : (player.name === playerObj.name ? { ...player, soldTo: teamName, soldPrice: bidAmount, sold: true } : player)
         );
 
+        // Commit UI state only after Supabase confirms the proposed transaction.
+        const saved = await triggerAuctionSaveWithState('PLAYER_SOLD', `${playerObj.name} sold to ${teamName}`, teamName, bidAmount, updatedPlayers, updatedTeams);
+        if (!saved) {
+            return { success: false, message: 'Sale not completed because the server could not confirm the save. Please retry when connected.' };
+        }
         setPlayers(updatedPlayers);
         setTeams(updatedTeams);
-        
-        // Trigger autosave after successful sale
-        await triggerAuctionSaveWithState('PLAYER_SOLD', `${playerObj.name} sold to ${teamName}`, teamName, bidAmount, updatedPlayers, updatedTeams);
 
         return { 
             success: true, 
@@ -218,8 +225,9 @@ export const useAuctionBusinessLogic = (
                 : (player.name === auction.currentPlayer.name ? { ...player, soldTo: 'Unsold', soldPrice: 0, sold: false, wasUnsold: true } : player)
         );
 
+        const saved = await triggerAuctionSaveWithState('PLAYER_UNSOLD', `${auction.currentPlayer.name} marked as unsold`, 'Unsold', 0, updatedPlayers);
+        if (!saved) return;
         setPlayers(updatedPlayers);
-        await triggerAuctionSaveWithState('PLAYER_UNSOLD', `${auction.currentPlayer.name} marked as unsold`, 'Unsold', 0, updatedPlayers);
         showManagedToast('info', `${auction.currentPlayer.name} marked as unsold.`, {
             style: {
                 border: '2px solid #f59e42',
@@ -355,10 +363,7 @@ export const useAuctionBusinessLogic = (
                     : p
             );
 
-            setPlayers(updatedPlayers);
-            setTeams(updatedTeams);
-
-            await triggerAuctionSaveWithState(
+            const saved = await triggerAuctionSaveWithState(
                 'OWNER_RETENTION',
                 `${currentPlayer.name} retained by ${teamName} for ${amount} (${category})`,
                 teamName,
@@ -366,6 +371,9 @@ export const useAuctionBusinessLogic = (
                 updatedPlayers,
                 updatedTeams
             );
+            if (!saved) return { success: false, message: 'Retention not completed because the server save failed.' };
+            setPlayers(updatedPlayers);
+            setTeams(updatedTeams);
 
             return {
                 success: true,
