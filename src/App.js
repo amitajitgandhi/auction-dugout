@@ -343,10 +343,10 @@ export default function CricketAuctionTool() {
           categoryConfigs={categoryConfigs}
           onBackToTeams={goToTeamsPage}
           onRetainPlayer={handleRetainPlayer}
-          onSellPlayer={async (player, teamName, amount, wasUnsold) =>
+          onSellPlayer={async (player, teamName, amount, wasUnsold, category) =>
             wasUnsold
-              ? await sellUnsoldPlayerLater(player, teamName, amount)
-              : await sellPlayer(player, teamName, amount)
+              ? await sellUnsoldPlayerLater(player, teamName, amount, category)
+              : await sellPlayer(player, teamName, amount, category)
           }
           showManagedToast={showManagedToast}
         />
