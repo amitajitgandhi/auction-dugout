@@ -21,7 +21,7 @@ const AuctionInterface = forwardRef(({
     onViewMaxBid,
     onViewUnsoldPlayers,
     onViewMasterPlayers,
-    onResetAuction // shared menu actions
+    onResetAuction, // shared menu actions
     selectedCategory,
     round,
     isUnsoldRound,
