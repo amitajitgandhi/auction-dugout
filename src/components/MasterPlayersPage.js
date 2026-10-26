@@ -304,7 +304,7 @@ const MasterPlayersPage = ({
                                                         : '-'}
                                                 </td>
                                                 <td className="px-4 py-2">
-                                                    {status === 'AVAILABLE' ? (
+                                                    {(status === 'AVAILABLE' || status === 'UNSOLD') ? (
                                                         <div className="flex flex-wrap items-center gap-1.5">
                                                             <select
                                                                 value={inputs.team}
@@ -338,7 +338,7 @@ const MasterPlayersPage = ({
                                                                 disabled={isSubmitting}
                                                                 className="px-3 py-1.5 rounded-lg text-xs font-semibold shadow-md bg-gradient-to-r from-emerald-500 to-green-600 text-white hover:from-emerald-600 hover:to-green-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                                                             >
-                                                                {isSubmitting ? 'Selling…' : 'Sell'}
+                                                                {isSubmitting ? 'Selling…' : status === 'UNSOLD' ? 'Sell Again' : 'Sell'}
                                                             </button>
                                                             <button
                                                                 onClick={() => handleSubmitRetention(player)}
@@ -349,7 +349,7 @@ const MasterPlayersPage = ({
                                                             </button>
                                                         </div>
                                                     ) : status === 'UNSOLD' ? (
-                                                        <span className="text-xs text-gray-500">Choose a team and price above to sell this player again.</span>
+                                                        <span className="text-xs text-gray-500"></span>
                                                     ) : (
                                                         <span className="text-xs text-gray-400">—</span>
                                                     )}
