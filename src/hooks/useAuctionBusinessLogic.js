@@ -266,9 +266,10 @@ export const useAuctionBusinessLogic = (
         const updatedTeams = processPlayerPurchase(teams, teamName, playerObj, bidAmount);
         if (!updatedTeams) return { success: false, message: 'Failed to process purchase. Budget or limit issue.' };
         const updatedPlayers = players.map(p => p.id === playerObj.id ? { ...p, soldTo: teamName, soldPrice: bidAmount, sold: true, wasUnsold: p.wasUnsold || true } : p);
+        const saved = await triggerAuctionSaveWithState('UNSOLD_PLAYER_SOLD', `${playerObj.name} sold later to ${teamName}`, teamName, bidAmount, updatedPlayers, updatedTeams);
+        if (!saved) return { success: false, message: 'Sale not completed because the server save failed.' };
         setPlayers(updatedPlayers);
         setTeams(updatedTeams);
-        setTimeout(async () => { await triggerAuctionSaveWithState('UNSOLD_PLAYER_SOLD', `${playerObj.name} sold later to ${teamName}`, teamName, bidAmount, updatedPlayers, updatedTeams); }, 100);
         return { success: true };
     };
 
@@ -385,7 +386,7 @@ export const useAuctionBusinessLogic = (
     };
 
     // ✅ UPDATED: Use new updateTeamInitialPurse function for Edit Balance
-    const handleUpdateTeamPurse = (teamName, newPurse) => {
+    const handleUpdateTeamPurse = async (teamName, newPurse) => {
         const updatedTeams = updateTeamInitialPurse(teams, teamName, newPurse);
         
         if (updatedTeams === teams) {
@@ -393,13 +394,9 @@ export const useAuctionBusinessLogic = (
             return false;
         }
 
+        const saved = await triggerAuctionSaveWithState('PURSE_UPDATE', `Team ${teamName} purse updated`, teamName, newPurse, null, updatedTeams);
+        if (!saved) return false;
         setTeams(updatedTeams);
-        
-        // Save the updated state
-        setTimeout(async () => {
-            await triggerAuctionSaveWithState('PURSE_UPDATE', `Team ${teamName} purse updated`, teamName, newPurse, null, updatedTeams);
-        }, 100);
-
         return true;
     };
 
@@ -412,10 +409,8 @@ export const useAuctionBusinessLogic = (
             return false;
         }
 
-        setTeams(updatedTeams);
-
         const newCount = updatedTeams[teamName]?.boosterCount ?? 0;
-        await triggerAuctionSaveWithState(
+        const saved = await triggerAuctionSaveWithState(
             'BOOSTER_APPLIED',
             `Booster count for ${teamName} increased to ${newCount}`,
             teamName,
@@ -423,7 +418,8 @@ export const useAuctionBusinessLogic = (
             null,
             updatedTeams
         );
-
+        if (!saved) return false;
+        setTeams(updatedTeams);
         return true;
     };
     
@@ -451,11 +447,9 @@ const handleDecrementTeamBooster = async (teamName) => {
         return false;
     }
 
-    setTeams(updatedTeams);
-
     const newCount = updatedTeams[teamName]?.boosterCount ?? 0;
 
-    await triggerAuctionSaveWithState(
+    const saved = await triggerAuctionSaveWithState(
         'BOOSTER_REMOVED',
         `Booster count for ${teamName} decreased to ${newCount}`,
         teamName,
@@ -463,7 +457,8 @@ const handleDecrementTeamBooster = async (teamName) => {
         null,
         updatedTeams
     );
-
+    if (!saved) return false;
+    setTeams(updatedTeams);
     return true;
 };
 
@@ -476,10 +471,7 @@ const handleDecrementTeamBooster = async (teamName) => {
             return false;
         }
 
-        setTeams(updatedTeams);
-        setBoosterPointsPerBooster?.(newPointsPerBooster);
-
-        await triggerAuctionSaveWithState(
+        const saved = await triggerAuctionSaveWithState(
             'BOOSTER_PPB_UPDATED',
             `Points per booster set to ${newPointsPerBooster} for all teams`,
             null,
@@ -488,12 +480,14 @@ const handleDecrementTeamBooster = async (teamName) => {
             updatedTeams,
             { boosterPointsPerBooster: newPointsPerBooster }
         );
-
+        if (!saved) return false;
+        setTeams(updatedTeams);
+        setBoosterPointsPerBooster?.(newPointsPerBooster);
         return true;
     };
 
     // ✅ CENTRALIZED: Function to handle player transfers using centralized management
-    const handlePlayerTransfer = (player, fromTeam, toTeam, newPrice) => {
+    const handlePlayerTransfer = async (player, fromTeam, toTeam, newPrice) => {
         const updatedTeams = processPlayerTransfer(teams, player, fromTeam, toTeam, newPrice);
         
         if (!updatedTeams) {
@@ -508,14 +502,10 @@ const handleDecrementTeamBooster = async (teamName) => {
                 : p
         );
 
+        const saved = await triggerAuctionSaveWithState('PLAYER_TRANSFER', `${player.name} transferred from ${fromTeam} to ${toTeam}`, toTeam, newPrice, updatedPlayers, updatedTeams);
+        if (!saved) return false;
         setPlayers(updatedPlayers);
         setTeams(updatedTeams);
-        
-        // Save the updated state
-        setTimeout(async () => {
-            await triggerAuctionSaveWithState('PLAYER_TRANSFER', `${player.name} transferred from ${fromTeam} to ${toTeam}`, toTeam, newPrice, updatedPlayers, updatedTeams);
-        }, 100);
-
         return true;
     };
 
@@ -547,10 +537,7 @@ const handleDecrementTeamBooster = async (teamName) => {
                 : p
         );
 
-        setPlayers(updatedPlayers);
-        setTeams(updatedTeams);
-
-        await triggerAuctionSaveWithState(
+        const saved = await triggerAuctionSaveWithState(
             'PLAYER_EDIT',
             `${player.name} ${sameTeam ? 'price updated' : `moved ${currentTeam} -> ${newTeam}`}`,
             newTeam,
@@ -558,7 +545,9 @@ const handleDecrementTeamBooster = async (teamName) => {
             updatedPlayers,
             updatedTeams
         );
-
+        if (!saved) return false;
+        setPlayers(updatedPlayers);
+        setTeams(updatedTeams);
         return true;
     };
 
