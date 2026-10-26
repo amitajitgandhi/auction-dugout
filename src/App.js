@@ -63,6 +63,8 @@ export default function CricketAuctionTool() {
   const {
   handleMarkSold,
   handleMarkUnsold,
+  handleRetainPlayer,
+  sellPlayer,
   sellUnsoldPlayerLater,
   handleUpdateTeamPurse,
   handleIncrementTeamBooster,
@@ -330,6 +332,30 @@ export default function CricketAuctionTool() {
   };
 
   // NEW PAGE RENDER
+  if (currentPage === 'masterplayers') {
+    return (
+      <>
+        <Toaster position="top-center" />
+        <MasterPlayersPage
+          players={players}
+          teams={teams}
+          tournamentName={tournamentName}
+          categoryConfigs={categoryConfigs}
+          onBackToTeams={goToTeamsPage}
+          onRetainPlayer={handleRetainPlayer}
+          onSellPlayer={async (player, teamName, amount, wasUnsold) =>
+            wasUnsold
+              ? await sellUnsoldPlayerLater(player, teamName, amount)
+              : await sellPlayer(player, teamName, amount)
+          }
+          showManagedToast={showManagedToast}
+        />
+        <ResetConfirmation isOpen={showResetConfirmation} onConfirm={confirmResetAuction} onCancel={() => setShowResetConfirmation(false)} />
+        <WhatsAppSettings isOpen={showWhatsAppSettings} settings={whatsappSettings} onSave={handleSaveWhatsAppSettings} onClose={() => setShowWhatsAppSettings(false)} onTest={handleWhatsAppTest} />
+      </>
+    );
+  }
+
   if (currentPage === 'unsoldplayers') {
     return (
       <>
