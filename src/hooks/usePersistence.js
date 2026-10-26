@@ -86,52 +86,63 @@ export const usePersistence = (showManagedToast, user = null) => {
         return queuedSave;
     }, [user, getLocalStorageKey]);
 
-    // Load auction state from Supabase first, then localStorage as fallback
+    // Load both sources and select the most recently timestamped snapshot. This avoids
+    // blindly restoring an older cloud snapshot when local storage has newer progress.
     const loadState = useCallback(async () => {
-        // Try Supabase first if user is authenticated
+        let cloudState = null;
         if (user?.id) {
             try {
-                console.log('?? Attempting to load from Supabase for user:', user.id);
-                
-                // Check if user session is valid before making the request
                 const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-                
-                if (sessionError || !session) {
-                    console.log('? No valid session found, falling back to localStorage');
-                    // Fallback to localStorage immediately
-                    return await loadFromLocalStorage();
-                }
-                
-                const { data, error } = await supabase
-                    .from('auction_data')
-                    .select('*')
-                    .eq('user_id', user.id)
-                    .order('updated_at', { ascending: false })
-                    .limit(1)
-                    .maybeSingle(); // Use maybeSingle() instead of single()
-
-                if (error) {
-                    console.log('?? Supabase load error:', error.message);
-                    // Fallback to localStorage on error
-                    return await loadFromLocalStorage();
-                } else if (data?.data) {
-                    console.log('? Auction state loaded from Supabase', {
-                        timestamp: data.updated_at,
-                        playersCount: data.data.players?.length || 0,
-                        teamsCount: Object.keys(data.data.teams || {}).length
-                    });
-                    return {
-                        ...data.data,
-                        source: 'supabase',
-                        updated_at: data.updated_at
-                    };
+                if (!sessionError && session) {
+                    const { data, error } = await supabase
+                        .from('auction_data')
+                        .select('*')
+                        .eq('user_id', user.id)
+                        .maybeSingle();
+                    if (!error && data?.data) {
+                        cloudState = {
+                            ...data.data,
+                            timestamp: data.data.timestamp || data.updated_at,
+                            source: 'supabase',
+                            updated_at: data.updated_at
+                        };
+                    } else if (error) {
+                        console.warn('Supabase load failed; checking local recovery copy:', error.message);
+                    }
                 }
             } catch (error) {
-                console.log('?? No Supabase data found, falling back to localStorage:', error.message);
+                console.warn('Unable to read Supabase snapshot:', error);
             }
         }
 
-        return await loadFromLocalStorage();
+        let localState = null;
+        if (user?.email) {
+            try {
+                const savedData = localStorage.getItem(getLocalStorageKey(user.email));
+                if (savedData) {
+                    const parsedData = JSON.parse(savedData);
+                    if (parsedData && Array.isArray(parsedData.players) && parsedData.teams && typeof parsedData.teams === 'object') {
+                        localState = { ...parsedData, source: 'localStorage' };
+                    } else {
+                        console.warn('Ignoring malformed local auction snapshot.');
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to read local auction snapshot:', error);
+            }
+        }
+        if (!localState) localState = loadAuctionState();
+
+        if (cloudState && localState) {
+            const cloudTime = Date.parse(cloudState.timestamp || cloudState.updated_at || '') || 0;
+            const localTime = Date.parse(localState.timestamp || '') || 0;
+            if (localTime > cloudTime) {
+                console.warn('Local snapshot is newer than Supabase; selecting local snapshot.');
+                return localState;
+            }
+            return cloudState;
+        }
+        return cloudState || localState || null;
     }, [user, getLocalStorageKey]);
 
     // Helper function to load from localStorage
