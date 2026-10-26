@@ -54,8 +54,12 @@ export const useAutoSave = (
                     };
                     
                     try {
-                        await persistence.autoSave(currentState);
-                        console.log('? Auto-save completed successfully');
+                        const saved = await persistence.autoSave(currentState);
+                        if (saved) {
+                            console.log('✓ Auto-save confirmed by cloud');
+                        } else {
+                            console.warn('⚠ Auto-save not confirmed by cloud; previous confirmed state remains intact');
+                        }
                     } catch (error) {
                         console.error('? Auto-save failed:', error);
                     }
@@ -106,8 +110,9 @@ export const useAutoSave = (
 
                 try {
                     // Force save without toast notification (browser closing)
-                    await persistence.saveState(currentState);
-                    console.log('?? Final save completed before page unload');
+                    const saved = await persistence.saveState(currentState);
+                    if (saved) console.log('✓ Final cloud save confirmed before page unload');
+                    else console.warn('⚠ Final cloud save was not confirmed before page unload');
                 } catch (error) {
                     console.error('? Failed to save on page unload:', error);
                 }

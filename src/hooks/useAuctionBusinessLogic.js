@@ -41,7 +41,8 @@ export const useAuctionBusinessLogic = (
     // ✅ CENTRALIZED: Function to save auction progress with enhanced error handling
     const triggerAuctionSaveWithState = async (action, description, teamName, bidAmount, updatedPlayers = null, updatedTeams = null, overrides = {}) => {
         if (!authUser?.id || !isTournamentNameSet) {
-            return;
+            showManagedToast?.('error', 'Auction is locked: sign in and complete tournament setup before making changes.', { duration: 6000 });
+            return false;
         }
 
         try {
@@ -65,13 +66,17 @@ export const useAuctionBusinessLogic = (
             const saved = await persistence.saveState(currentState);
             if (!saved) {
                 console.error(`❌ ${action} is saved locally but cloud confirmation is missing:`, description);
-                showManagedToast?.('error', 'Cloud save not confirmed. Keep this tab open and check your connection.', { duration: 6000 });
+                showManagedToast?.('error', 'Transaction NOT completed. Unable to confirm the server save. Check your internet connection and retry.', { duration: 7000 });
+                return false;
             } else {
                 console.log(`🔄 ${action} - Progress saved to cloud:`, description);
+                return true;
             }
             
         } catch (error) {
             console.error('❌ Failed to save progress:', error);
+            showManagedToast?.('error', 'Transaction NOT completed. Server save failed. Check your connection and retry.', { duration: 7000 });
+            return false;
         } finally {
             setIsSaving(false);
         }
@@ -103,11 +108,13 @@ export const useAuctionBusinessLogic = (
                 : (player.name === playerObj.name ? { ...player, soldTo: teamName, soldPrice: bidAmount, sold: true } : player)
         );
 
+        // Commit UI state only after Supabase confirms the proposed transaction.
+        const saved = await triggerAuctionSaveWithState('PLAYER_SOLD', `${playerObj.name} sold to ${teamName}`, teamName, bidAmount, updatedPlayers, updatedTeams);
+        if (!saved) {
+            return { success: false, message: 'Sale not completed because the server could not confirm the save. Please retry when connected.' };
+        }
         setPlayers(updatedPlayers);
         setTeams(updatedTeams);
-        
-        // Trigger autosave after successful sale
-        await triggerAuctionSaveWithState('PLAYER_SOLD', `${playerObj.name} sold to ${teamName}`, teamName, bidAmount, updatedPlayers, updatedTeams);
 
         return { 
             success: true, 
@@ -218,8 +225,9 @@ export const useAuctionBusinessLogic = (
                 : (player.name === auction.currentPlayer.name ? { ...player, soldTo: 'Unsold', soldPrice: 0, sold: false, wasUnsold: true } : player)
         );
 
+        const saved = await triggerAuctionSaveWithState('PLAYER_UNSOLD', `${auction.currentPlayer.name} marked as unsold`, 'Unsold', 0, updatedPlayers);
+        if (!saved) return;
         setPlayers(updatedPlayers);
-        await triggerAuctionSaveWithState('PLAYER_UNSOLD', `${auction.currentPlayer.name} marked as unsold`, 'Unsold', 0, updatedPlayers);
         showManagedToast('info', `${auction.currentPlayer.name} marked as unsold.`, {
             style: {
                 border: '2px solid #f59e42',
@@ -258,9 +266,10 @@ export const useAuctionBusinessLogic = (
         const updatedTeams = processPlayerPurchase(teams, teamName, playerObj, bidAmount);
         if (!updatedTeams) return { success: false, message: 'Failed to process purchase. Budget or limit issue.' };
         const updatedPlayers = players.map(p => p.id === playerObj.id ? { ...p, soldTo: teamName, soldPrice: bidAmount, sold: true, wasUnsold: p.wasUnsold || true } : p);
+        const saved = await triggerAuctionSaveWithState('UNSOLD_PLAYER_SOLD', `${playerObj.name} sold later to ${teamName}`, teamName, bidAmount, updatedPlayers, updatedTeams);
+        if (!saved) return { success: false, message: 'Sale not completed because the server save failed.' };
         setPlayers(updatedPlayers);
         setTeams(updatedTeams);
-        setTimeout(async () => { await triggerAuctionSaveWithState('UNSOLD_PLAYER_SOLD', `${playerObj.name} sold later to ${teamName}`, teamName, bidAmount, updatedPlayers, updatedTeams); }, 100);
         return { success: true };
     };
 
@@ -355,10 +364,7 @@ export const useAuctionBusinessLogic = (
                     : p
             );
 
-            setPlayers(updatedPlayers);
-            setTeams(updatedTeams);
-
-            await triggerAuctionSaveWithState(
+            const saved = await triggerAuctionSaveWithState(
                 'OWNER_RETENTION',
                 `${currentPlayer.name} retained by ${teamName} for ${amount} (${category})`,
                 teamName,
@@ -366,6 +372,9 @@ export const useAuctionBusinessLogic = (
                 updatedPlayers,
                 updatedTeams
             );
+            if (!saved) return { success: false, message: 'Retention not completed because the server save failed.' };
+            setPlayers(updatedPlayers);
+            setTeams(updatedTeams);
 
             return {
                 success: true,
@@ -377,7 +386,7 @@ export const useAuctionBusinessLogic = (
     };
 
     // ✅ UPDATED: Use new updateTeamInitialPurse function for Edit Balance
-    const handleUpdateTeamPurse = (teamName, newPurse) => {
+    const handleUpdateTeamPurse = async (teamName, newPurse) => {
         const updatedTeams = updateTeamInitialPurse(teams, teamName, newPurse);
         
         if (updatedTeams === teams) {
@@ -385,13 +394,9 @@ export const useAuctionBusinessLogic = (
             return false;
         }
 
+        const saved = await triggerAuctionSaveWithState('PURSE_UPDATE', `Team ${teamName} purse updated`, teamName, newPurse, null, updatedTeams);
+        if (!saved) return false;
         setTeams(updatedTeams);
-        
-        // Save the updated state
-        setTimeout(async () => {
-            await triggerAuctionSaveWithState('PURSE_UPDATE', `Team ${teamName} purse updated`, teamName, newPurse, null, updatedTeams);
-        }, 100);
-
         return true;
     };
 
@@ -404,10 +409,8 @@ export const useAuctionBusinessLogic = (
             return false;
         }
 
-        setTeams(updatedTeams);
-
         const newCount = updatedTeams[teamName]?.boosterCount ?? 0;
-        await triggerAuctionSaveWithState(
+        const saved = await triggerAuctionSaveWithState(
             'BOOSTER_APPLIED',
             `Booster count for ${teamName} increased to ${newCount}`,
             teamName,
@@ -415,7 +418,8 @@ export const useAuctionBusinessLogic = (
             null,
             updatedTeams
         );
-
+        if (!saved) return false;
+        setTeams(updatedTeams);
         return true;
     };
     
@@ -443,11 +447,9 @@ const handleDecrementTeamBooster = async (teamName) => {
         return false;
     }
 
-    setTeams(updatedTeams);
-
     const newCount = updatedTeams[teamName]?.boosterCount ?? 0;
 
-    await triggerAuctionSaveWithState(
+    const saved = await triggerAuctionSaveWithState(
         'BOOSTER_REMOVED',
         `Booster count for ${teamName} decreased to ${newCount}`,
         teamName,
@@ -455,7 +457,8 @@ const handleDecrementTeamBooster = async (teamName) => {
         null,
         updatedTeams
     );
-
+    if (!saved) return false;
+    setTeams(updatedTeams);
     return true;
 };
 
@@ -468,10 +471,7 @@ const handleDecrementTeamBooster = async (teamName) => {
             return false;
         }
 
-        setTeams(updatedTeams);
-        setBoosterPointsPerBooster?.(newPointsPerBooster);
-
-        await triggerAuctionSaveWithState(
+        const saved = await triggerAuctionSaveWithState(
             'BOOSTER_PPB_UPDATED',
             `Points per booster set to ${newPointsPerBooster} for all teams`,
             null,
@@ -480,12 +480,14 @@ const handleDecrementTeamBooster = async (teamName) => {
             updatedTeams,
             { boosterPointsPerBooster: newPointsPerBooster }
         );
-
+        if (!saved) return false;
+        setTeams(updatedTeams);
+        setBoosterPointsPerBooster?.(newPointsPerBooster);
         return true;
     };
 
     // ✅ CENTRALIZED: Function to handle player transfers using centralized management
-    const handlePlayerTransfer = (player, fromTeam, toTeam, newPrice) => {
+    const handlePlayerTransfer = async (player, fromTeam, toTeam, newPrice) => {
         const updatedTeams = processPlayerTransfer(teams, player, fromTeam, toTeam, newPrice);
         
         if (!updatedTeams) {
@@ -500,14 +502,10 @@ const handleDecrementTeamBooster = async (teamName) => {
                 : p
         );
 
+        const saved = await triggerAuctionSaveWithState('PLAYER_TRANSFER', `${player.name} transferred from ${fromTeam} to ${toTeam}`, toTeam, newPrice, updatedPlayers, updatedTeams);
+        if (!saved) return false;
         setPlayers(updatedPlayers);
         setTeams(updatedTeams);
-        
-        // Save the updated state
-        setTimeout(async () => {
-            await triggerAuctionSaveWithState('PLAYER_TRANSFER', `${player.name} transferred from ${fromTeam} to ${toTeam}`, toTeam, newPrice, updatedPlayers, updatedTeams);
-        }, 100);
-
         return true;
     };
 
@@ -539,10 +537,7 @@ const handleDecrementTeamBooster = async (teamName) => {
                 : p
         );
 
-        setPlayers(updatedPlayers);
-        setTeams(updatedTeams);
-
-        await triggerAuctionSaveWithState(
+        const saved = await triggerAuctionSaveWithState(
             'PLAYER_EDIT',
             `${player.name} ${sameTeam ? 'price updated' : `moved ${currentTeam} -> ${newTeam}`}`,
             newTeam,
@@ -550,7 +545,9 @@ const handleDecrementTeamBooster = async (teamName) => {
             updatedPlayers,
             updatedTeams
         );
-
+        if (!saved) return false;
+        setPlayers(updatedPlayers);
+        setTeams(updatedTeams);
         return true;
     };
 
