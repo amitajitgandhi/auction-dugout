@@ -12,8 +12,10 @@ export const useAutoSave = (
     categoryConfigs = {}, // Removed boosterData parameter
     boosterPointsPerBooster = 10 // Tournament-wide points-per-booster value
 ) => {
-    // Auto-save interval ref
+    // Keep the interval stable while always reading the latest React state.
     const autoSaveIntervalRef = useRef(null);
+    const latestStateRef = useRef(null);
+    latestStateRef.current = { players, teams, tournamentName, isTournamentNameSet, whatsappSettings, auction, categoryConfigs, boosterPointsPerBooster };
 
     // Auto-save functionality - save state every 2-3 minutes after tournament is created
     useEffect(() => {
@@ -31,24 +33,24 @@ export const useAutoSave = (
             console.log('?? Starting auto-save for authenticated user:', user.email);
             
             autoSaveIntervalRef.current = setInterval(async () => {
-                // Only auto-save if there's meaningful progress
-                const hasProgress = isTournamentNameSet && 
-                    (players.length > 0 || Object.keys(teams).length > 0) &&
-                    (auction.auctionStarted || players.some(p => p.sold || p.soldTo === "Unsold"));
-                
+                const latest = latestStateRef.current;
+                const hasProgress = latest.isTournamentNameSet &&
+                    (latest.players.length > 0 || Object.keys(latest.teams).length > 0) &&
+                    (latest.auction.auctionStarted || latest.players.some(p => p.sold || p.soldTo === "Unsold"));
+
                 if (hasProgress) {
                     const currentState = {
-                        players,
-                        teams,
-                        tournamentName,
-                        isTournamentNameSet,
-                        whatsappSettings,
-                        categoryConfigs, // Include category configurations
-                        boosterPointsPerBooster,
-                        auctionStarted: auction.auctionStarted,
-                        selectedCategory: auction.selectedCategory,
-                        completedCategories: Array.from(auction.completedCategories || []),
-                        currentPlayerName: auction.currentPlayer?.name || null
+                        players: latest.players,
+                        teams: latest.teams,
+                        tournamentName: latest.tournamentName,
+                        isTournamentNameSet: latest.isTournamentNameSet,
+                        whatsappSettings: latest.whatsappSettings,
+                        categoryConfigs: latest.categoryConfigs,
+                        boosterPointsPerBooster: latest.boosterPointsPerBooster,
+                        auctionStarted: latest.auction.auctionStarted,
+                        selectedCategory: latest.auction.selectedCategory,
+                        completedCategories: Array.from(latest.auction.completedCategories || []),
+                        currentPlayerName: latest.auction.currentPlayer?.name || null
                     };
                     
                     try {
