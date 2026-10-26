@@ -319,6 +319,96 @@ export const processPlayerPurchase = (teams, teamName, player, price) => {
 };
 
 /**
+ * Get a team's requirement status for every configured category, derived
+ * live from the team's actual roster rather than a separately maintained
+ * counter (so it can never drift out of sync with the roster).
+ * @param {Object} team - Team data (must have `.players`)
+ * @param {Object} categoryConfigs - { [category]: { playersPerCategory, basePrice } }
+ * @returns {Object} - { [category]: { required, filled, remaining } }
+ */
+export const getCategoryRequirementStatus = (team, categoryConfigs) => {
+    const status = {};
+    if (!team || !categoryConfigs) return status;
+
+    Object.entries(categoryConfigs).forEach(([category, config]) => {
+        const required = parseInt(config?.playersPerCategory, 10) || 0;
+        const filled = (team.players || []).filter(p => p.category === category).length;
+        status[category] = {
+            required,
+            filled,
+            remaining: Math.max(required - filled, 0)
+        };
+    });
+
+    return status;
+};
+
+/**
+ * Directly assign an owner-player to a team at a fixed retention price.
+ * This is NOT an auction bid — it reuses processPlayerPurchase for the
+ * purse/roster math (so initial/base purse semantics and playersToBuy
+ * accounting stay byte-for-byte identical to a normal purchase), and
+ * additionally enforces the team's per-category roster limit from
+ * categoryConfigs — derived live from the roster, never a separate counter —
+ * before delegating to it.
+ * @param {Object} teams - Current teams state
+ * @param {string} teamName - Team the player is being retained for
+ * @param {Object} player - Player object (top-level master player record)
+ * @param {number} retentionAmount - Fixed retention price (same positive-amount floor as a normal purchase)
+ * @param {string} category - Category to assign the player under (may differ from the player's original CSV category)
+ * @param {Object} categoryConfigs - Tournament category requirements, keyed by category name
+ * @returns {Object|null} - Updated teams object, or null if the retention is invalid
+ */
+export const retainPlayer = (teams, teamName, player, retentionAmount, category, categoryConfigs = {}) => {
+    if (!teams || !teamName || !player || !category) {
+        console.error('Invalid parameters for retainPlayer:', { teams: !!teams, teamName, player: !!player, category });
+        return null;
+    }
+
+    const team = teams[teamName];
+    if (!team) {
+        console.error(`Team ${teamName} not found`);
+        return null;
+    }
+
+    // Enforce the category roster limit — only when that category actually
+    // has a configured limit (an unconfigured category is treated as unlimited).
+    const config = categoryConfigs?.[category];
+    const required = parseInt(config?.playersPerCategory, 10) || 0;
+    if (required > 0) {
+        const filled = (team.players || []).filter(p => p.category === category).length;
+        if (filled >= required) {
+            console.error(`Team ${teamName} has no remaining ${category} slots (${filled}/${required})`);
+            return null;
+        }
+    }
+
+    // Assign under the (possibly overridden) category, then let the same
+    // purchase path everything else uses handle purse + playersToBuy + the
+    // duplicate-player guard.
+    const retainedPlayer = { ...player, category };
+    const updatedTeams = processPlayerPurchase(teams, teamName, retainedPlayer, retentionAmount);
+    if (!updatedTeams) {
+        return null;
+    }
+
+    // Tag the new roster entry with how it was acquired, without touching any
+    // of the fields processPlayerPurchase already set (soldPrice, etc).
+    const updatedTeam = updatedTeams[teamName];
+    const taggedPlayers = updatedTeam.players.map(p =>
+        p.id === player.id ? { ...p, retentionSource: 'OWNER_RETENTION' } : p
+    );
+
+    return {
+        ...updatedTeams,
+        [teamName]: {
+            ...updatedTeam,
+            players: taggedPlayers
+        }
+    };
+};
+
+/**
  * Process a player transfer between teams (centralized transfer management)
  * @param {Object} teams - Current teams state
  * @param {Object} player - Player being transferred

@@ -13,6 +13,7 @@ import ResetConfirmation from "./components/ResetConfirmation";
 import WhatsAppSettings from "./components/WhatsAppSettings";
 import AuthPage from "./components/AuthPage";
 import UnsoldPlayersPage from "./components/UnsoldPlayersPage"; // NEW PAGE
+import MasterPlayersPage from "./components/MasterPlayersPage";
 
 import { useAuth } from "./hooks/useAuth";
 import { useAuction } from "./hooks/useAuction";
@@ -48,6 +49,7 @@ export default function CricketAuctionTool() {
   const goToAuctionPage = () => setCurrentPage('auction');
   const goToCategoryConfig = () => setCurrentPage('categoryconfig');
   const goToUnsoldPlayersPage = () => setCurrentPage('unsoldplayers');
+  const goToMasterPlayersPage = () => setCurrentPage('masterplayers');
   const goBackToFileUpload = (configs = {}) => {
     setCategoryConfigs(prev => ({...prev, ...configs}));
     setCurrentPage('auction');

@@ -44,7 +44,9 @@ export const EMOJIS = {
     PENCIL: String.fromCodePoint(0x270F, 0xFE0F), // Pencil emoji for edit
     EDIT: String.fromCodePoint(0x270F, 0xFE0F), // Pencil emoji for edit (alias)
     ARCHIVE: String.fromCodePoint(0x1F4C6), // Archive box emoji
-    CAMERA: String.fromCodePoint(0x1F4F7) // Camera emoji, for image export/share actions
+    CAMERA: String.fromCodePoint(0x1F4F7), // Camera emoji, for image export/share actions
+    CROWN: String.fromCodePoint(0x1F451), // Crown emoji, for retained owner-players
+    LOCK: String.fromCodePoint(0x1F512) // Lock emoji, for players no longer eligible for bidding
 };
 
 // Helper to shuffle an array

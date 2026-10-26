@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import {
     processPlayerPurchase,
     processPlayerTransfer,
@@ -6,7 +6,8 @@ import {
     updateTeamInitialPurse, // ✅ UPDATED: Import the new function for initial purse updates
     updatePlayerPriceInTeam,
     incrementTeamBooster,
-    applyGlobalPointsPerBooster
+    applyGlobalPointsPerBooster,
+    retainPlayer
 } from '../utils/centralizedTeamData';
 import { EMOJIS } from '../utils/constants';
 
@@ -30,6 +31,10 @@ export const useAuctionBusinessLogic = (
     setBoosterPointsPerBooster = null
 ) => {
     const [isSaving, setIsSaving] = useState(false);
+    // Tracks player ids currently mid-retention, so a fast double-click on
+    // Submit can't race ahead of the players/teams state update and retain
+    // (and double-deduct) the same player twice.
+    const retainingPlayerIdsRef = useRef(new Set());
 
     // ✅ CENTRALIZED: Function to save auction progress with enhanced error handling
     const triggerAuctionSaveWithState = async (action, description, teamName, bidAmount, updatedPlayers = null, updatedTeams = null, overrides = {}) => {
@@ -252,6 +257,118 @@ export const useAuctionBusinessLogic = (
         return { success: true };
     };
 
+    // ✅ Owner-player retention: a direct fixed-price assignment to a team,
+    // NOT an auction bid. Reuses the exact same purse/roster/category-limit
+    // plumbing as a normal purchase (via retainPlayer -> processPlayerPurchase),
+    // so a retained player decrements playersToBuy and the relevant category's
+    // remaining slots exactly like a bid-won player would, and is excluded
+    // from bidding the same way any other sold player already is.
+    const handleRetainPlayer = async (player, teamName, category, retentionAmount) => {
+        if (!player || player.id === undefined || player.id === null) {
+            showFancyError('Invalid player selected for retention.');
+            return { success: false, message: 'Invalid player selected for retention.' };
+        }
+
+        // Guard against a fast double-click: the second click would otherwise
+        // read the same (stale) players/teams state as the first and pass
+        // every validation check before the first retention's state update
+        // has landed.
+        if (retainingPlayerIdsRef.current.has(player.id)) {
+            return { success: false, message: 'Retention already in progress for this player.' };
+        }
+
+        // Always validate against the latest master record, not whatever
+        // reference the page happened to pass in.
+        const currentPlayer = players.find(p => p.id === player.id);
+        if (!currentPlayer) {
+            showFancyError('Player not found in the master player list.');
+            return { success: false, message: 'Player not found.' };
+        }
+
+        if (currentPlayer.retentionSource === 'OWNER_RETENTION') {
+            showFancyError(`${currentPlayer.name} has already been retained.`);
+            return { success: false, message: 'Player already retained.' };
+        }
+
+        if (currentPlayer.sold && currentPlayer.soldTo !== 'Unsold') {
+            showFancyError(`${currentPlayer.name} has already been sold and cannot be retained.`);
+            return { success: false, message: 'Player already sold.' };
+        }
+
+        if (!teamName || !teams[teamName]) {
+            showFancyError('Please select a valid team before submitting.');
+            return { success: false, message: 'Invalid team.' };
+        }
+
+        if (!category || typeof category !== 'string' || !category.trim()) {
+            showFancyError('Please select a valid category before submitting.');
+            return { success: false, message: 'Invalid category.' };
+        }
+
+        const amount = Number(retentionAmount);
+        if (!Number.isFinite(amount) || amount <= 0) {
+            showFancyError('Please enter a valid retention amount (greater than 0).');
+            return { success: false, message: 'Invalid retention amount.' };
+        }
+
+        const teamInfo = getTeamInfo(teams[teamName], teamName);
+        if (amount > teamInfo.currentPurse) {
+            showFancyError(`${teamName} has insufficient funds. Available: ${teamInfo.currentPurse.toLocaleString()}, Required: ${amount.toLocaleString()}`);
+            return { success: false, message: 'Insufficient funds.' };
+        }
+
+        if (teamInfo.playersLeft <= 0) {
+            showFancyError(`${teamName} has reached the maximum player limit.`);
+            return { success: false, message: 'Team roster full.' };
+        }
+
+        // Category slot check — derived live from the roster, same as the
+        // display logic, so it can never drift from what's actually there.
+        const categoryConfig = categoryConfigs?.[category];
+        const requiredForCategory = parseInt(categoryConfig?.playersPerCategory, 10) || 0;
+        if (requiredForCategory > 0) {
+            const filledForCategory = (teams[teamName].players || []).filter(p => p.category === category).length;
+            if (filledForCategory >= requiredForCategory) {
+                showFancyError(`${teamName} already has ${filledForCategory}/${requiredForCategory} ${category} players — no slot remaining.`);
+                return { success: false, message: 'No category slot remaining.' };
+            }
+        }
+
+        retainingPlayerIdsRef.current.add(player.id);
+        try {
+            const updatedTeams = retainPlayer(teams, teamName, currentPlayer, amount, category, categoryConfigs);
+            if (!updatedTeams) {
+                showFancyError('Failed to retain player. Please check the team, category and amount and try again.');
+                return { success: false, message: 'Retention failed.' };
+            }
+
+            const updatedPlayers = players.map(p =>
+                p.id === currentPlayer.id
+                    ? { ...p, soldTo: teamName, soldPrice: amount, sold: true, category, retentionSource: 'OWNER_RETENTION' }
+                    : p
+            );
+
+            setPlayers(updatedPlayers);
+            setTeams(updatedTeams);
+
+            await triggerAuctionSaveWithState(
+                'OWNER_RETENTION',
+                `${currentPlayer.name} retained by ${teamName} for ${amount} (${category})`,
+                teamName,
+                amount,
+                updatedPlayers,
+                updatedTeams
+            );
+
+            return {
+                success: true,
+                message: `${currentPlayer.name} retained by ${teamName} for ₹${amount.toLocaleString()} (${category}).`
+            };
+        } finally {
+            retainingPlayerIdsRef.current.delete(player.id);
+        }
+    };
+
     // ✅ UPDATED: Use new updateTeamInitialPurse function for Edit Balance
     const handleUpdateTeamPurse = (teamName, newPurse) => {
         const updatedTeams = updateTeamInitialPurse(teams, teamName, newPurse);
@@ -403,6 +520,7 @@ export const useAuctionBusinessLogic = (
         handleMarkSold,
         handleMarkUnsold,
         sellUnsoldPlayerLater, // new function
+        handleRetainPlayer,         // ✅ Master Players: direct owner-player retention
         handleUpdateTeamPurse,      // ✅ UPDATED: Now uses updateTeamInitialPurse for Edit Balance
         handleIncrementTeamBooster,
         handleUpdatePointsPerBooster,
