@@ -23,7 +23,6 @@ const FILTERS = [
     { key: 'ALL', label: 'All Players' },
     { key: 'AVAILABLE', label: 'Available Players' },
     { key: 'RETAINED', label: 'Retained Owner-Players' },
-    { key: 'SOLD', label: 'Sold Players' },
     { key: 'UNSOLD', label: 'Unsold Players' }
 ];
 
@@ -63,6 +62,8 @@ const MasterPlayersPage = ({
 
     const filteredPlayers = useMemo(() => {
         return (players || []).filter(p => {
+            // This page is for assigning/selling players; already-sold players are intentionally hidden.
+            if (getPlayerStatus(p) === 'SOLD') return false;
             if (statusFilter !== 'ALL' && getPlayerStatus(p) !== statusFilter) return false;
             if (categoryFilter !== 'ALL' && p.category !== categoryFilter) return false;
             return true;
@@ -150,8 +151,9 @@ const MasterPlayersPage = ({
     };
 
     const statusCounts = useMemo(() => {
-        const counts = { ALL: players?.length || 0, AVAILABLE: 0, RETAINED: 0, SOLD: 0, UNSOLD: 0 };
-        (players || []).forEach(p => { counts[getPlayerStatus(p)] += 1; });
+        const visiblePlayers = (players || []).filter(p => getPlayerStatus(p) !== 'SOLD');
+        const counts = { ALL: visiblePlayers.length, AVAILABLE: 0, RETAINED: 0, UNSOLD: 0 };
+        visiblePlayers.forEach(p => { counts[getPlayerStatus(p)] += 1; });
         return counts;
     }, [players]);
 
