@@ -83,16 +83,17 @@ const MasterPlayersPage = ({
         if (submittingId === player.id) return;
         const inputs = getRowInputs(player.id);
         const teamName = inputs.team;
+        const category = inputs.category || player.category;
         const amount = parseInt(inputs.amount, 10);
-        if (!teamName || isNaN(amount) || amount <= 0) {
-            showManagedToast?.('error', 'Select a team and enter a valid sale price.', { icon: EMOJIS.WARNING, duration: 3000 });
+        if (!teamName || !category || isNaN(amount) || amount <= 0) {
+            showManagedToast?.('error', 'Select a team and category, and enter a valid sale price.', { icon: EMOJIS.WARNING, duration: 3000 });
             return;
         }
         setSubmittingId(player.id);
         try {
             const result = player.soldTo === 'Unsold'
-                ? await onSellPlayer?.(player, teamName, amount, true)
-                : await onSellPlayer?.(player, teamName, amount, false);
+                ? await onSellPlayer?.(player, teamName, amount, true, category)
+                : await onSellPlayer?.(player, teamName, amount, false, category);
             if (result?.success) {
                 showManagedToast?.('success', result.message || `${player.name} sold to ${teamName}.`, { icon: EMOJIS.CHECK_MARK, duration: 3500 });
                 setRowInputs(prev => { const next = { ...prev }; delete next[player.id]; return next; });
