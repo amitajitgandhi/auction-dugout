@@ -21,9 +21,10 @@ const TeamsPage = ({
     whatsappSettings,
     onPlayerEdit,
     onTeamPurseUpdate,
-    onIncrementTeamBooster,
-    onUpdatePointsPerBooster,
-    boosterPointsPerBooster,
+onIncrementTeamBooster,
+onDecrementTeamBooster,
+onUpdatePointsPerBooster,
+boosterPointsPerBooster,
     updateTeamPurse,
     onViewUnsoldPlayers // ...new prop
 }) => {
@@ -582,14 +583,15 @@ const TeamsPage = ({
             />
 
             <BoosterPopup
-                isOpen={showBoosterPopup}
-                onClose={() => setShowBoosterPopup(false)}
-                teams={teams}
-                boosterPointsPerBooster={boosterPointsPerBooster}
-                onIncrementTeamBooster={onIncrementTeamBooster}
-                onUpdatePointsPerBooster={onUpdatePointsPerBooster}
-                showManagedToast={showManagedToast}
-            />
+    isOpen={showBoosterPopup}
+    onClose={() => setShowBoosterPopup(false)}
+    teams={teams}
+    boosterPointsPerBooster={boosterPointsPerBooster}
+    onIncrementTeamBooster={onIncrementTeamBooster}
+    onDecrementTeamBooster={onDecrementTeamBooster}
+    onUpdatePointsPerBooster={onUpdatePointsPerBooster}
+    showManagedToast={showManagedToast}
+/>
 
             {/* Player Spin Wheel Modal */}
             <PlayerSpinWheel

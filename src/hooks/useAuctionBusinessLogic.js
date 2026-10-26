@@ -3,11 +3,13 @@ import {
     processPlayerPurchase,
     processPlayerTransfer,
     getTeamInfo,
-    updateTeamInitialPurse, // ✅ UPDATED: Import the new function for initial purse updates
+    updateTeamInitialPurse,
     updatePlayerPriceInTeam,
     incrementTeamBooster,
     applyGlobalPointsPerBooster,
-    retainPlayer
+    retainPlayer,
+    decrementTeamBooster,
+    applyGlobalPointsPerBooster
 } from '../utils/centralizedTeamData';
 import { EMOJIS } from '../utils/constants';
 
@@ -411,6 +413,46 @@ export const useAuctionBusinessLogic = (
 
         return true;
     };
+    
+    // Booster "-" button: decrease one team's booster count by 1.
+const handleDecrementTeamBooster = async (teamName) => {
+    const currentCount = teams[teamName]?.boosterCount ?? 0;
+
+    // Do not allow a negative booster count.
+    if (currentCount <= 0) {
+        showManagedToast('error', 'Booster count cannot be less than 0.', {
+            icon: EMOJIS.WARNING,
+            duration: 2500
+        });
+        return false;
+    }
+
+    const updatedTeams = decrementTeamBooster(
+        teams,
+        teamName,
+        boosterPointsPerBooster
+    );
+
+    if (updatedTeams === teams) {
+        showFancyError('Failed to remove booster. Please try again.');
+        return false;
+    }
+
+    setTeams(updatedTeams);
+
+    const newCount = updatedTeams[teamName]?.boosterCount ?? 0;
+
+    await triggerAuctionSaveWithState(
+        'BOOSTER_REMOVED',
+        `Booster count for ${teamName} decreased to ${newCount}`,
+        teamName,
+        newCount,
+        null,
+        updatedTeams
+    );
+
+    return true;
+};
 
     // ✅ Update the single tournament-wide points-per-booster value and keep every
     // team's purse in sync with it.
@@ -516,16 +558,16 @@ export const useAuctionBusinessLogic = (
     };
 
     return {
-        sellPlayer,
-        handleMarkSold,
-        handleMarkUnsold,
-        sellUnsoldPlayerLater, // new function
-        handleRetainPlayer,         // ✅ Master Players: direct owner-player retention
-        handleUpdateTeamPurse,      // ✅ UPDATED: Now uses updateTeamInitialPurse for Edit Balance
-        handleIncrementTeamBooster,
-        handleUpdatePointsPerBooster,
-        handlePlayerTransfer,       // ✅ CENTRALIZED: Player transfers
-        handlePlayerEdit,
-        getTeamBudgetInfo          // ✅ CENTRALIZED: Team budget calculations
+    sellPlayer,
+    handleMarkSold,
+    handleMarkUnsold,
+    sellUnsoldPlayerLater,
+    handleUpdateTeamPurse,
+    handleIncrementTeamBooster,
+    handleDecrementTeamBooster,
+    handleUpdatePointsPerBooster,
+    handlePlayerTransfer,
+    handlePlayerEdit,
+    getTeamBudgetInfo
     };
 };

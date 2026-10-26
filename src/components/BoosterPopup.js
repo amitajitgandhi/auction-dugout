@@ -6,10 +6,18 @@ import { EMOJIS } from "../utils/constants";
 //   for the whole tournament) — never a per-team value.
 // - Each team just shows its current booster count with a "+" button. Clicking it
 //   increments that team's booster count by 1 and immediately recalculates its purse.
-const BoosterPopup = ({ isOpen, onClose, teams, boosterPointsPerBooster, onIncrementTeamBooster, onUpdatePointsPerBooster, showManagedToast }) => {
+const BoosterPopup = ({
+    isOpen,
+    onClose,
+    teams,
+    boosterPointsPerBooster,
+    onIncrementTeamBooster,
+    onDecrementTeamBooster,
+    onUpdatePointsPerBooster,
+    showManagedToast
+}) => {
     const [ppbInput, setPpbInput] = useState(String(boosterPointsPerBooster ?? 10));
     const [busyTeam, setBusyTeam] = useState(null);
-
     const teamNames = useMemo(() => Object.keys(teams || {}), [teams]);
 
     // Keep the input in sync whenever the popup is (re)opened with the latest value
@@ -58,6 +66,32 @@ const BoosterPopup = ({ isOpen, onClose, teams, boosterPointsPerBooster, onIncre
             setBusyTeam(null);
         }
     };
+    
+    const handleRemoveBooster = async (teamName) => {
+    const currentCount = teams?.[teamName]?.boosterCount ?? 0;
+    // Prevent booster count from going below zero
+    if (currentCount <= 0) {
+        showManagedToast?.(
+            "error",
+            "Booster count cannot be less than 0.",
+            { icon: EMOJIS.WARNING, duration: 2500 }
+        );
+        return;
+    }
+    setBusyTeam(teamName);
+    try {
+        const ok = await onDecrementTeamBooster?.(teamName);
+        if (ok) {
+            showManagedToast?.(
+                "success",
+                `${EMOJIS.ZAP} ${teamName} booster count: ${currentCount - 1}`,
+                { icon: EMOJIS.CHECK_MARK, duration: 2500 }
+            );
+        }
+    } finally {
+        setBusyTeam(null);
+    }
+};
 
     return (
         <>
@@ -105,16 +139,29 @@ const BoosterPopup = ({ isOpen, onClose, teams, boosterPointsPerBooster, onIncre
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-3">
-                                        <span className="text-lg font-bold text-gray-800 min-w-[2ch] text-center">{count}</span>
-                                        <button
-                                            onClick={() => handleAddBooster(name)}
-                                            disabled={busyTeam === name}
-                                            className="w-9 h-9 flex items-center justify-center rounded-full bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-bold text-lg shadow hover:from-yellow-600 hover:to-orange-600 disabled:opacity-50"
-                                            title={`Add booster to ${name}`}
-                                        >
-                                            +
-                                        </button>
-                                    </div>
+    {/* Decrease booster count */}
+    <button
+        onClick={() => handleRemoveBooster(name)}
+        disabled={busyTeam === name || count <= 0}
+        className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-200 text-gray-700 font-bold text-xl shadow hover:bg-gray-300 disabled:opacity-40 disabled:cursor-not-allowed"
+        title={`Remove booster from ${name}`}
+    >
+        −
+    </button>
+    {/* Current booster count */}
+    <span className="text-lg font-bold text-gray-800 min-w-[2ch] text-center">
+        {count}
+    </span>
+    {/* Increase booster count */}
+    <button
+        onClick={() => handleAddBooster(name)}
+        disabled={busyTeam === name}
+        className="w-9 h-9 flex items-center justify-center rounded-full bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-bold text-lg shadow hover:from-yellow-600 hover:to-orange-600 disabled:opacity-50"
+        title={`Add booster to ${name}`}
+    >
+        +
+    </button>
+</div>
                                 </div>
                             );
                         })}
