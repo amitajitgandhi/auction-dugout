@@ -153,6 +153,22 @@ const AuctionInterface = forwardRef(({
 
     return (
         <>
+            {showSaleConfetti && (
+                <div className="fixed inset-0 pointer-events-none z-[100]">
+                    <ReactConfetti
+                        width={window.innerWidth}
+                        height={window.innerHeight}
+                        numberOfPieces={220}
+                        recycle={false}
+                        gravity={0.28}
+                        run={showSaleConfetti}
+                    />
+                    <div className="absolute top-1/4 left-1/2 -translate-x-1/2 rounded-2xl bg-gradient-to-r from-emerald-500 to-green-600 px-8 py-4 text-center text-white shadow-2xl animate-bounce">
+                        <div className="text-3xl font-black">🎉 SOLD! 🎉</div>
+                        <div className="mt-1 text-sm font-semibold">Congratulations on the winning bid!</div>
+                    </div>
+                </div>
+            )}
             {/* Hamburger Menu - Top Right Corner (Fixed Position) */}
             {categoryStarted && (
                 <div className="fixed top-16 right-4 z-50">
