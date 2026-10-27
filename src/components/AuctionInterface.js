@@ -1,4 +1,5 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from "react";
+import ReactConfetti from "react-confetti";
 import { EMOJIS } from "../utils/constants";
 import PlayerImage from "./PlayerImage";
 import PlayerInfo from "./PlayerInfo";
@@ -38,6 +39,7 @@ const AuctionInterface = forwardRef(({
     
     // Animation states for temporary stamp display
     const [showSoldStamp, setShowSoldStamp] = useState(false);
+    const [showSaleConfetti, setShowSaleConfetti] = useState(false);
     const [showUnsoldStamp, setShowUnsoldStamp] = useState(false);
 
     // State for confirmation dialogs
@@ -54,6 +56,7 @@ const AuctionInterface = forwardRef(({
             setImageKey(prev => prev + 1);
             setShowSoldStamp(false);
             setShowUnsoldStamp(false);
+            setShowSaleConfetti(false);
         }
     }, [currentPlayer]);
 
@@ -64,11 +67,16 @@ const AuctionInterface = forwardRef(({
         }
     };
 
-    const confirmSold = () => {
+    const confirmSold = async () => {
         const bidAmount = parseInt(bidAmountInput, 10);
         setShowSoldConfirm(false);
-        setShowSoldStamp(true); // Display SOLD stamp
-        onMarkSold(teamNameInput, bidAmount);
+        const result = await onMarkSold(teamNameInput, bidAmount);
+        // Celebrate only after the sale has been confirmed and saved successfully.
+        if (result?.success) {
+            setShowSoldStamp(true);
+            setShowSaleConfetti(true);
+            window.setTimeout(() => setShowSaleConfetti(false), 2200);
+        }
     };
 
     const handleMarkUnsold = () => {
