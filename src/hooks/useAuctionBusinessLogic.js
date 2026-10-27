@@ -210,6 +210,9 @@ export const useAuctionBusinessLogic = (
         } else {
             showFancyError(saleResult.message);
         }
+
+        // Return the actual sale result so the UI can celebrate only confirmed sales.
+        return saleResult;
     };
 
     // ✅ CENTRALIZED: Enhanced handleMarkUnsold

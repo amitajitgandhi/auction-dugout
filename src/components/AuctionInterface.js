@@ -1,4 +1,5 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from "react";
+import ReactConfetti from "react-confetti";
 import { EMOJIS } from "../utils/constants";
 import PlayerImage from "./PlayerImage";
 import PlayerInfo from "./PlayerInfo";
@@ -38,6 +39,7 @@ const AuctionInterface = forwardRef(({
     
     // Animation states for temporary stamp display
     const [showSoldStamp, setShowSoldStamp] = useState(false);
+    const [showSaleConfetti, setShowSaleConfetti] = useState(false);
     const [showUnsoldStamp, setShowUnsoldStamp] = useState(false);
 
     // State for confirmation dialogs
@@ -54,6 +56,7 @@ const AuctionInterface = forwardRef(({
             setImageKey(prev => prev + 1);
             setShowSoldStamp(false);
             setShowUnsoldStamp(false);
+            setShowSaleConfetti(false);
         }
     }, [currentPlayer]);
 
@@ -64,11 +67,16 @@ const AuctionInterface = forwardRef(({
         }
     };
 
-    const confirmSold = () => {
+    const confirmSold = async () => {
         const bidAmount = parseInt(bidAmountInput, 10);
         setShowSoldConfirm(false);
-        setShowSoldStamp(true); // Display SOLD stamp
-        onMarkSold(teamNameInput, bidAmount);
+        const result = await onMarkSold(teamNameInput, bidAmount);
+        // Celebrate only after the sale has been confirmed and saved successfully.
+        if (result?.success) {
+            setShowSoldStamp(true);
+            setShowSaleConfetti(true);
+            window.setTimeout(() => setShowSaleConfetti(false), 2200);
+        }
     };
 
     const handleMarkUnsold = () => {
@@ -145,6 +153,22 @@ const AuctionInterface = forwardRef(({
 
     return (
         <>
+            {showSaleConfetti && (
+                <div className="fixed inset-0 pointer-events-none z-[100]">
+                    <ReactConfetti
+                        width={window.innerWidth}
+                        height={window.innerHeight}
+                        numberOfPieces={220}
+                        recycle={false}
+                        gravity={0.28}
+                        run={showSaleConfetti}
+                    />
+                    <div className="absolute top-1/4 left-1/2 -translate-x-1/2 rounded-2xl bg-gradient-to-r from-emerald-500 to-green-600 px-8 py-4 text-center text-white shadow-2xl animate-bounce">
+                        <div className="text-3xl font-black">🎉 SOLD! 🎉</div>
+                        <div className="mt-1 text-sm font-semibold">Congratulations on the winning bid!</div>
+                    </div>
+                </div>
+            )}
             {/* Hamburger Menu - Top Right Corner (Fixed Position) */}
             {categoryStarted && (
                 <div className="fixed top-16 right-4 z-50">
