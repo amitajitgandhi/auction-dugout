@@ -549,7 +549,7 @@ onUpdatePointsPerBooster={handleUpdatePointsPerBooster}
                   <p className="text-gray-600 mt-3 text-sm">Would you like to restore this data and continue your auction?</p>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  <button onClick={handleStartupRestoreCancel} className="flex-1 sm:flex-none px-6 py-3 bg-gray-200 text-gray-800 rounded-lg font-semibold hover:bg-gray-300 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400 flex items-center justify-center gap-2"><span>{EMOJIS.CROSS_MARK}</span>Start Fresh</button>
+                  <button onClick={handleStartupRestoreCancel} className="flex-1 sm:flex-none px-6 py-3 bg-gray-200 text-gray-800 rounded-lg font-semibold hover:bg-gray-300 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400 flex items-center justify-center gap-2"><span>{EMOJIS.CROSS_MARK}</span>Not Now</button>
                   <button onClick={onConfirmRestoreClick} className="flex-1 sm:flex-none px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-semibold hover:from-blue-600 hover:to-blue-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-lg flex items-center justify-center gap-2"><span>{EMOJIS.RESTORE}</span>Yes, Restore Data</button>
                 </div>
               </div>
