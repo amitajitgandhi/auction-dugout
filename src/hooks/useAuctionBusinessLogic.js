@@ -129,9 +129,9 @@ export const useAuctionBusinessLogic = (
             sellingPlayerIdsRef.current.delete(playerKey);
             return { success: false, message: 'Sale not completed because the server could not confirm the save. Please retry when connected.' };
         }
-        sellingPlayerIdsRef.current.delete(playerKey);
         setPlayers(updatedPlayers);
         setTeams(updatedTeams);
+        sellingPlayerIdsRef.current.delete(playerKey);
 
         return { 
             success: true, 
