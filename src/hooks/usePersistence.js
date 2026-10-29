@@ -91,65 +91,30 @@ export const usePersistence = (showManagedToast, user = null) => {
         return queuedSave;
     }, [user, getLocalStorageKey]);
 
-    // Load both sources and select the most recently timestamped snapshot. This avoids
-    // blindly restoring an older cloud snapshot when local storage has newer progress.
+    // Authenticated auction recovery is cloud-authoritative. Never silently restore
+    // an older or unconfirmed local snapshot when cloud data is unavailable.
     const loadState = useCallback(async () => {
-        let cloudState = null;
-        if (user?.id) {
-            try {
-                const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-                if (!sessionError && session) {
-                    const { data, error } = await supabase
-                        .from('auction_data')
-                        .select('*')
-                        .eq('user_id', user.id)
-                        .maybeSingle();
-                    if (!error && data?.data) {
-                        cloudState = {
-                            ...data.data,
-                            timestamp: data.data.timestamp || data.updated_at,
-                            source: 'supabase',
-                            updated_at: data.updated_at
-                        };
-                    } else if (error) {
-                        console.warn('Supabase load failed; checking local recovery copy:', error.message);
-                    }
-                }
-            } catch (error) {
-                console.warn('Unable to read Supabase snapshot:', error);
-            }
-        }
+        if (!user?.id) return null;
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw new Error(`Unable to verify your cloud session: ${sessionError.message}`);
+        if (!sessionData?.session) throw new Error('Your cloud session is unavailable. Please sign in again and retry.');
 
-        let localState = null;
-        if (user?.email) {
-            try {
-                const savedData = localStorage.getItem(getLocalStorageKey(user.email));
-                if (savedData) {
-                    const parsedData = JSON.parse(savedData);
-                    if (parsedData && Array.isArray(parsedData.players) && parsedData.teams && typeof parsedData.teams === 'object') {
-                        localState = { ...parsedData, source: 'localStorage' };
-                    } else {
-                        console.warn('Ignoring malformed local auction snapshot.');
-                    }
-                }
-            } catch (error) {
-                console.error('Failed to read local auction snapshot:', error);
-            }
-        }
-        if (!localState) localState = loadAuctionState();
+        const { data, error } = await supabase
+            .from('auction_data')
+            .select('data, updated_at')
+            .eq('user_id', user.id)
+            .maybeSingle();
+        if (error) throw new Error(`Unable to load auction data from cloud: ${error.message}`);
+        if (!data?.data) return null;
 
-        if (cloudState && localState) {
-            const cloudTime = Date.parse(cloudState.timestamp || cloudState.updated_at || '') || 0;
-            const localTime = Date.parse(localState.timestamp || '') || 0;
-            if (localTime > cloudTime) {
-                console.warn('Local snapshot is newer than Supabase; selecting local snapshot.');
-                return localState;
-            }
-            return cloudState;
-        }
-        return cloudState || localState || null;
-    }, [user, getLocalStorageKey]);
-
+        return {
+            ...data.data,
+            timestamp: data.data.timestamp || data.updated_at,
+            source: 'supabase',
+            updated_at: data.updated_at
+        };
+    }, [user]);
+    
     // Helper function to load from localStorage
     const loadFromLocalStorage = useCallback(async () => {
         if (user?.email) {
@@ -185,7 +150,9 @@ export const usePersistence = (showManagedToast, user = null) => {
         // Clear localStorage
         if (user?.email) {
             try {
-                localStorage.removeItem(getLocalStorageKey(user.email));
+                const key = getLocalStorageKey(user.email);
+                localStorage.removeItem(key);
+                localStorage.removeItem(`${key}__backup`);
                 localSuccess = true;
                 console.log('??? Cleared localStorage data');
             } catch (error) {
