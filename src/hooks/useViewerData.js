@@ -32,7 +32,7 @@ export const useViewerData = (userId) => {
         try {
             const { data: result, error: fetchError } = await supabase
                 .from('auction_data')
-                .select('*')
+                .select('user_id, data, updated_at')
                 .eq('user_id', userId)
                 .order('updated_at', { ascending: false })
                 .limit(1)
@@ -61,10 +61,10 @@ export const useViewerData = (userId) => {
         fetchData();
     }, [fetchData]);
 
-    // Poll every 5 seconds for live updates
+    // Poll every 15 seconds to reduce unnecessary Supabase requests
     useEffect(() => {
         if (!userId) return;
-        pollRef.current = setInterval(fetchData, 5000);
+        pollRef.current = setInterval(fetchData, 15000);
         return () => {
             if (pollRef.current) clearInterval(pollRef.current);
         };
