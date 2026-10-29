@@ -80,6 +80,7 @@ export const useViewerData = (userId) => {
         auctionStarted: data?.auctionStarted || false,
         categoryConfigs: data?.categoryConfigs || {},
         loading,
+        hasData: data !== null,
         error,
         lastUpdated,
         refetch: fetchData
