@@ -36,6 +36,8 @@ export const useAuctionBusinessLogic = (
     // Submit can't race ahead of the players/teams state update and retain
     // (and double-deduct) the same player twice.
     const retainingPlayerIdsRef = useRef(new Set());
+    // Prevent duplicate concurrent sale requests for the same player.
+    const sellingPlayerIdsRef = useRef(new Set());
 
     // ✅ CENTRALIZED: Function to save auction progress with enhanced error handling
     const triggerAuctionSaveWithState = async (action, description, teamName, bidAmount, updatedPlayers = null, updatedTeams = null, overrides = {}) => {
@@ -92,11 +94,23 @@ export const useAuctionBusinessLogic = (
         if (!playerObj) {
             return { success: false, message: `Player not found.` };
         }
+        if (playerObj.sold || (playerObj.soldTo && playerObj.soldTo !== 'Unsold')) {
+            return { success: false, message: `${playerObj.name} has already been sold and cannot be sold again.` };
+        }
+        const playerKey = playerObj.id !== undefined && playerObj.id !== null ? String(playerObj.id) : `name:${playerObj.name}`;
+        if (sellingPlayerIdsRef.current.has(playerKey)) {
+            return { success: false, message: `${playerObj.name} is already being processed. Please wait.` };
+        }
+        sellingPlayerIdsRef.current.add(playerKey);
         const assignedCategory = selectedCategory || playerObj.category;
-        if (!assignedCategory) return { success: false, message: 'Select a category before selling this player.' };
+        if (!assignedCategory) {
+            sellingPlayerIdsRef.current.delete(playerKey);
+            return { success: false, message: 'Select a category before selling this player.' };
+        }
         const updatedTeams = processPlayerPurchase(teams, teamName, { ...playerObj, category: assignedCategory }, bidAmount, assignedCategory, categoryConfigs);
         if (!updatedTeams) {
-            return { 
+            sellingPlayerIdsRef.current.delete(playerKey);
+            return {
                 success: false,
                 message: "Failed to process purchase. Please check team budget and player limits."
             };
@@ -112,8 +126,10 @@ export const useAuctionBusinessLogic = (
         // Commit UI state only after Supabase confirms the proposed transaction.
         const saved = await triggerAuctionSaveWithState('PLAYER_SOLD', `${playerObj.name} sold to ${teamName}`, teamName, bidAmount, updatedPlayers, updatedTeams);
         if (!saved) {
+            sellingPlayerIdsRef.current.delete(playerKey);
             return { success: false, message: 'Sale not completed because the server could not confirm the save. Please retry when connected.' };
         }
+        sellingPlayerIdsRef.current.delete(playerKey);
         setPlayers(updatedPlayers);
         setTeams(updatedTeams);
 
@@ -267,7 +283,13 @@ export const useAuctionBusinessLogic = (
 
     // Sell Unsold Player later (keep wasUnsold flag)
     const sellUnsoldPlayerLater = async (playerObj, teamName, bidAmount, selectedCategory = null) => {
-        const assignedCategory = selectedCategory || playerObj.category;
+        const currentPlayer = players.find(p => (playerObj?.id !== undefined && playerObj?.id !== null) ? p.id === playerObj.id : p.name === playerObj?.name);
+        if (!currentPlayer) return { success: false, message: 'Player not found.' };
+        if (currentPlayer.sold || (currentPlayer.soldTo && currentPlayer.soldTo !== 'Unsold')) {
+            return { success: false, message: `${currentPlayer.name} has already been sold.` };
+        }
+        if (!teams[teamName]) return { success: false, message: 'Selected team does not exist.' };
+        const assignedCategory = selectedCategory || currentPlayer.category;
         if (!assignedCategory) return { success: false, message: 'Select a category before selling this player.' };
         const updatedTeams = processPlayerPurchase(teams, teamName, { ...playerObj, category: assignedCategory }, bidAmount, assignedCategory, categoryConfigs);
         if (!updatedTeams) return { success: false, message: 'Failed to process purchase. Budget or limit issue.' };
