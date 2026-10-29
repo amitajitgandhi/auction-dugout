@@ -41,6 +41,11 @@ export const useStartupRestore = (persistence, showManagedToast, user = null) =>
                     }
                 } catch (error) {
                     console.error('? Error loading startup restore data:', error);
+                    showManagedToast('error', 'Could not load your auction from the cloud. Please refresh and retry; saved data has not been deleted.', {
+                        style: TOAST_STYLES.error,
+                        icon: EMOJIS.CROSS_MARK,
+                        duration: 7000,
+                    });
                 }
                 setHasCheckedStartupRestore(true);
             }
@@ -104,16 +109,8 @@ export const useStartupRestore = (persistence, showManagedToast, user = null) =>
         setStartupRestoreData(null);
     };
 
-    // Handle startup restore cancellation
-    const handleStartupRestoreCancel = async () => {
-        try {
-            // Clear saved state if user doesn't want to restore
-            await persistence.clearState();
-            console.log('??? Startup restore cancelled, saved data cleared');
-        } catch (error) {
-            console.error('? Error clearing saved state:', error);
-        }
-        
+    // Dismissing the restore prompt must never delete the saved cloud auction.
+    const handleStartupRestoreCancel = () => {
         setShowStartupRestore(false);
         setStartupRestoreData(null);
     };
