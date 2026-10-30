@@ -7,6 +7,8 @@ const ViewerPage = ({ userId }) => {
         players,
         teams,
         tournamentName,
+        sponsorName,
+        tickerDetails,
         selectedCategory,
         currentPlayerName,
         auctionStarted,
@@ -81,24 +83,24 @@ const ViewerPage = ({ userId }) => {
     // --- Main Viewer ---
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-800 to-gray-900 bg-fixed relative overflow-x-hidden">
-            {/* Tournament Name Header — Prominent */}
-            <div className="fixed top-0 left-0 right-0 z-40 bg-gradient-to-r from-yellow-400 via-red-500 to-pink-500 text-white shadow-lg">
-                <div className="text-center py-3 px-4">
-                    <h1 className="text-lg font-extrabold tracking-wide uppercase truncate">
-                        {EMOJIS.TROPHY} {tournamentName || 'AUCTION'} {EMOJIS.TROPHY}
-                    </h1>
-                </div>
+            {/* Custom ticker — same colors, position, and marquee animation as the auction screen */}
+            {tickerDetails.trim() && <div className="fixed top-0 left-0 right-0 z-40 bg-gradient-to-r from-yellow-400 via-red-500 to-pink-500 text-white py-2 shadow-lg">
+                <div className="overflow-hidden whitespace-nowrap"><div className="animate-marquee inline-block font-bold text-lg">{tickerDetails}</div></div>
+            </div>}
+            <div className="text-center pt-4 px-4 pb-2">
+                <h1 className="text-2xl md:text-3xl font-extrabold tracking-wide text-white">{tournamentName || "AUCTION"}</h1>
+                {sponsorName.trim() && <div className="mt-1 text-lg font-semibold text-yellow-300">Sponsored by {sponsorName}</div>}
             </div>
 
             {/* LIVE Indicator */}
-            <div className="fixed top-14 right-2 z-50">
+            <div className={`fixed ${tickerDetails.trim() ? "top-14" : "top-2"} right-2 z-50`}>
                 <div className="flex items-center gap-1.5 bg-black bg-opacity-70 backdrop-blur-sm px-2.5 py-1 rounded-full">
                     <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
                     <span className="text-white text-xs font-bold">LIVE</span>
                 </div>
             </div>
 
-            <div className="pt-16 pb-16 px-3">
+            <div className={`${tickerDetails.trim() ? "pt-4" : "pt-2"} pb-16 px-3`}>
                 <div className="max-w-lg mx-auto text-center text-gray-400 text-[10px] mb-2">
                     This page refreshes automatically every 15 seconds.
                 </div>
