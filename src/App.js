@@ -31,6 +31,8 @@ export default function CricketAuctionTool() {
   const [players, setPlayers] = useState([]);
   const [teams, setTeams] = useState({});
   const [tournamentName, setTournamentName] = useState("");
+  const [sponsorName, setSponsorName] = useState("");
+  const [tickerDetails, setTickerDetails] = useState("");
   const [isTournamentNameSet, setIsTournamentNameSet] = useState(false);
   const [currentPage, setCurrentPage] = useState('auction');
   const [showResetConfirmation, setShowResetConfirmation] = useState(false);
@@ -93,7 +95,7 @@ export default function CricketAuctionTool() {
     setBoosterPointsPerBooster
   );
 
-  useAutoSave(players, teams, tournamentName, isTournamentNameSet, whatsappSettings, auction, persistence, authUser, categoryConfigs, boosterPointsPerBooster);
+  useAutoSave(players, teams, tournamentName, isTournamentNameSet, whatsappSettings, auction, persistence, authUser, categoryConfigs, boosterPointsPerBooster, sponsorName, tickerDetails);
   const { showStartupRestore, startupRestoreData, handleStartupRestoreConfirm, handleStartupRestoreCancel } = useStartupRestore(persistence, showManagedToast, authUser);
 
   // New: when players/teams are set after restore, rehydrate the auction state
@@ -129,6 +131,8 @@ export default function CricketAuctionTool() {
           players,
           teams,
           tournamentName,
+          sponsorName,
+          tickerDetails,
           isTournamentNameSet,
           whatsappSettings,
           categoryConfigs,
@@ -228,6 +232,8 @@ export default function CricketAuctionTool() {
           players,
           teams,
           tournamentName,
+          sponsorName,
+          tickerDetails,
           isTournamentNameSet,
           whatsappSettings,
           categoryConfigs: configs,
@@ -286,6 +292,8 @@ export default function CricketAuctionTool() {
     persistence.clearState();
     setIsTournamentNameSet(false);
     setTournamentName("");
+    setSponsorName("");
+    setTickerDetails("");
     setCurrentPage('auction');
     showManagedToast('success', 'Auction has been completely reset! All saved data cleared.', {
       style: TOAST_STYLES.success,
@@ -324,6 +332,8 @@ export default function CricketAuctionTool() {
       setTeams,
       setTournamentName,
       setIsTournamentNameSet,
+      setSponsorName,
+      setTickerDetails,
       setWhatsappSettings,
       whatsappSettings,
       setCategoryConfigs,
@@ -340,6 +350,8 @@ export default function CricketAuctionTool() {
           players={players}
           teams={teams}
           tournamentName={tournamentName}
+          sponsorName={sponsorName}
+          tickerDetails={tickerDetails}
           categoryConfigs={categoryConfigs}
           onBackToTeams={goToTeamsPage}
           onRetainPlayer={handleRetainPlayer}
@@ -364,6 +376,7 @@ export default function CricketAuctionTool() {
           players={players}
           teams={teams}
           tournamentName={tournamentName}
+          tickerDetails={tickerDetails}
           onBackToTeams={goToTeamsPage}
           onSellUnsoldPlayer={sellUnsoldPlayerLater}
           showManagedToast={showManagedToast}
@@ -392,6 +405,7 @@ export default function CricketAuctionTool() {
           teams={teams}
           players={players}
           tournamentName={tournamentName}
+          tickerDetails={tickerDetails}
           onResetAuction={handleResetAuction}
           onBackToAuction={goToAuctionPage}
           showManagedToast={showManagedToast}
@@ -470,6 +484,7 @@ onUpdatePointsPerBooster={handleUpdatePointsPerBooster}
           players={players}
           teams={teams}
           tournamentName={tournamentName}
+          tickerDetails={tickerDetails}
           onStartAuction={handleStartAuctionFromConfig}
           onBackToFileUpload={goBackToFileUpload}
           showManagedToast={showManagedToast}
@@ -494,16 +509,16 @@ onUpdatePointsPerBooster={handleUpdatePointsPerBooster}
   return (
     <>
       <Toaster position="top-center" toastOptions={{ style: TOAST_STYLES.error }} />
-      {isTournamentNameSet && (
+      {isTournamentNameSet && tickerDetails.trim() && (
         <div className="fixed top-0 left-0 right-0 z-40 bg-gradient-to-r from-yellow-400 via-red-500 to-pink-500 text-white py-2 shadow-lg">
           <div className="overflow-hidden whitespace-nowrap">
             <div className="animate-marquee inline-block font-bold text-lg">
-              {EMOJIS.TROPHY} {tournamentName.toUpperCase()} {auction.selectedCategory && `| ${auction.selectedCategory.toUpperCase()} CATEGORY`} {auction.selectedCategory ? `| ROUND ${auction.round}` : ''} {EMOJIS.TROPHY}
+              {tickerDetails}
             </div>
           </div>
         </div>
       )}
-      <div className="min-h-screen flex flex-col justify-between bg-gradient-to-br from-gray-800 to-gray-900 bg-fixed relative overflow-x-hidden" style={{ paddingTop: isTournamentNameSet ? '3rem' : '0' }}>
+      <div className="min-h-screen flex flex-col justify-between bg-gradient-to-br from-gray-800 to-gray-900 bg-fixed relative overflow-x-hidden" style={{ paddingTop: isTournamentNameSet && tickerDetails.trim() ? '3rem' : '0' }}>
         <ResetConfirmation 
           isOpen={showResetConfirmation}
           onConfirm={confirmResetAuction}
@@ -564,9 +579,15 @@ onUpdatePointsPerBooster={handleUpdatePointsPerBooster}
           <h1 className="text-4xl md:text-6xl font-extrabold mb-8 text-center text-white drop-shadow-lg bg-gradient-to-r from-yellow-400 via-red-500 to-pink-500 bg-clip-text text-transparent px-6 py-4 rounded-xl mt-8 shadow-lg border-4 border-yellow-300 animate-pulse">
             {EMOJIS.CRICKET_BAT} Auction Dugout {EMOJIS.TROPHY}
           </h1>
+          {isTournamentNameSet && (
+            <div className="w-full max-w-4xl mx-auto text-center px-4 mb-6 -mt-4">
+              <div className="text-xl md:text-2xl font-bold text-white break-words">{tournamentName}</div>
+              {sponsorName.trim() && <div className="mt-1 text-lg md:text-xl font-semibold text-yellow-300 break-words">Sponsored by {sponsorName}</div>}
+            </div>
+          )}
           <div className="w-full max-w-4xl mx-auto">
             {!isTournamentNameSet && (
-              <TournamentSetup tournamentName={tournamentName} setTournamentName={setTournamentName} onSubmit={handleTournamentNameSubmit} />
+              <TournamentSetup tournamentName={tournamentName} setTournamentName={setTournamentName} sponsorName={sponsorName} setSponsorName={setSponsorName} tickerDetails={tickerDetails} setTickerDetails={setTickerDetails} onSubmit={handleTournamentNameSubmit} />
             )}
             {isTournamentNameSet && !auction.auctionStarted && (
               <FileUpload 
