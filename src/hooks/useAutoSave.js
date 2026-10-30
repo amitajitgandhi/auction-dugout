@@ -10,12 +10,14 @@ export const useAutoSave = (
     persistence,
     user = null,
     categoryConfigs = {}, // Removed boosterData parameter
-    boosterPointsPerBooster = 10 // Tournament-wide points-per-booster value
+    boosterPointsPerBooster = 10, // Tournament-wide points-per-booster value
+    sponsorName = "",
+    tickerDetails = ""
 ) => {
     // Keep the interval stable while always reading the latest React state.
     const autoSaveIntervalRef = useRef(null);
     const latestStateRef = useRef(null);
-    latestStateRef.current = { players, teams, tournamentName, isTournamentNameSet, whatsappSettings, auction, categoryConfigs, boosterPointsPerBooster };
+    latestStateRef.current = { players, teams, tournamentName, sponsorName, tickerDetails, isTournamentNameSet, whatsappSettings, auction, categoryConfigs, boosterPointsPerBooster };
 
     // Auto-save functionality - save state every 2-3 minutes after tournament is created
     useEffect(() => {
@@ -43,6 +45,8 @@ export const useAutoSave = (
                         players: latest.players,
                         teams: latest.teams,
                         tournamentName: latest.tournamentName,
+                        sponsorName: latest.sponsorName,
+                        tickerDetails: latest.tickerDetails,
                         isTournamentNameSet: latest.isTournamentNameSet,
                         whatsappSettings: latest.whatsappSettings,
                         categoryConfigs: latest.categoryConfigs,
@@ -98,6 +102,8 @@ export const useAutoSave = (
                     players,
                     teams,
                     tournamentName,
+                    sponsorName,
+                    tickerDetails,
                     isTournamentNameSet,
                     whatsappSettings,
                     categoryConfigs, // Include category configurations
@@ -133,6 +139,8 @@ export const useAutoSave = (
         players, 
         teams, 
         tournamentName, 
+        sponsorName,
+        tickerDetails,
         isTournamentNameSet, 
         whatsappSettings, 
         categoryConfigs, // Add categoryConfigs to dependencies
