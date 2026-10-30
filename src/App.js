@@ -450,6 +450,7 @@ onUpdatePointsPerBooster={handleUpdatePointsPerBooster}
           teams={teams}
           players={players}
           tournamentName={tournamentName}
+          tickerDetails={tickerDetails}
           onResetAuction={handleResetAuction}
           onBackToAuction={goToAuctionPage}
           showManagedToast={showManagedToast}
