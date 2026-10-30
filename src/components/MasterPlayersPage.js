@@ -30,6 +30,7 @@ const MasterPlayersPage = ({
     players,
     teams,
     tournamentName,
+    tickerDetails = "",
     categoryConfigs = {},
     onBackToTeams,
     onRetainPlayer,
@@ -162,7 +163,7 @@ const MasterPlayersPage = ({
             <div className="fixed top-0 left-0 right-0 z-40 bg-gradient-to-r from-yellow-400 via-red-500 to-pink-500 text-white py-2 shadow-lg">
                 <div className="overflow-hidden whitespace-nowrap">
                     <div className="animate-marquee inline-block font-bold text-lg">
-                        {EMOJIS.TROPHY} {(tournamentName || '').toUpperCase()} - MASTER PLAYERS {EMOJIS.TROPHY}
+                        {tickerDetails}
                     </div>
                 </div>
             </div>
