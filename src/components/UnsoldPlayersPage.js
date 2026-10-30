@@ -5,6 +5,7 @@ const UnsoldPlayersPage = ({
   players,
   teams,
   tournamentName,
+  tickerDetails = "",
   onBackToTeams,
   onSellUnsoldPlayer,
   showManagedToast
