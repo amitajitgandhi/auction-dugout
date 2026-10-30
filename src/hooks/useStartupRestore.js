@@ -68,7 +68,7 @@ export const useStartupRestore = (persistence, showManagedToast, user = null) =>
     }, [user?.id, hasCheckedStartupRestore]);
 
     // Handle startup restore confirmation
-    const handleStartupRestoreConfirm = async (setPlayers, setTeams, setTournamentName, setIsTournamentNameSet, setWhatsappSettings, whatsappSettings, setCategoryConfigs, setBoosterPointsPerBooster = null) => {
+    const handleStartupRestoreConfirm = async (setPlayers, setTeams, setTournamentName, setIsTournamentNameSet, setSponsorName = null, setTickerDetails = null, setWhatsappSettings, whatsappSettings, setCategoryConfigs, setBoosterPointsPerBooster = null) => {
         if (startupRestoreData) {
             try {
                 // Restore state
@@ -76,6 +76,8 @@ export const useStartupRestore = (persistence, showManagedToast, user = null) =>
                 setTeams(startupRestoreData.teams || {});
                 setTournamentName(startupRestoreData.tournamentName || '');
                 setIsTournamentNameSet(startupRestoreData.isTournamentNameSet || false);
+                setSponsorName?.(startupRestoreData.sponsorName || '');
+                setTickerDetails?.(startupRestoreData.tickerDetails || '');
                 setWhatsappSettings(startupRestoreData.whatsappSettings || whatsappSettings);
                 setCategoryConfigs(startupRestoreData.categoryConfigs || {}); // Restore category configurations
                 setBoosterPointsPerBooster?.(startupRestoreData.boosterPointsPerBooster ?? 10); // Restore tournament-wide points-per-booster
