@@ -74,6 +74,8 @@ export const useViewerData = (userId) => {
         players: data?.players || [],
         teams: data?.teams || {},
         tournamentName: data?.tournamentName || '',
+        sponsorName: data?.sponsorName || '',
+        tickerDetails: data?.tickerDetails || '',
         selectedCategory: data?.selectedCategory || '',
         completedCategories: data?.completedCategories || [],
         currentPlayerName: data?.currentPlayerName || null,
