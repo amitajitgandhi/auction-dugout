@@ -519,6 +519,7 @@ onUpdatePointsPerBooster={handleUpdatePointsPerBooster}
           onViewMasterPlayers={goToMasterPlayersPage}
           onViewAuction={goToAuctionPage}
           onViewMaxBid={goToMaxBidPage}
+          onLogout={handleLogout}
         />
         <ResetConfirmation 
           isOpen={showResetConfirmation}
@@ -607,19 +608,6 @@ onUpdatePointsPerBooster={handleUpdatePointsPerBooster}
   return (
     <>
       <Toaster position="top-center" toastOptions={{ style: TOAST_STYLES.error }} />
-      {authUser && (
-        <button
-          type="button"
-          onClick={handleLogout}
-          disabled={authLoading}
-          className="fixed top-4 right-4 z-[60] inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
-          aria-label="Log out"
-          title="Log out of Auction Dugout"
-        >
-          <span aria-hidden="true">↪</span>
-          <span>Logout</span>
-        </button>
-      )}
       {isTournamentNameSet && tickerDetails.trim() && (
         <div className="fixed top-0 left-0 right-0 z-40 bg-gradient-to-r from-yellow-400 via-red-500 to-pink-500 text-white py-2 shadow-lg">
           <div className="overflow-hidden whitespace-nowrap">
@@ -742,6 +730,7 @@ onUpdatePointsPerBooster={handleUpdatePointsPerBooster}
                 onViewMaxBid={goToMaxBidPage}
                 onViewUnsoldPlayers={goToUnsoldPlayersPage}
                 onViewMasterPlayers={goToMasterPlayersPage}
+                onLogout={handleLogout}
                 onResetAuction={handleResetAuction}
                 selectedCategory={auction.selectedCategory}
                 round={auction.round}
