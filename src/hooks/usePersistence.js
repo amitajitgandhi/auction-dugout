@@ -58,6 +58,19 @@ export const usePersistence = (showManagedToast, user = null) => {
     // Only then update the local confirmed snapshot. Failed writes never replace it.
     const saveState = useCallback((stateData) => {
         const saveOperation = async () => {
+            if (!user?.id) {
+                console.error('[AUCTION_SAVE] Blocked save: no authenticated account is associated with this workspace.');
+                return false;
+            }
+            const { data: activeSession, error: sessionError } = await supabase.auth.getSession();
+            if (sessionError || activeSession?.session?.user?.id !== user.id) {
+                console.error('[AUCTION_SAVE] Blocked save: active Supabase account does not match workspace account.', {
+                    workspaceUserId: user.id,
+                    activeUserId: activeSession?.session?.user?.id || null
+                });
+                return false;
+            }
+
             const now = new Date().toISOString();
             const dataToSave = { ...stateData, timestamp: now, revision: ++revisionRef.current, version: '3.0' };
             let cloudSuccess = false;
@@ -138,7 +151,9 @@ export const usePersistence = (showManagedToast, user = null) => {
         if (!user?.id) return null;
         const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
         if (sessionError) throw new Error(`Unable to verify your cloud session: ${sessionError.message}`);
-        if (!sessionData?.session) throw new Error('Your cloud session is unavailable. Please sign in again and retry.');
+        if (sessionData?.session?.user?.id !== user.id) {
+            throw new Error('The active login does not match this account workspace. Please sign out and sign in again.');
+        }
 
         const { data, error } = await supabase
             .from('auction_data')
