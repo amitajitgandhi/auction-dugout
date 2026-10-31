@@ -5,16 +5,20 @@ export const useStartupRestore = (persistence, showManagedToast, user = null) =>
     const [showStartupRestore, setShowStartupRestore] = useState(false);
     const [startupRestoreData, setStartupRestoreData] = useState(null);
     const [hasCheckedStartupRestore, setHasCheckedStartupRestore] = useState(false);
+    const checkedUserIdRef = useRef(null);
+    const inFlightUserIdRef = useRef(null);
+    const loadCloudState = persistence.loadState;
 
     // Load cloud state once for each authenticated account.
     useEffect(() => {
         let cancelled = false;
         const checkForStartupRestore = async () => {
-            if (!hasCheckedStartupRestore && user?.id) {
+            if (user?.id && checkedUserIdRef.current !== user.id && inFlightUserIdRef.current !== user.id) {
+                inFlightUserIdRef.current = user.id;
                 const requestedUserId = user.id;
                 console.log('[STARTUP_RESTORE] Checking cloud data for account:', requestedUserId);
                 try {
-                    const savedState = await persistence.loadState();
+                    const savedState = await loadCloudState();
                     if (cancelled || user?.id !== requestedUserId) return;
                     if (savedState && (savedState.players?.length > 0 || Object.keys(savedState.teams || {}).length > 0)) {
                         // Ensure we have valid timestamp data
@@ -49,13 +53,17 @@ export const useStartupRestore = (persistence, showManagedToast, user = null) =>
                     });
                 }
                 if (!cancelled && user?.id === requestedUserId) {
+                    checkedUserIdRef.current = requestedUserId;
                     setHasCheckedStartupRestore(true);
+                }
+                if (inFlightUserIdRef.current === requestedUserId) {
+                    inFlightUserIdRef.current = null;
                 }
             }
         };
-        if (user?.id && !hasCheckedStartupRestore) checkForStartupRestore();
+        if (user?.id && !hasCheckedStartupRestore && checkedUserIdRef.current !== user.id) checkForStartupRestore();
         return () => { cancelled = true; };
-    }, [persistence, hasCheckedStartupRestore, user?.id]);
+    }, [loadCloudState, hasCheckedStartupRestore, user?.id]);
 
     const previousUserIdRef = useRef(user?.id || null);
     useEffect(() => {
@@ -64,6 +72,8 @@ export const useStartupRestore = (persistence, showManagedToast, user = null) =>
             setHasCheckedStartupRestore(false);
             setShowStartupRestore(false);
             setStartupRestoreData(null);
+            checkedUserIdRef.current = null;
+            inFlightUserIdRef.current = null;
         }
     }, [user?.id]);
 
