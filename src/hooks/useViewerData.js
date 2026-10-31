@@ -61,10 +61,10 @@ export const useViewerData = (userId) => {
         fetchData();
     }, [fetchData]);
 
-    // Poll every 15 seconds to reduce unnecessary Supabase requests
+    // Poll every 30 seconds to reduce unnecessary Supabase requests
     useEffect(() => {
         if (!userId) return;
-        pollRef.current = setInterval(fetchData, 15000);
+        pollRef.current = setInterval(fetchData, 30000);
         return () => {
             if (pollRef.current) clearInterval(pollRef.current);
         };
