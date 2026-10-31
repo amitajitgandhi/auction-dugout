@@ -5,15 +5,9 @@ import { supabase } from '../supabaseClient';
  * Hook to fetch and poll auction data from Supabase for the read-only viewer page.
  * No authentication required — uses the Supabase anon key.
  * 
- * NOTE: For this to work, the `auction_data` table needs a Row Level Security (RLS) policy
- * that allows public SELECT access. Example SQL:
- * 
- *   CREATE POLICY "allow_public_viewer_read" ON auction_data
- *   FOR SELECT USING (true);
- * 
- * Or for more restrictive access, add a `viewer_enabled` boolean column and use:
- *   CREATE POLICY "allow_viewer_read" ON auction_data
- *   FOR SELECT USING (viewer_enabled = true);
+ * Reads only the compact `auction_viewer_data` snapshot. The full private auction
+ * backup remains in `auction_data` and is not downloaded by public viewers.
+ * Run `supabase/auction_viewer_data.sql` before enabling this version.
  */
 export const useViewerData = (userId) => {
     const [data, setData] = useState(null);
@@ -31,8 +25,8 @@ export const useViewerData = (userId) => {
 
         try {
             const { data: result, error: fetchError } = await supabase
-                .from('auction_data')
-                .select('user_id, data, updated_at')
+                .from('auction_viewer_data')
+                .select('data, updated_at')
                 .eq('user_id', userId)
                 .order('updated_at', { ascending: false })
                 .limit(1)
@@ -71,16 +65,15 @@ export const useViewerData = (userId) => {
     }, [userId, fetchData]);
 
     return {
-        players: data?.players || [],
-        teams: data?.teams || {},
         tournamentName: data?.tournamentName || '',
         sponsorName: data?.sponsorName || '',
         tickerDetails: data?.tickerDetails || '',
         selectedCategory: data?.selectedCategory || '',
-        completedCategories: data?.completedCategories || [],
-        currentPlayerName: data?.currentPlayerName || null,
         auctionStarted: data?.auctionStarted || false,
-        categoryConfigs: data?.categoryConfigs || {},
+        currentPlayer: data?.currentPlayer || null,
+        categoryStats: data?.categoryStats || { sold: 0, unsold: 0, remaining: 0 },
+        progress: data?.progress || { total: 0, sold: 0, unsold: 0, remaining: 0, percentage: 0 },
+        teams: data?.teams || {},
         loading,
         hasData: data !== null,
         error,
