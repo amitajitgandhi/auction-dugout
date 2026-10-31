@@ -23,6 +23,7 @@ const AuctionInterface = forwardRef(({
     onViewMaxBid,
     onViewUnsoldPlayers,
     onViewMasterPlayers,
+    onLogout,
     onResetAuction, // shared menu actions
     selectedCategory,
     round,
@@ -177,6 +178,7 @@ const AuctionInterface = forwardRef(({
                 onPlayerSummary={onViewMasterPlayers}
                 onUnsoldPlayers={onViewUnsoldPlayers}
                 onMaxBid={onViewMaxBid}
+                onLogout={onLogout}
             />
 
             {/* Compact category progress panel — mirrors the Viewer page. */}
