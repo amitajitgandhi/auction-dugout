@@ -6,33 +6,46 @@ export function useAuth() {
   const [loading, setLoading] = useState(true); // Start with loading true
   const [error, setError] = useState(null);
 
-  // Check for existing session on mount
+  // Subscribe first, then fetch the current session. If an auth event arrives
+  // while the initial fetch is pending, never let that older result overwrite it.
   useEffect(() => {
-    const checkUser = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        setUser(user);
-        console.log('?? Auth check:', user ? `User found: ${user.email}` : 'No user found');
-      } catch (error) {
-        console.error('? Auth check error:', error);
-        setError(error.message);
-      } finally {
-        setLoading(false);
-      }
-    };
+    let authEventReceived = false;
+    let mounted = true;
 
-    checkUser();
-
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('?? Auth state changed:', event, session?.user?.email);
-        setUser(session?.user ?? null);
-        setLoading(false);
+      (event, session) => {
+        authEventReceived = true;
+        console.log('[AUTH] Auth state changed:', event, session?.user?.email);
+        if (mounted) {
+          setUser(session?.user ?? null);
+          setLoading(false);
+        }
       }
     );
 
-    return () => subscription.unsubscribe();
+    const checkSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) throw error;
+        if (mounted && !authEventReceived) {
+          setUser(session?.user ?? null);
+          console.log('[AUTH] Initial session:', session?.user?.email || 'No user');
+        }
+      } catch (error) {
+        if (mounted) {
+          console.error('[AUTH] Initial session check failed:', error);
+          setError(error.message);
+        }
+      } finally {
+        if (mounted && !authEventReceived) setLoading(false);
+      }
+    };
+
+    checkSession();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Sign up with email and password
