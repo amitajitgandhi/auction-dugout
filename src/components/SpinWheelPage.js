@@ -66,7 +66,7 @@ export default function SpinWheelPage({ mode, onBack }) {
               <div className="absolute z-10 top-0 left-1/2 -translate-x-1/2 -translate-y-1" style={{ width: 0, height: 0, borderLeft: '13px solid transparent', borderRight: '13px solid transparent', borderTop: '27px solid #fbbf24' }} />
               <svg viewBox="0 0 400 400" className="w-full h-full drop-shadow-2xl" role="img" aria-label="Spin wheel">
                 <g style={{ transform: `rotate(${rotation}deg)`, transformOrigin: '200px 200px', transition: spinning ? 'transform 4.6s cubic-bezier(0.12, 0.7, 0.13, 1)' : 'none' }}>
-                  {count === 1 ? <circle cx="200" cy="200" r="188" fill={colors[0]} stroke="#fff" strokeWidth="2" /> : count ? options.map((option, index) => {
+                  {count === 1 ? <circle cx="200" cy="200" r="188" fill={jersey ? '#ffffff' : colors[0]} stroke={jersey ? '#64748b' : '#fff'} strokeWidth="2" /> : count ? options.map((option, index) => {
                     const angle = 2 * Math.PI / count;
                     const start = index * angle - Math.PI / 2;
                     const end = (index + 1) * angle - Math.PI / 2;
@@ -75,11 +75,11 @@ export default function SpinWheelPage({ mode, onBack }) {
                     const mid = (index + 0.5) * angle - Math.PI / 2;
                     const radius = count > 12 ? 140 : 128;
                     return <g key={option.index}>
-                      <path d={`M 200 200 L ${x1} ${y1} A 188 188 0 ${angle > Math.PI ? 1 : 0} 1 ${x2} ${y2} Z`} fill={colors[index % colors.length]} stroke="#fff" strokeWidth="2" />
-                      <text x={200 + radius * Math.cos(mid)} y={200 + radius * Math.sin(mid)} textAnchor="middle" dominantBaseline="middle" fontSize={count > 12 ? 10 : 13} fontWeight="bold" fill="white">{option.label.length > 12 ? option.label.slice(0, 11) + '…' : option.label}</text>
+                      <path d={`M 200 200 L ${x1} ${y1} A 188 188 0 ${angle > Math.PI ? 1 : 0} 1 ${x2} ${y2} Z`} fill={jersey ? '#ffffff' : colors[index % colors.length]} stroke={jersey ? '#64748b' : '#fff'} strokeWidth="2" />
+                      <text x={200 + radius * Math.cos(mid)} y={200 + radius * Math.sin(mid)} textAnchor="middle" dominantBaseline="middle" fontSize={count > 12 ? 10 : 13} fontWeight="bold" fill={jersey ? "#0f172a" : "white"}>{option.label.length > 12 ? option.label.slice(0, 11) + '…' : option.label}</text>
                     </g>;
                   }) : <circle cx="200" cy="200" r="188" fill="#475569" />}
-                  {count === 1 && <text x="200" y="120" textAnchor="middle" fontSize="20" fontWeight="bold" fill="white">{options[0].label.slice(0, 18)}</text>}
+                  {count === 1 && <text x="200" y="120" textAnchor="middle" fontSize="20" fontWeight="bold" fill={jersey ? "#0f172a" : "white"}>{options[0].label.slice(0, 18)}</text>}
                   <circle cx="200" cy="200" r="25" fill="#fff" stroke="#334155" strokeWidth="4" />
                 </g>
               </svg>
