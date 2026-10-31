@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { TOAST_STYLES, EMOJIS } from '../utils/constants';
 
 export const useStartupRestore = (persistence, showManagedToast, user = null) => {
@@ -6,15 +6,16 @@ export const useStartupRestore = (persistence, showManagedToast, user = null) =>
     const [startupRestoreData, setStartupRestoreData] = useState(null);
     const [hasCheckedStartupRestore, setHasCheckedStartupRestore] = useState(false);
 
-    // Load saved state on app start - only run once after user is authenticated
+    // Load cloud state once for each authenticated account.
     useEffect(() => {
+        let cancelled = false;
         const checkForStartupRestore = async () => {
-            // Only check for startup restore once per session and only after user is authenticated
             if (!hasCheckedStartupRestore && user?.id) {
-                console.log('?? Checking for startup restore data for user:', user.email);
-                
+                const requestedUserId = user.id;
+                console.log('[STARTUP_RESTORE] Checking cloud data for account:', requestedUserId);
                 try {
                     const savedState = await persistence.loadState();
+                    if (cancelled || user?.id !== requestedUserId) return;
                     if (savedState && (savedState.players?.length > 0 || Object.keys(savedState.teams || {}).length > 0)) {
                         // Ensure we have valid timestamp data
                         const processedData = {
@@ -47,25 +48,24 @@ export const useStartupRestore = (persistence, showManagedToast, user = null) =>
                         duration: 7000,
                     });
                 }
-                setHasCheckedStartupRestore(true);
+                if (!cancelled && user?.id === requestedUserId) {
+                    setHasCheckedStartupRestore(true);
+                }
             }
         };
+        if (user?.id && !hasCheckedStartupRestore) checkForStartupRestore();
+        return () => { cancelled = true; };
+    }, [persistence, hasCheckedStartupRestore, user?.id]);
 
-        // Only trigger when user is authenticated
-        if (user?.id) {
-            checkForStartupRestore();
-        }
-    }, [persistence, hasCheckedStartupRestore, user?.id]); // Depend on user.id
-
-    // Reset check when user changes (for logout/login scenarios)
+    const previousUserIdRef = useRef(user?.id || null);
     useEffect(() => {
-        if (!user?.id && hasCheckedStartupRestore) {
+        if (previousUserIdRef.current !== (user?.id || null)) {
+            previousUserIdRef.current = user?.id || null;
             setHasCheckedStartupRestore(false);
             setShowStartupRestore(false);
             setStartupRestoreData(null);
-            console.log('?? Reset startup restore check for new user session');
         }
-    }, [user?.id, hasCheckedStartupRestore]);
+    }, [user?.id]);
 
     // Handle startup restore confirmation
     const handleStartupRestoreConfirm = async (setPlayers, setTeams, setTournamentName, setIsTournamentNameSet, setSponsorName = null, setTickerDetails = null, setWhatsappSettings, whatsappSettings, setCategoryConfigs, setBoosterPointsPerBooster = null) => {
