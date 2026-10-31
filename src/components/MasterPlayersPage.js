@@ -194,7 +194,7 @@ const MasterPlayersPage = ({
                                         <div key={teamName} className="bg-white bg-opacity-95 rounded-xl shadow-md p-4">
                                             <div className="flex items-center justify-between mb-1">
                                                 <span className="font-bold text-gray-800 truncate" title={teamName}>{teamName}</span>
-                                                <span className="text-emerald-600 font-bold text-sm">
+                                                <span className="text-emerald-600 font-bold text-xs">
                                                     {EMOJIS.CURRENCY_RUPEE}{(team.purse || 0).toLocaleString()}
                                                 </span>
                                             </div>
@@ -222,7 +222,7 @@ const MasterPlayersPage = ({
                             <button
                                 key={f.key}
                                 onClick={() => setStatusFilter(f.key)}
-                                className={`px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-all duration-200 ${
+                                className={`px-4 py-2 rounded-lg text-xs font-semibold shadow-sm transition-all duration-200 ${
                                     statusFilter === f.key
                                         ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white'
                                         : 'bg-white text-gray-700 hover:bg-gray-100'
@@ -235,7 +235,7 @@ const MasterPlayersPage = ({
                             <select
                                 value={categoryFilter}
                                 onChange={(e) => setCategoryFilter(e.target.value)}
-                                className="px-3 py-2 rounded-lg text-sm font-semibold shadow-sm bg-white text-gray-700 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                                className="px-3 py-2 rounded-lg text-xs font-semibold shadow-sm bg-white text-gray-700 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-400"
                             >
                                 <option value="ALL">All Categories</option>
                                 {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
@@ -249,26 +249,26 @@ const MasterPlayersPage = ({
                                 <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                                     <span>{EMOJIS.CLIPBOARD}</span>Player Summary
                                 </h3>
-                                <p className="text-gray-600 text-sm mt-1">Showing {filteredPlayers.length} of {players?.length || 0} players</p>
+                                <p className="text-gray-600 text-xs mt-1">Showing {filteredPlayers.length} of {players?.length || 0} players</p>
                             </div>
                         </div>
                         <div className="overflow-x-auto">
                             <table className="w-full border-collapse">
                                 <thead>
                                     <tr className="bg-gray-100">
-                                        <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600">#</th>
-                                        <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600">Player Name</th>
-                                        <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600">Category</th>
-                                        <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600">Status</th>
-                                        <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600">Assigned Team</th>
-                                        <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600">Sale / Retention Price</th>
-                                        <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600">Action</th>
-                                         <th className="px-4 py-2 text-center text-xs font-semibold text-gray-600">Edit</th>
+                                        <th className="px-2 py-2 text-left text-xs font-semibold text-gray-600">#</th>
+                                        <th className="px-2 py-2 text-left text-xs font-semibold text-gray-600">Player Name</th>
+                                        <th className="px-2 py-2 text-left text-xs font-semibold text-gray-600">Category</th>
+                                        <th className="px-2 py-2 text-left text-xs font-semibold text-gray-600">Status</th>
+                                        <th className="px-2 py-2 text-left text-xs font-semibold text-gray-600">Assigned Team</th>
+                                        <th className="px-2 py-2 text-left text-xs font-semibold text-gray-600">Sale / Retention Price</th>
+                                        <th className="px-2 py-2 text-left text-xs font-semibold text-gray-600">Action</th>
+                                         <th className="px-2 py-2 text-center text-xs font-semibold text-gray-600">Edit</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {filteredPlayers.length === 0 && (
-                                        <tr><td colSpan={8} className="px-4 py-6 text-center text-gray-500 text-sm">No players match this filter.</td></tr>
+                                        <tr><td colSpan={8} className="px-4 py-6 text-center text-gray-500 text-xs">No players match this filter.</td></tr>
                                     )}
                                     {filteredPlayers.map((player, idx) => {
                                         const status = getPlayerStatus(player);
@@ -276,26 +276,21 @@ const MasterPlayersPage = ({
                                         const isSubmitting = submittingId === player.id;
                                         return (
                                             <tr key={player.id} className="border-t border-gray-200 hover:bg-gray-50">
-                                                <td className="px-4 py-2 text-sm font-medium text-gray-700">{idx + 1}</td>
-                                                <td className="px-4 py-2 text-sm font-semibold text-gray-800">
-                                                    <div className="flex items-center gap-2">
-                                                        <span>{player.name}</span>
-                                                        <button onClick={() => openEdit(player)} title="Edit player details" className="text-indigo-600 hover:text-indigo-800 text-base">✏️</button>
-                                                    </div>
-                                                </td>
-                                                <td className="px-4 py-2 text-sm text-gray-600">{player.category || '-'}</td>
-                                                <td className="px-4 py-2">
+                                                <td className="px-2 py-2 text-xs font-medium text-gray-700 whitespace-nowrap">{idx + 1}</td>
+                                                <td className="px-3 py-2 text-xs font-semibold text-gray-800 whitespace-nowrap">{player.name}</td>
+                                                <td className="px-2 py-2 text-xs text-gray-600 whitespace-nowrap">{player.category || '-'}</td>
+                                                <td className="px-2 py-2 whitespace-nowrap">
                                                     <span className={`text-xs font-bold px-2 py-1 rounded ${STATUS_BADGE[status]}`}>
                                                         {status}
                                                     </span>
                                                 </td>
-                                                <td className="px-4 py-2 text-sm text-gray-700">{player.soldTo && player.soldTo !== 'Unsold' ? player.soldTo : '-'}</td>
-                                                <td className="px-4 py-2 text-sm text-gray-700">
+                                                <td className="px-2 py-2 text-xs text-gray-700 whitespace-nowrap">{player.soldTo && player.soldTo !== 'Unsold' ? player.soldTo : '-'}</td>
+                                                <td className="px-2 py-2 text-xs text-gray-700 whitespace-nowrap">
                                                     {status === 'SOLD' && player.soldPrice
                                                         ? `${EMOJIS.CURRENCY_RUPEE}${player.soldPrice.toLocaleString()}`
                                                         : '-'}
                                                 </td>
-                                                <td className="px-4 py-2">
+                                                <td className="px-2 py-2 whitespace-nowrap">
                                                     {(status === 'AVAILABLE' || status === 'UNSOLD') ? (
                                                         <div className="flex flex-nowrap items-center gap-1.5 whitespace-nowrap">
                                                             <select
@@ -342,7 +337,7 @@ const MasterPlayersPage = ({
                                                         <span className="text-xs text-gray-400">—</span>
                                                     )}
                                                 </td>
-                                                <td className="px-4 py-2 text-center">
+                                                <td className="px-2 py-2 text-center whitespace-nowrap">
                                                     <button onClick={() => openEdit(player)} title="Edit player details" className="text-indigo-600 hover:text-indigo-800 text-base" aria-label={`Edit ${player.name}`}>✏️</button>
                                                 </td>
                                             </tr>
@@ -367,16 +362,16 @@ const MasterPlayersPage = ({
                                 ['cricHeroesLink', 'CricHeroes Link', 'url'],
                                 ['photoUrl', 'Supabase Storage Photo URL', 'url']
                             ].map(([field, label, type]) => (
-                                <label key={field} className="block text-sm font-semibold text-gray-700">
+                                <label key={field} className="block text-xs font-semibold text-gray-700">
                                     {label}
-                                    <input type={type} value={editForm[field]} onChange={e => setEditForm(prev => ({ ...prev, [field]: e.target.value }))} className="mt-1 w-full border rounded-lg px-3 py-2 text-sm" />
+                                    <input type={type} value={editForm[field]} onChange={e => setEditForm(prev => ({ ...prev, [field]: e.target.value }))} className="mt-1 w-full border rounded-lg px-3 py-2 text-xs" />
                                 </label>
                             ))}
                             <p className="text-xs text-gray-500">Photo URL must be a resolvable Supabase Storage public/signed URL.</p>
                         </div>
                         <div className="flex justify-end gap-3 mt-5">
-                            <button onClick={() => setEditingPlayer(null)} className="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-semibold">Cancel</button>
-                            <button onClick={saveEdit} className="px-4 py-2 rounded-lg bg-indigo-600 text-white font-semibold">Save Changes</button>
+                            <button onClick={() => setEditingPlayer(null)} className="px-2 py-2 rounded-lg bg-gray-200 text-gray-700 font-semibold">Cancel</button>
+                            <button onClick={saveEdit} className="px-2 py-2 rounded-lg bg-indigo-600 text-white font-semibold">Save Changes</button>
                         </div>
                     </div>
                 </div>
