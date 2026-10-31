@@ -126,7 +126,7 @@ export const validatePlayerCSV = (data) => {
     });
     const duplicates = Array.from(nameRows.values()).filter(entry => entry.rows.length > 1);
     if (duplicates.length) {
-        throw new Error(`Duplicate player names found. CSV upload rejected before photo processing.\\n${duplicates.map(entry => `${entry.display}: rows ${entry.rows.join(', ')}`).join('\\n')}\\nPlease correct the CSV and retry.`);
+        throw new Error(`Duplicate player names found. CSV upload rejected before photo processing.\n${duplicates.map(entry => `${entry.display}: rows ${entry.rows.join(', ')}`).join('\n')}\nPlease correct the CSV and retry.`);
     }
 
     // Basic validation - only count rows with missing essential data
