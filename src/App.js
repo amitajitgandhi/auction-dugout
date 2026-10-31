@@ -682,9 +682,7 @@ onUpdatePointsPerBooster={handleUpdatePointsPerBooster}
                       <div className="flex justify-between"><span className="font-medium text-blue-800">Teams:</span><span className="text-blue-700">{Object.keys(startupRestoreData.teams || {}).length}</span></div>
                       <div className="flex justify-between"><span className="font-medium text-blue-800">Category Config:</span><span className="text-blue-700">{Object.keys(startupRestoreData.categoryConfigs || {}).length}</span></div>
                       <div className="flex justify-between"><span className="font-medium text-blue-800">Saved:</span><span className="text-blue-700 text-xs">{startupRestoreData.timestamp || startupRestoreData.updated_at ? new Date(startupRestoreData.timestamp || startupRestoreData.updated_at).toLocaleString() : 'Recently'}</span></div>
-                      {startupRestoreData.source && (
-                        <div className="flex justify-between"><span className="font-medium text-blue-800">Source:</span><span className="text-blue-700 text-xs capitalize">{startupRestoreData.source === 'supabase' ? `${EMOJIS.BACKUP} Cloud` : startupRestoreData.source === 'localStorage' ? `${EMOJIS.FOLDER} Local` : `${EMOJIS.FOLDER} Storage`}</span></div>
-                      )}
+                      <div className="flex justify-between"><span className="font-medium text-blue-800">Source:</span><span className="text-blue-700 text-xs">{EMOJIS.BACKUP} Supabase Cloud</span></div>
                     </div>
                   </div>
                   <p className="text-gray-600 mt-3 text-sm">Would you like to restore this data and continue your auction?</p>
