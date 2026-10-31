@@ -150,7 +150,7 @@ const FileUpload = ({
                 if (sessionError || !accessToken || !authUser?.id) {
                     throw new Error("Your login session could not be verified. Please sign in again before uploading players.");
                 }
-                const summary = { reused: 0, uploaded: 0, missing: 0, failed: 0, duplicates: 0 };
+                const summary = { uploaded: 0, dummy: 0, failed: 0, duplicates: 0 };
 
                 for (const [index, row] of data.entries()) {
                     const name = (row["Name"] || "").replace(/[\u200B-\u200D\uFEFF\uFFFD]/g, '').trim();
@@ -182,7 +182,6 @@ const FileUpload = ({
                                     skill,
                                     category,
                                     photoUrl: originalPhotoLink,
-                                    forceDownload: isDuplicateInCsv,
                                     cricHeroesProfile,
                                     tournamentName: tournamentName || null,
                                     accessToken
@@ -192,16 +191,9 @@ const FileUpload = ({
                             const result = await response.json().catch(() => ({}));
                             if (response.ok) {
                                 source = result.source || '';
-                                if (source === 'missing' && result.player_saved) {
-                                    // Missing photo is a successful player import, not an upload failure.
-                                    selectedPhoto = getDefaultPlayerImage();
-                                    summary.missing++;
-                                } else {
-                                    selectedPhoto = result.image_url || '';
-                                    if (source === 'storage') summary.reused++;
-                                    else if (source === 'drive') summary.uploaded++;
-                                    else if (source === 'missing') summary.missing++;
-                                }
+                                selectedPhoto = result.image_url || getDefaultPlayerImage();
+                                if (source === 'drive') summary.uploaded++;
+                                else if (source === 'dummy') summary.dummy++;
                                 break;
                             }
 
@@ -218,15 +210,12 @@ const FileUpload = ({
                     }
 
                     if (!selectedPhoto) {
-                        if (source !== 'missing') summary.failed++;
-                        // If the backend saved the player without a photo, keep
-                        // the placeholder; never treat this as a failed upload.
-                        selectedPhoto = source === 'missing'
-                            ? getDefaultPlayerImage()
-                            : (rawPhotoUrl || getDefaultPlayerImage());
-                        if (source !== 'missing') {
-                            console.warn(`Photo processing did not return a Storage URL for ${name}:`, lastError?.message || source);
-                        }
+                        summary.failed++;
+                        selectedPhoto = getDefaultPlayerImage();
+                        console.warn('Player could not be saved by backend:', name, lastError?.message || source);
+                        // Do not present a player as imported when its database insert failed.
+                        setUploadProgress(Math.round(((index + 1) / totalPlayers) * 100));
+                        continue;
                     }
 
                     enrichedPlayers.push({
@@ -252,7 +241,7 @@ const FileUpload = ({
                     console.log("Player CSV photo processing summary:", summary);
                     if (showManagedToast) {
                         showManagedToast('success',
-                            `Players loaded: ${enrichedPlayers.length}. Photos reused: ${summary.reused}; uploaded: ${summary.uploaded}; missing: ${summary.missing}; failed: ${summary.failed}; duplicate rows: ${summary.duplicates}.`);
+                            `Players loaded: ${enrichedPlayers.length}. Photos uploaded: ${summary.uploaded}; dummy images: ${summary.dummy}; failed player saves: ${summary.failed}; duplicate rows: ${summary.duplicates}.`);
                     }
                 }
 
