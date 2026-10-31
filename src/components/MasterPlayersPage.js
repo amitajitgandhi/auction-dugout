@@ -153,6 +153,18 @@ const MasterPlayersPage = ({
                 </div>
             </div>
 
+            <div className="absolute top-4 right-4 z-50">
+                <details className="relative">
+                    <summary className="list-none cursor-pointer bg-white/15 hover:bg-white/25 text-white rounded-lg px-4 py-2 text-2xl shadow-lg">☰</summary>
+                    <div className="absolute right-0 mt-2 w-52 bg-white rounded-lg shadow-xl overflow-hidden text-sm">
+                        <button onClick={onBackToAuction} className="block w-full text-left px-4 py-3 hover:bg-gray-100">🏏 Auction</button>
+                        <button onClick={onBackToTeams} className="block w-full text-left px-4 py-3 hover:bg-gray-100">👥 Team Summary</button>
+                        <button onClick={onViewUnsoldPlayers} className="block w-full text-left px-4 py-3 hover:bg-gray-100">❌ Unsold Players</button>
+                        <button onClick={onViewMaxBid} className="block w-full text-left px-4 py-3 hover:bg-gray-100">🏆 Max Bid</button>
+                        <div className="px-4 py-3 bg-indigo-50 text-indigo-700 font-bold">📋 Player Summary</div>
+                    </div>
+                </details>
+            </div>
             <div className="pt-16 pb-20 px-4">
                 <div className="w-full max-w-6xl mx-auto">
                     <div className="mb-6 text-center">
@@ -166,7 +178,7 @@ const MasterPlayersPage = ({
                             onClick={onBackToTeams}
                             className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-6 py-3 rounded-lg font-bold shadow-lg hover:from-gray-600 hover:to-gray-700 hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400 flex items-center gap-3 mx-auto text-lg"
                         >
-                            <span className="text-xl">{EMOJIS.BACK_ARROW}</span>Back to Team Summary Page
+                            <span className="text-xl">{EMOJIS.BACK_ARROW}</span>Back to Team Summary
                         </button>
                     </div>
 
