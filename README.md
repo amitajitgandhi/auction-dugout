@@ -32,7 +32,7 @@ A complete web-based cricket auction management system — run your IPL-style au
 
 ### Data Safety
 - **🔐 Secure Authentication** — Email/password login powered by Supabase Auth
-- **💾 Auto-Backup & Restore** — State saved to both localStorage and Supabase cloud every 2–3 minutes; session restored on login
+- **💾 Cloud Auto-Backup & Restore** — Authenticated auction state is saved to Supabase and restored by user ID; browser storage is not used for auction data
 - **🛡️ No Data Loss** — `beforeunload` save + periodic auto-save ensures progress is never lost
 
 ---
