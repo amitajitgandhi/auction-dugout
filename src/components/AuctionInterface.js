@@ -179,6 +179,32 @@ const AuctionInterface = forwardRef(({
                 onMaxBid={onViewMaxBid}
             />
 
+            {/* Compact category progress panel — mirrors the Viewer page. */}
+            <div className="mb-3 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 px-3 py-2 text-white shadow-md">
+                <div className="mb-1 text-center">
+                    <span className="text-sm font-bold opacity-90">
+                        {EMOJIS.CLIPBOARD} {selectedCategory}
+                    </span>
+                </div>
+                <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs">
+                    <div className="flex items-center gap-1">
+                        <span className="text-green-300">{EMOJIS.CHECK_MARK}</span>
+                        <span className="font-bold">{soldCount}</span>
+                        <span className="opacity-75">Sold</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                        <span className="text-red-300">{EMOJIS.CROSS_MARK}</span>
+                        <span className="font-bold">{markedUnsoldCount}</span>
+                        <span className="opacity-75">Unsold</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                        <span className="text-blue-300">{EMOJIS.PEOPLE}</span>
+                        <span className="font-bold">{currentCategoryUnsoldCount}</span>
+                        <span className="opacity-75">Left</span>
+                    </div>
+                </div>
+            </div>
+
             {/* Main Content Area */}
                 {!categoryStarted ? (
                     /* START Category Section */
