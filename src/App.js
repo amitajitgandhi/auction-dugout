@@ -27,7 +27,16 @@ import { useStartupRestore } from "./hooks/useStartupRestore";
 import { TOAST_STYLES, EMOJIS } from "./utils/constants";
 
 export default function CricketAuctionTool() {
-  const { user: authUser, loading: authLoading, signOut } = useAuth();
+  const auth = useAuth();
+
+  // Remount the entire auction workspace when the authenticated identity changes.
+  // This resets every hook's internal state, including the active auction player,
+  // category progress, forms and any other state not owned directly by App.
+  return <CricketAuctionSession key={auth.user?.id || 'signed-out'} auth={auth} />;
+}
+
+function CricketAuctionSession({ auth }) {
+  const { user: authUser, loading: authLoading, signOut } = auth;
   const [players, setPlayers] = useState([]);
   const [teams, setTeams] = useState({});
   const [tournamentName, setTournamentName] = useState("");
@@ -42,32 +51,8 @@ export default function CricketAuctionTool() {
   // team for the whole tournament (never a per-team value).
   const [boosterPointsPerBooster, setBoosterPointsPerBooster] = useState(10);
   const auctionInterfaceRef = useRef(null);
-  const [accountReady, setAccountReady] = useState(false);
-  const previousAuthUserIdRef = useRef(authUser?.id || null);
-
-  // Clear all in-memory auction state whenever the authenticated account changes.
-  useEffect(() => {
-    const nextUserId = authUser?.id || null;
-    if (previousAuthUserIdRef.current === nextUserId) return;
-    previousAuthUserIdRef.current = nextUserId;
-    setAccountReady(false);
-    setPlayers([]);
-    setTeams({});
-    setTournamentName("");
-    setSponsorName("");
-    setTickerDetails("");
-    setIsTournamentNameSet(false);
-    setCategoryConfigs({});
-    setBoosterPointsPerBooster(10);
-    setCurrentPage('auction');
-    setShowResetConfirmation(false);
-    setShowWhatsAppSettings(false);
-    setRehydrateSnapshot(null);
-    setAccountReady(!!nextUserId);
-  }, [authUser?.id]);
-
-  const accountInitialized = accountReady &&
-    previousAuthUserIdRef.current === (authUser?.id || null);
+  // This component is keyed by auth user ID, so its state is account-scoped.
+  const accountInitialized = !!authUser?.id;
 
 
   const handleLogout = async () => {
