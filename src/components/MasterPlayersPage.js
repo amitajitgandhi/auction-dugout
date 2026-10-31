@@ -101,9 +101,13 @@ const MasterPlayersPage = ({
         }
     };
 
-    const counts = { ALL: visiblePlayers.length, AVAILABLE: 0, UNSOLD: 0 };
-        visiblePlayers.forEach(p => { counts[getPlayerStatus(p)] += 1; });
-        return counts;
+    const counts = useMemo(() => {
+        const result = { ALL: (players || []).length, AVAILABLE: 0, UNSOLD: 0 };
+        (players || []).forEach(p => {
+            const status = getPlayerStatus(p);
+            if (status in result) result[status] += 1;
+        });
+        return result;
     }, [players]);
 
     return (
