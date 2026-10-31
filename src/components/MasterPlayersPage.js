@@ -101,7 +101,7 @@ const MasterPlayersPage = ({
         }
     };
 
-    const counts = { ALL: visiblePlayers.length, AVAILABLE: 0, RETAINED: 0, UNSOLD: 0 };
+    const counts = { ALL: visiblePlayers.length, AVAILABLE: 0, UNSOLD: 0 };
         visiblePlayers.forEach(p => { counts[getPlayerStatus(p)] += 1; });
         return counts;
     }, [players]);
