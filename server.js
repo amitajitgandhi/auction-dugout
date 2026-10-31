@@ -46,29 +46,29 @@ const getDriveFileId = (link = '') => {
     return null;
 };
 
-// Build multiple download URLs to try in order (most reliable first)
+// Build Google Drive image URLs.
+// Keep the active approach simple: public Drive file -> backend -> Supabase Storage.
 const getDriveDownloadUrls = (link) => {
     const fileId = getDriveFileId(link);
     if (!fileId) return [];
+
     return [
-        // Google image CDN is the most likely to return actual image bytes for public Drive photos
+        // Primary endpoint for a publicly shared Drive image
         `https://lh3.googleusercontent.com/d/${fileId}=s2000`,
-        // Drive thumbnail endpoint
+        // Normal fallback if the primary CDN URL is temporarily unavailable
         `https://drive.google.com/thumbnail?id=${fileId}&sz=w2000`,
-        // Direct content download
-        `https://drive.usercontent.google.com/download?id=${fileId}&export=download&confirm=t`,
-        // Classic download endpoint
-        `https://drive.google.com/uc?export=download&confirm=t&id=${fileId}`,
-        // View endpoint fallback
-        `https://drive.google.com/uc?id=${fileId}&export=view`,
     ];
 };
 
-// Legacy helper (still used in some places)
-const getDriveDownloadUrl = (link) => {
-    const urls = getDriveDownloadUrls(link);
-    return urls.length > 0 ? urls[0] : null;
-};
+/*
+Experimental Drive download endpoints tried during troubleshooting.
+They are intentionally disabled now because the root cause was the file
+sharing permission, not the download logic.
+
+`https://drive.usercontent.google.com/download?id=${fileId}&export=download&confirm=t`
+`https://drive.google.com/uc?export=download&confirm=t&id=${fileId}`
+`https://drive.google.com/uc?id=${fileId}&export=view`
+*/
 
 // Detect actual image type from buffer magic bytes (file signature)
 // This is more reliable than trusting HTTP Content-Type headers
@@ -197,6 +197,7 @@ app.post('/api/upload-player', async (req, res) => {
                 }
             }
 
+            /*
             // Final Drive fallback: inspect the public preview page and extract its og:image URL.
             if (!buffer) {
                 try {
@@ -222,7 +223,9 @@ app.post('/api/upload-player', async (req, res) => {
                         if (imageResponse.ok && detectImageType(imageBuffer)) {
                             buffer = imageBuffer;
                             console.log(`✅ [${name}] Downloaded image via Drive preview metadata (${buffer.length} bytes)`);
-                        } else {
+                
+            */
+        } else {
                             lastError = `Drive preview og:image was not a valid image (status: ${imageResponse.status}, content-type: ${imageResponse.headers.get('content-type') || 'unknown'})`;
                         }
                     } else {
