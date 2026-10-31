@@ -170,6 +170,9 @@ const MasterPlayersPage = ({
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     name: editingPlayer.name,
+                    skill: editingPlayer.skill || null,
+                    category: editingPlayer.category || 'OPEN',
+                    tournamentName: tournamentName || null,
                     contentType: file.type,
                     imageBase64: base64,
                     accessToken
