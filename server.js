@@ -134,15 +134,32 @@ const sanitizePlayerName = (name) => {
 
 // Endpoint: Resolve/reuse a player's existing Storage photo, or download and upload a fallback.
 app.post('/api/upload-player', async (req, res) => {
-    const { name: rawName, skill, category = 'OPEN', photoUrl = '', forceDownload = false } = req.body || {};
+    const {
+        name: rawName,
+        skill,
+        category = 'OPEN',
+        photoUrl = '',
+        forceDownload = false,
+        cricHeroesProfile = '',
+        tournamentName = null,
+        accessToken = ''
+    } = req.body || {};
+
     const name = sanitizePlayerName(String(rawName || ''));
     const photoLink = String(photoUrl || '').trim();
 
-    if (!name) {
-        return res.status(400).json({ message: 'Missing player name' });
-    }
+    if (!name) return res.status(400).json({ message: 'Missing player name' });
+    if (!accessToken) return res.status(401).json({ message: 'Missing authenticated session. Please sign in again.' });
 
     try {
+        // Verify the caller's Supabase session. Never trust a user_id supplied
+        // by the browser when writing through the service-role client.
+        const { data: authData, error: authError } = await supabase.auth.getUser(accessToken);
+        if (authError || !authData?.user?.id) {
+            return res.status(401).json({ message: 'Your session is invalid or expired. Please sign in again.' });
+        }
+        const userId = authData.user.id;
+
         const storage = supabase.storage.from(BUCKET_NAME);
         const baseName = sanitizeFileName(name).replace(/\.jpg$/i, '');
         const escapedBaseName = baseName.replace(/[.*+?^$()|[\]\\]/g, '\\$&');
@@ -163,17 +180,26 @@ app.post('/api/upload-player', async (req, res) => {
             if (page.length < pageSize) break;
         }
 
+        const savePlayerRecord = async (photoUrlValue) => {
+            const { error: dbError } = await supabase.from('players').insert([{
+                user_id: userId,
+                name,
+                skill: skill || null,
+                category: category || 'OPEN',
+                photo_url: photoUrlValue || null,
+                cricheroes_profile: cricHeroesProfile || null,
+                tournament_name: tournamentName || null,
+            }]);
+            if (dbError) throw dbError;
+        };
+
         if (!forceDownload && matchingFiles.length === 1) {
             const existingFileName = matchingFiles[0].name;
             const { data: publicData } = storage.getPublicUrl(existingFileName);
             const imageUrl = publicData?.publicUrl || '';
             if (!imageUrl) throw new Error('Could not generate public URL for ' + existingFileName);
 
-            const { error: dbError } = await supabase.from('players').upsert([{
-                name, skill, category, image_url: imageUrl,
-            }]);
-            if (dbError) throw dbError;
-
+            await savePlayerRecord(imageUrl);
             console.log('♻️ [' + name + '] Reusing existing Storage image: ' + existingFileName);
             return res.json({
                 message: 'Existing Storage image reused',
@@ -184,11 +210,7 @@ app.post('/api/upload-player', async (req, res) => {
         }
 
         if (!photoLink) {
-            const { error: dbError } = await supabase.from('players').upsert([{
-                name, skill, category, image_url: null,
-            }]);
-            if (dbError) throw dbError;
-
+            await savePlayerRecord(null);
             return res.json({
                 message: 'No existing unambiguous image and no CSV photo link',
                 image_url: '',
@@ -261,11 +283,7 @@ app.post('/api/upload-player', async (req, res) => {
         const imageUrl = publicData?.publicUrl || '';
         if (!imageUrl) throw new Error('Could not generate public URL for uploaded image');
 
-        const { error: dbError } = await supabase.from('players').upsert([{
-            name, skill, category, image_url: imageUrl,
-        }]);
-        if (dbError) throw dbError;
-
+        await savePlayerRecord(imageUrl);
         console.log('✅ [' + name + '] Uploaded fallback image to Storage: ' + fileName);
         return res.json({
             message: 'Fallback image downloaded and uploaded',
