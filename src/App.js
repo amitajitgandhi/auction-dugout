@@ -465,6 +465,9 @@ onUpdatePointsPerBooster={handleUpdatePointsPerBooster}
           tickerDetails={tickerDetails}
           onResetAuction={handleResetAuction}
           onBackToAuction={goToAuctionPage}
+          onBackToTeams={goToTeamsPage}
+          onViewMasterPlayers={goToMasterPlayersPage}
+          onViewUnsoldPlayers={goToUnsoldPlayersPage}
           showManagedToast={showManagedToast}
           onWhatsAppSettings={handleWhatsAppSettings}
           onTeamWhatsAppShare={(teamName, teamData) => handleTeamWhatsAppShare(teamName, teamData, tournamentName)}
