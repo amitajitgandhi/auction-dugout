@@ -7,6 +7,7 @@ export default function StandardNavigationMenu({
   onPlayerSummary,
   onUnsoldPlayers,
   onMaxBid,
+  onLogout,
   children
 }) {
   const [open, setOpen] = useState(false);
@@ -29,6 +30,19 @@ export default function StandardNavigationMenu({
           : <button key={key} onClick={() => { action?.(); setOpen(false); }} className="w-full text-left px-4 py-3 hover:bg-gray-50 flex gap-3"><span>{icon}</span><span className="text-gray-700 font-medium">{label}</span></button>
         )}
         {children && <>{children}</>}
+        {onLogout && (
+          <>
+            <div className="border-t border-gray-200 my-1"></div>
+            <button
+              type="button"
+              onClick={() => { setOpen(false); onLogout(); }}
+              className="w-full text-left px-4 py-3 hover:bg-red-50 flex gap-3"
+            >
+              <span>↪️</span>
+              <span className="text-red-600 font-semibold">Logout</span>
+            </button>
+          </>
+        )}
       </div>}
       {open && <div className="fixed inset-0 z-[-1]" onClick={() => setOpen(false)} />}
     </div>
