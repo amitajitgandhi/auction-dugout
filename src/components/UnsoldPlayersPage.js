@@ -87,13 +87,10 @@ const UnsoldPlayersPage = ({
                               href={player.photoUrl || player.photo || player.driveLink}
                               target="_blank"
                               rel="noopener noreferrer"
-                              title={`Open photo of ${player.name}`}
+                              className="text-blue-600 hover:text-blue-800 hover:underline font-semibold"
+                              title={`View photo of ${player.name}`}
                             >
-                              <img
-                                src={player.photoUrl || player.photo || player.driveLink}
-                                alt={player.name}
-                                className="w-12 h-12 rounded-lg object-cover border border-gray-200"
-                              />
+                              View
                             </a>
                           ) : (
                             <span className="text-gray-400">N/A</span>
