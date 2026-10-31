@@ -4,13 +4,14 @@ import { useViewerData } from "../hooks/useViewerData";
 
 const ViewerPage = ({ userId }) => {
     const {
-        players,
         teams,
         tournamentName,
         sponsorName,
         tickerDetails,
         selectedCategory,
-        currentPlayerName,
+        currentPlayer,
+        categoryStats,
+        progress,
         auctionStarted,
         loading,
         hasData,
@@ -18,27 +19,16 @@ const ViewerPage = ({ userId }) => {
         lastUpdated
     } = useViewerData(userId);
 
-    // Find the current player from the players array
-    const currentPlayer = currentPlayerName
-        ? players.find(p => p.name === currentPlayerName) || null
-        : null;
+    // Viewer calculations are already prepared server-side in the compact snapshot.
+    const catSoldCount = categoryStats.sold || 0;
+    const catUnsoldCount = categoryStats.unsold || 0;
+    const catRemainingCount = categoryStats.remaining || 0;
 
-    const normalize = (v) => (v ?? "").toString().trim().toUpperCase();
-
-    // Category stats
-    const categoryPlayers = selectedCategory
-        ? players.filter(p => normalize(p.category) === normalize(selectedCategory))
-        : [];
-    const catSoldCount = categoryPlayers.filter(p => p.sold && p.soldTo !== 'Unsold').length;
-    const catUnsoldCount = categoryPlayers.filter(p => p.soldTo === 'Unsold').length;
-    const catRemainingCount = categoryPlayers.filter(p => !p.sold && p.soldTo !== 'Unsold').length;
-
-    // Overall stats
-    const totalPlayers = players.length;
-    const totalSold = players.filter(p => p.sold && p.soldTo !== 'Unsold').length;
-    const totalUnsold = players.filter(p => p.soldTo === 'Unsold').length;
-    const totalRemaining = totalPlayers - totalSold - totalUnsold;
-    const progressPercent = totalPlayers > 0 ? Math.round((totalSold + totalUnsold) / totalPlayers * 100) : 0;
+    const totalPlayers = progress.total || 0;
+    const totalSold = progress.sold || 0;
+    const totalUnsold = progress.unsold || 0;
+    const totalRemaining = progress.remaining || 0;
+    const progressPercent = progress.percentage || 0;
 
     const toTitleCase = (str) => {
         return str
