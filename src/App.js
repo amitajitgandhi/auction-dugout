@@ -582,8 +582,8 @@ onUpdatePointsPerBooster={handleUpdatePointsPerBooster}
           </h1>
           {isTournamentNameSet && (
             <div className="w-full max-w-4xl mx-auto text-center px-4 mb-6 -mt-4">
-              <div className="text-xl md:text-2xl font-bold text-white break-words">{tournamentName}</div>
-              {sponsorName.trim() && <div className="mt-1 text-lg md:text-xl font-semibold text-yellow-300 break-words">Sponsored by {sponsorName}</div>}
+              <div className="text-2xl md:text-3xl font-extrabold text-white break-words">{tournamentName}</div>
+              {sponsorName.trim() && <div className="mt-2 text-xl md:text-2xl font-bold text-yellow-300 break-words">Sponsored by {sponsorName}</div>}
             </div>
           )}
           <div className="w-full max-w-4xl mx-auto">
