@@ -157,7 +157,7 @@ const MasterPlayersPage = ({
                 <div className="w-full max-w-6xl mx-auto">
                     <div className="mb-6 text-center">
                         <h1 className="text-4xl md:text-5xl font-extrabold mb-4 text-white drop-shadow-lg bg-gradient-to-r from-purple-400 via-indigo-500 to-blue-500 bg-clip-text text-transparent">
-                            {EMOJIS.CROWN} Master Players
+                            {EMOJIS.CROWN} Player Summary
                         </h1>
                         <p className="text-gray-300 text-lg mb-6">
                             Review every player and retain available or unsold players directly to a team before bidding begins.
@@ -247,7 +247,7 @@ const MasterPlayersPage = ({
                         <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b flex items-center justify-between">
                             <div>
                                 <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                                    <span>{EMOJIS.CLIPBOARD}</span>Master Player List
+                                    <span>{EMOJIS.CLIPBOARD}</span>Player Summary
                                 </h3>
                                 <p className="text-gray-600 text-sm mt-1">Showing {filteredPlayers.length} of {players?.length || 0} players</p>
                             </div>
