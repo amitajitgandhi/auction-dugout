@@ -206,7 +206,7 @@ const AuctionInterface = forwardRef(({
                                         disabled={isTransitioning}
                                     >
                                         <span className="text-purple-500">{EMOJIS.ZAP}</span>
-                                        <span className="text-gray-700 font-medium">Max Bid Analysis</span>
+                                        <span className="text-gray-700 font-medium">Max Bid</span>
                                     </button>
                                 )}
 
@@ -221,7 +221,7 @@ const AuctionInterface = forwardRef(({
                                         <span className="text-gray-700 font-medium">Unsold Players</span>
                                     </button>
                                 )}
-                                {onViewMasterPlayers && <button onClick={handleViewMasterPlayers} className="w-full text-left px-4 py-3 hover:bg-indigo-50 transition-colors duration-200 flex items-center gap-3"><span>📋</span><span className="text-gray-700 font-medium">Master Players</span></button>}
+                                {onViewMasterPlayers && <button onClick={handleViewMasterPlayers} className="w-full text-left px-4 py-3 hover:bg-indigo-50 transition-colors duration-200 flex items-center gap-3"><span>📋</span><span className="text-gray-700 font-medium">Player Summary</span></button>}
                                 {onResetAuction && <button onClick={handleReset} className="w-full text-left px-4 py-3 hover:bg-red-50 transition-colors duration-200 flex items-center gap-3"><span>🔄</span><span className="text-gray-700 font-medium">Reset Auction</span></button>}
                             </div>
                         </div>
