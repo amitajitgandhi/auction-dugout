@@ -27,7 +27,7 @@ import { useStartupRestore } from "./hooks/useStartupRestore";
 import { TOAST_STYLES, EMOJIS } from "./utils/constants";
 
 export default function CricketAuctionTool() {
-  const { user: authUser, loading: authLoading } = useAuth();
+  const { user: authUser, loading: authLoading, signOut } = useAuth();
   const [players, setPlayers] = useState([]);
   const [teams, setTeams] = useState({});
   const [tournamentName, setTournamentName] = useState("");
@@ -42,6 +42,32 @@ export default function CricketAuctionTool() {
   // team for the whole tournament (never a per-team value).
   const [boosterPointsPerBooster, setBoosterPointsPerBooster] = useState(10);
   const auctionInterfaceRef = useRef(null);
+
+  const handleLogout = async () => {
+    try {
+      const { error } = await signOut();
+      if (error) {
+        showManagedToast('error', `Unable to log out: ${error.message}`, {
+          style: TOAST_STYLES.error,
+          icon: EMOJIS.WARNING,
+          duration: 4000
+        });
+        return;
+      }
+      showManagedToast('success', 'Logged out successfully.', {
+        style: TOAST_STYLES.success,
+        icon: EMOJIS.CHECK_MARK,
+        duration: 2500
+      });
+    } catch (error) {
+      console.error('[AUTH] Logout failed:', error);
+      showManagedToast('error', 'Logout failed. Please try again.', {
+        style: TOAST_STYLES.error,
+        icon: EMOJIS.WARNING,
+        duration: 4000
+      });
+    }
+  };
 
   // New: snapshot of restored state to rehydrate auction after React applies players/teams
   const [rehydrateSnapshot, setRehydrateSnapshot] = useState(null);
@@ -581,6 +607,19 @@ onUpdatePointsPerBooster={handleUpdatePointsPerBooster}
   return (
     <>
       <Toaster position="top-center" toastOptions={{ style: TOAST_STYLES.error }} />
+      {authUser && (
+        <button
+          type="button"
+          onClick={handleLogout}
+          disabled={authLoading}
+          className="fixed top-4 right-4 z-[60] inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+          aria-label="Log out"
+          title="Log out of Auction Dugout"
+        >
+          <span aria-hidden="true">↪</span>
+          <span>Logout</span>
+        </button>
+      )}
       {isTournamentNameSet && tickerDetails.trim() && (
         <div className="fixed top-0 left-0 right-0 z-40 bg-gradient-to-r from-yellow-400 via-red-500 to-pink-500 text-white py-2 shadow-lg">
           <div className="overflow-hidden whitespace-nowrap">
