@@ -28,7 +28,7 @@ onDecrementTeamBooster,
 onUpdatePointsPerBooster,
 boosterPointsPerBooster,
     updateTeamPurse,
-    onViewUnsoldPlayers, onViewMasterPlayers, onViewAuction, onViewMaxBid // shared navigation
+    onViewUnsoldPlayers, onViewMasterPlayers, onViewAuction, onViewMaxBid, onLogout // shared navigation
 }) => {
     const [showMenu, setShowMenu] = useState(false);
     const [showPlayerSpin, setShowPlayerSpin] = useState(false);
@@ -347,6 +347,7 @@ boosterPointsPerBooster,
                 onPlayerSummary={onViewMasterPlayers}
                 onUnsoldPlayers={onViewUnsoldPlayers}
                 onMaxBid={onViewMaxBid}
+                onLogout={onLogout}
             >
                 <div className="border-t border-gray-200 my-1"></div>
                 <button onClick={handleTeamEdit} className="w-full text-left px-4 py-3 hover:bg-blue-50 flex items-center gap-3"><span>🖊️</span><span className="text-gray-700 font-medium">Edit Balance</span></button>
