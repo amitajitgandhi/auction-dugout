@@ -61,8 +61,7 @@ begin
             'deleted_user_id', old.user_id,
             'database_operation', tg_op,
             'database_timestamp', now(),
-            'request_role', current_setting('role', true),
-            'request_jwt_claims', nullif(current_setting('request.jwt.claims', true), '')::jsonb
+            'request_role', current_setting('role', true)
         )
     );
     return old;
