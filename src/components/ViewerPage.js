@@ -77,7 +77,8 @@ const ViewerPage = ({ userId }) => {
             {tickerDetails.trim() && <div className="fixed top-0 left-0 right-0 z-40 bg-gradient-to-r from-yellow-400 via-red-500 to-pink-500 text-white py-2 shadow-lg">
                 <div className="overflow-hidden whitespace-nowrap"><div className="animate-marquee inline-block font-bold text-lg">{tickerDetails}</div></div>
             </div>}
-            <div className="text-center pt-4 px-4 pb-2">
+            {/* Keep the tournament title below the fixed ticker. */}
+            <div className={`text-center ${tickerDetails.trim() ? "pt-16 md:pt-18" : "pt-4"} px-4 pb-2`}>
                 <h1 className="text-2xl md:text-3xl font-extrabold tracking-wide text-white">{tournamentName || "AUCTION"}</h1>
                 {sponsorName.trim() && <div className="mt-1 text-lg font-semibold text-yellow-300">Sponsored by {sponsorName}</div>}
             </div>
