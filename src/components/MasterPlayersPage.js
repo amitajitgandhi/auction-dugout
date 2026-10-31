@@ -101,7 +101,7 @@ const MasterPlayersPage = ({
         }
     };
 
-    const counts = useMemo(() => {
+    const statusCounts = useMemo(() => {
         const result = { ALL: (players || []).length, AVAILABLE: 0, UNSOLD: 0 };
         (players || []).forEach(p => {
             const status = getPlayerStatus(p);
