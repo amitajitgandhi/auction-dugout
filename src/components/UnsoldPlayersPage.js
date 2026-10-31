@@ -82,25 +82,18 @@ const UnsoldPlayersPage = ({
                         <td className="px-4 py-2 text-sm font-medium text-gray-700">{idx + 1}</td>
                         <td className="px-4 py-2 text-sm font-semibold text-gray-800">{player.name}</td>
                         <td className="px-4 py-2 text-sm text-blue-600">
-                          {player.driveLink ? (
+                          {(player.photoUrl || player.photo || player.driveLink) ? (
                             <a
-                              href={player.driveLink}
+                              href={player.photoUrl || player.photo || player.driveLink}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="underline hover:text-blue-800"
                               title={`Open photo of ${player.name}`}
                             >
-                              View
-                            </a>
-                          ) : player.photo ? (
-                            <a
-                              href={player.photo}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="underline hover:text-blue-800"
-                              title={`Open photo of ${player.name}`}
-                            >
-                              View
+                              <img
+                                src={player.photoUrl || player.photo || player.driveLink}
+                                alt={player.name}
+                                className="w-12 h-12 rounded-lg object-cover border border-gray-200"
+                              />
                             </a>
                           ) : (
                             <span className="text-gray-400">N/A</span>
