@@ -42,6 +42,33 @@ export default function CricketAuctionTool() {
   // team for the whole tournament (never a per-team value).
   const [boosterPointsPerBooster, setBoosterPointsPerBooster] = useState(10);
   const auctionInterfaceRef = useRef(null);
+  const [accountReady, setAccountReady] = useState(false);
+  const previousAuthUserIdRef = useRef(authUser?.id || null);
+
+  // Clear all in-memory auction state whenever the authenticated account changes.
+  useEffect(() => {
+    const nextUserId = authUser?.id || null;
+    if (previousAuthUserIdRef.current === nextUserId) return;
+    previousAuthUserIdRef.current = nextUserId;
+    setAccountReady(false);
+    setPlayers([]);
+    setTeams({});
+    setTournamentName("");
+    setSponsorName("");
+    setTickerDetails("");
+    setIsTournamentNameSet(false);
+    setCategoryConfigs({});
+    setBoosterPointsPerBooster(10);
+    setCurrentPage('auction');
+    setShowResetConfirmation(false);
+    setShowWhatsAppSettings(false);
+    setRehydrateSnapshot(null);
+    setAccountReady(!!nextUserId);
+  }, [authUser?.id]);
+
+  const accountInitialized = accountReady &&
+    previousAuthUserIdRef.current === (authUser?.id || null);
+
 
   const handleLogout = async () => {
     try {
@@ -121,7 +148,7 @@ export default function CricketAuctionTool() {
     setBoosterPointsPerBooster
   );
 
-  useAutoSave(players, teams, tournamentName, isTournamentNameSet, whatsappSettings, auction, persistence, authUser, categoryConfigs, boosterPointsPerBooster, sponsorName, tickerDetails);
+  useAutoSave(players, teams, tournamentName, isTournamentNameSet, whatsappSettings, auction, persistence, authUser, categoryConfigs, boosterPointsPerBooster, sponsorName, tickerDetails, accountInitialized);
   const { showStartupRestore, startupRestoreData, handleStartupRestoreConfirm, handleStartupRestoreCancel } = useStartupRestore(persistence, showManagedToast, authUser);
 
   // New: when players/teams are set after restore, rehydrate the auction state
@@ -147,7 +174,7 @@ export default function CricketAuctionTool() {
   // they appear on the auction block, not just once sold/unsold. This keeps the
   // live streaming viewer page in near real-time with the auctioneer's screen.
   useEffect(() => {
-    if (!auction.currentPlayer || !authUser?.id || !isTournamentNameSet) {
+    if (!auction.currentPlayer || !authUser?.id || !isTournamentNameSet || !accountInitialized) {
       return;
     }
 
