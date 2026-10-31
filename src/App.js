@@ -434,6 +434,7 @@ export default function CricketAuctionTool() {
         <Toaster position="top-center" />
         <MasterPlayersPage
           players={players}
+          authUser={authUser}
           teams={teams}
           tournamentName={tournamentName}
           sponsorName={sponsorName}
@@ -448,9 +449,7 @@ export default function CricketAuctionTool() {
             const updatedPlayers = players.map(player =>
               player.id === updatedPlayer.id ? updatedPlayer : player
             );
-            setPlayers(updatedPlayers);
-
-            // Persist the full current auction snapshot immediately after an edit.
+            // Persist first; only publish the new React state after Supabase confirms it.
             const currentState = {
               players: updatedPlayers,
               teams,
@@ -468,6 +467,7 @@ export default function CricketAuctionTool() {
             };
             const saved = await persistence.saveState(currentState);
             if (!saved) throw new Error('Supabase did not confirm saving the updated player details.');
+            setPlayers(updatedPlayers);
             return true;
           }}
           onSellPlayer={async (player, teamName, amount, wasUnsold, category) =>
