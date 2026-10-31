@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { supabase } from '../supabaseClient';
 import { EMOJIS } from '../utils/constants';
 import { getCategoryRequirementStatus } from '../utils/centralizedTeamData';
 import StandardNavigationMenu from './StandardNavigationMenu';
@@ -34,7 +35,8 @@ const MasterPlayersPage = ({
     onViewMaxBid,
     onSellPlayer,
     onUpdatePlayer,
-    showManagedToast
+    showManagedToast,
+    authUser
 }) => {
     const [statusFilter, setStatusFilter] = useState('ALL');
     const [categoryFilter, setCategoryFilter] = useState('ALL');
@@ -42,6 +44,7 @@ const MasterPlayersPage = ({
     const [submittingId, setSubmittingId] = useState(null);
     const [editingPlayer, setEditingPlayer] = useState(null);
     const [editForm, setEditForm] = useState({ name: '', category: '', skill: '', basePrice: '', cricHeroesLink: '', photoUrl: '' });
+    const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
     const teamNames = useMemo(() => Object.keys(teams || {}), [teams]);
 
@@ -125,6 +128,76 @@ const MasterPlayersPage = ({
             cricHeroesLink: player.cricHeroesLink || player.cricHeroesUrl || '',
             photoUrl: player.photoUrl || player.photo || ''
         });
+    };
+
+    const handlePhotoUpload = async (event) => {
+        const file = event.target.files?.[0];
+        event.target.value = '';
+        if (!file || !editingPlayer) return;
+
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+        if (!allowedTypes.includes(file.type)) {
+            showManagedToast?.('error', 'Please upload a JPG, PNG or WebP image.', { icon: EMOJIS.WARNING, duration: 3500 });
+            return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            showManagedToast?.('error', 'Image must be 5 MB or smaller.', { icon: EMOJIS.WARNING, duration: 3500 });
+            return;
+        }
+        if (!authUser?.id) {
+            showManagedToast?.('error', 'Your login session is unavailable. Please sign in again.', { icon: EMOJIS.WARNING, duration: 3500 });
+            return;
+        }
+
+        setUploadingPhoto(true);
+        try {
+            const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+            const accessToken = sessionData?.session?.access_token;
+            if (sessionError || !accessToken) {
+                throw new Error('Your login session could not be verified. Please sign in again.');
+            }
+
+            const base64 = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+                reader.onerror = () => reject(new Error('Could not read the selected image.'));
+                reader.readAsDataURL(file);
+            });
+
+            const apiBaseUrl = process.env.REACT_APP_API_BASE_URL || 'https://auction-backend-xeai.onrender.com';
+            const response = await fetch(`${apiBaseUrl}/api/upload-player-photo`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: editingPlayer.name,
+                    contentType: file.type,
+                    imageBase64: base64,
+                    accessToken
+                })
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok || !result.image_url) {
+                throw new Error(result.message || 'Photo upload failed.');
+            }
+
+            const updatedPlayer = {
+                ...editingPlayer,
+                photo: result.image_url,
+                photoUrl: result.image_url,
+                photoStoragePath: result.storagePath || null
+            };
+            const saved = await onUpdatePlayer?.(updatedPlayer);
+            if (saved === false) throw new Error('The photo uploaded, but the player record could not be saved.');
+
+            setEditingPlayer(updatedPlayer);
+            setEditForm(prev => ({ ...prev, photoUrl: result.image_url }));
+            showManagedToast?.('success', 'Player photo uploaded and linked successfully.', { icon: EMOJIS.CHECK_MARK, duration: 3500 });
+        } catch (error) {
+            console.error('[PLAYER_PHOTO] Upload/link failed:', error);
+            showManagedToast?.('error', error.message || 'Could not upload the player photo. Please retry.', { icon: EMOJIS.WARNING, duration: 4500 });
+        } finally {
+            setUploadingPhoto(false);
+        }
     };
 
     const saveEdit = async () => {
@@ -389,19 +462,44 @@ const MasterPlayersPage = ({
                                 ['category', 'Category', 'text'],
                                 ['skill', 'Skill', 'text'],
                                 ['basePrice', 'Base Price', 'number'],
-                                ['cricHeroesLink', 'CricHeroes Link', 'url'],
-                                ['photoUrl', 'Supabase Storage Photo URL', 'url']
+                                ['cricHeroesLink', 'CricHeroes Link', 'url']
                             ].map(([field, label, type]) => (
                                 <label key={field} className="block text-xs font-semibold text-gray-700">
                                     {label}
                                     <input type={type} value={editForm[field]} onChange={e => setEditForm(prev => ({ ...prev, [field]: e.target.value }))} className="mt-1 w-full border rounded-lg px-3 py-2 text-xs" />
                                 </label>
                             ))}
-                            <p className="text-xs text-gray-500">Photo URL must be a resolvable Supabase Storage public/signed URL.</p>
+                            <div className="border rounded-xl p-3">
+                                <p className="block text-xs font-semibold text-gray-700 mb-2">Player Photo</p>
+                                <div className="flex items-center gap-4">
+                                    {editForm.photoUrl ? (
+                                        <img src={editForm.photoUrl} alt={`${editingPlayer.name} player`} className="w-20 h-20 rounded-lg object-cover border bg-gray-100" />
+                                    ) : (
+                                        <div className="w-20 h-20 rounded-lg border bg-gray-100 flex items-center justify-center text-xs text-gray-400">No photo</div>
+                                    )}
+                                    <div className="min-w-0">
+                                        <input
+                                            id="player-photo-upload"
+                                            type="file"
+                                            accept="image/jpeg,image/png,image/webp"
+                                            onChange={handlePhotoUpload}
+                                            disabled={uploadingPhoto}
+                                            className="hidden"
+                                        />
+                                        <label
+                                            htmlFor="player-photo-upload"
+                                            className={`inline-flex items-center px-4 py-2 rounded-lg text-xs font-semibold text-white cursor-pointer ${uploadingPhoto ? 'bg-gray-400 cursor-wait' : 'bg-indigo-600 hover:bg-indigo-700'}`}
+                                        >
+                                            {uploadingPhoto ? 'Uploading photo…' : editForm.photoUrl ? 'Change Photo' : 'Upload Photo'}
+                                        </label>
+                                        <p className="text-xs text-gray-500 mt-2">JPG, PNG or WebP · Maximum 5 MB. Stored in Supabase and linked to this player.</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div className="flex justify-end gap-3 mt-5">
                             <button onClick={() => setEditingPlayer(null)} className="px-2 py-2 rounded-lg bg-gray-200 text-gray-700 font-semibold">Cancel</button>
-                            <button onClick={saveEdit} className="px-2 py-2 rounded-lg bg-indigo-600 text-white font-semibold">Save Changes</button>
+                            <button onClick={saveEdit} disabled={uploadingPhoto} className="px-2 py-2 rounded-lg bg-indigo-600 text-white font-semibold disabled:opacity-50">Save Changes</button>
                         </div>
                     </div>
                 </div>
