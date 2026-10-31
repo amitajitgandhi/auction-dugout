@@ -112,6 +112,23 @@ export const validatePlayerCSV = (data) => {
         throw new Error(`${EMOJIS.CROSS_MARK} No valid data found in the Players CSV file.\n\n${EMOJIS.SPARKLES} Please check that your file contains player data.`);
     }
 
+    // Reject ambiguous names before any photo request or database write.
+    const normalizePlayerName = value => String(value || '')
+        .replace(/[\u200B-\u200D\uFEFF\uFFFD]/g, '')
+        .trim().replace(/\s+/g, ' ').toLowerCase();
+    const nameRows = new Map();
+    data.forEach((row, index) => {
+        const name = normalizePlayerName(row.Name);
+        if (!name) return;
+        const entry = nameRows.get(name) || { display: String(row.Name).trim(), rows: [] };
+        entry.rows.push(index + 2);
+        nameRows.set(name, entry);
+    });
+    const duplicates = Array.from(nameRows.values()).filter(entry => entry.rows.length > 1);
+    if (duplicates.length) {
+        throw new Error(`Duplicate player names found. CSV upload rejected before photo processing.\\n${duplicates.map(entry => `${entry.display}: rows ${entry.rows.join(', ')}`).join('\\n')}\\nPlease correct the CSV and retry.`);
+    }
+
     // Basic validation - only count rows with missing essential data
     let errorCount = 0;
     validRows.forEach((row, index) => {
