@@ -708,7 +708,7 @@ onUpdatePointsPerBooster={handleUpdatePointsPerBooster}
           )}
           <div className="w-full max-w-4xl mx-auto">
             {!isTournamentNameSet && (
-              <TournamentSetup tournamentName={tournamentName} setTournamentName={setTournamentName} sponsorName={sponsorName} setSponsorName={setSponsorName} tickerDetails={tickerDetails} setTickerDetails={setTickerDetails} onSubmit={handleTournamentNameSubmit} />
+              <TournamentSetup tournamentName={tournamentName} setTournamentName={setTournamentName} sponsorName={sponsorName} setSponsorName={setSponsorName} tickerDetails={tickerDetails} setTickerDetails={setTickerDetails} onSubmit={handleTournamentNameSubmit} onLogout={handleLogout} />
             )}
             {isTournamentNameSet && !auction.auctionStarted && (
               <FileUpload 
