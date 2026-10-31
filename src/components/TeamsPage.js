@@ -7,6 +7,7 @@ import JerseyColorAssignment from "./JerseyColorAssignment";
 import TeamEditPopup from "./TeamEditPopup";
 import BoosterPopup from "./BoosterPopup";
 import WhatsappIcon from "../assets/Whatsapp.png";
+import StandardNavigationMenu from "./StandardNavigationMenu";
 
 const TeamsPage = ({ 
     teams, 
@@ -339,132 +340,25 @@ boosterPointsPerBooster,
                 </div>
             </div>
 
-            {/* Hamburger Menu - Top Right Corner */}
-            <div className="fixed top-16 right-4 z-50">
-                <button
-                    onClick={() => setShowMenu(!showMenu)}
-                    className="bg-gradient-to-r from-gray-600 to-gray-700 text-white p-3 rounded-lg shadow-md hover:from-gray-700 hover:to-gray-800 hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
-                    title="More Options"
-                >
-                    <div className="w-6 h-6 flex flex-col justify-center space-y-1">
-                        <div className="w-6 h-0.5 bg-white rounded"></div>
-                        <div className="w-6 h-0.5 bg-white rounded"></div>
-                        <div className="w-6 h-0.5 bg-white rounded"></div>
-                    </div>
-                </button>
-
-                {/* Dropdown Menu */}
-                {showMenu && (
-                    <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-lg shadow-xl border border-gray-200 z-50 animate-fade-in">
-                        <div className="py-2">
-                            {/* Unsold Players navigation */}
-                            <button
-                                onClick={handleViewUnsoldPlayers}
-                                className="w-full text-left px-4 py-3 hover:bg-red-50 transition-colors duration-200 flex items-center gap-3"
-                            >
-                                <span className="text-red-500">{EMOJIS.CROSS_MARK}</span>
-                                <span className="text-gray-700 font-medium">Unsold Players</span>
-                            </button>
-
-                            <button onClick={handleViewMasterPlayers} className="w-full text-left px-4 py-3 hover:bg-indigo-50 transition-colors duration-200 flex items-center gap-3"><span>📋</span><span className="text-gray-700 font-medium">Player Summary</span></button>
-                            <button onClick={handleViewAuction} className="w-full text-left px-4 py-3 hover:bg-yellow-50 transition-colors duration-200 flex items-center gap-3"><span>🏏</span><span className="text-gray-700 font-medium">Auction</span></button>
-                            <button onClick={handleViewMaxBid} className="w-full text-left px-4 py-3 hover:bg-purple-50 transition-colors duration-200 flex items-center gap-3"><span>📊</span><span className="text-gray-700 font-medium">Max Bid</span></button>
-
-                            {/* Edit Balance - First Option */}
-                            <button
-                                onClick={handleTeamEdit}
-                                className="w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors duration-200 flex items-center gap-3"
-                            >
-                                <span className="text-blue-500">{EMOJIS.EDIT}</span>
-                                <span className="text-gray-700 font-medium">Edit Balance</span>
-                            </button>
-
-                            <button
-                                onClick={handleBoosterOpen}
-                                className="w-full text-left px-4 py-3 hover:bg-yellow-50 transition-colors duration-200 flex items-center gap-3"
-                            >
-                                <span className="text-yellow-500">{EMOJIS.ZAP}</span>
-                                <span className="text-gray-700 font-medium">Add Booster Points</span>
-                            </button>
-
-                            {/* Export Teams */}
-                            <button
-                                onClick={handleExportTeams}
-                                className={`w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors duration-200 flex items-center gap-3 ${
-                                    Object.keys(teams).length === 0 || Object.values(teams).every(team => (team.players || []).length === 0) 
-                                    ? 'opacity-50 cursor-not-allowed' 
-                                    : ''
-                                }`}
-                                disabled={Object.keys(teams).length === 0 || Object.values(teams).every(team => (team.players || []).length === 0)}
-                            >
-                                <span className="text-blue-500">{EMOJIS.CHART}</span>
-                                <span className="text-gray-700 font-medium">Export Teams</span>
-                            </button>
-
-                            {/* Export All Teams as one shareable image (WhatsApp) */}
-                            <button
-                                onClick={handleExportAllTeamsImage}
-                                className={`w-full text-left px-4 py-3 hover:bg-emerald-50 transition-colors duration-200 flex items-center gap-3 ${
-                                    Object.keys(teams).length === 0
-                                    ? 'opacity-50 cursor-not-allowed'
-                                    : ''
-                                }`}
-                                disabled={Object.keys(teams).length === 0}
-                            >
-                                <span className="text-emerald-500">{EMOJIS.CAMERA}</span>
-                                <span className="text-gray-700 font-medium">Export All Teams (Image)</span>
-                            </button>
-
-                            {/* Player Spin */}
-                            <button
-                                onClick={handlePlayerSpin}
-                                className="w-full text-left px-4 py-3 hover:bg-purple-50 transition-colors duration-200 flex items-center gap-3"
-                            >
-                                <span className="text-purple-500">{EMOJIS.SPINWHEEL}</span>
-                                <span className="text-gray-700 font-medium">Player Spin</span>
-                            </button>
-
-                            {/* Jersey Color */}
-                            <button
-                                onClick={handleJerseyColor}
-                                className="w-full text-left px-4 py-3 hover:bg-indigo-50 transition-colors duration-200 flex items-center gap-3"
-                            >
-                                <span className="text-indigo-500">{EMOJIS.JERSEY}</span>
-                                <span className="text-gray-700 font-medium">Jersey Color</span>
-                            </button>
-
-                            {/* WhatsApp Settings */}
-                            <button
-                                onClick={handleWhatsAppSettings}
-                                className="w-full text-left px-4 py-3 hover:bg-green-50 transition-colors duration-200 flex items-center gap-3"
-                            >
-                                <span className="text-green-500">{EMOJIS.MOBILE}</span>
-                                <span className="text-gray-700 font-medium">WhatsApp Settings</span>
-                            </button>
-
-                            {/* Divider */}
-                            <div className="border-t border-gray-200 my-2"></div>
-
-                            {/* Reset Auction */}
-                            <button
-                                onClick={handleResetAuction}
-                                className="w-full text-left px-4 py-3 hover:bg-red-50 transition-colors duration-200 flex items-center gap-3"
-                            >
-                                <span className="text-red-500">{EMOJIS.REFRESH}</span>
-                                <span className="text-gray-700 font-medium">Reset Auction</span>
-                            </button>
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            {/* Click outside to close menu */}
-            {showMenu && (
-                <div 
-                    className="fixed inset-0 z-40" 
-                    onClick={() => setShowMenu(false)}
-                ></div>
-            )}
+            <StandardNavigationMenu
+                currentPage="teams"
+                onAuction={onViewAuction || onBackToAuction}
+                onTeamSummary={() => {}}
+                onPlayerSummary={onViewMasterPlayers}
+                onUnsoldPlayers={onViewUnsoldPlayers}
+                onMaxBid={onViewMaxBid}
+            >
+                <div className="border-t border-gray-200 my-1"></div>
+                <button onClick={handleTeamEdit} className="w-full text-left px-4 py-3 hover:bg-blue-50 flex items-center gap-3"><span>🖊️</span><span className="text-gray-700 font-medium">Edit Balance</span></button>
+                <button onClick={handleBoosterOpen} className="w-full text-left px-4 py-3 hover:bg-yellow-50 flex items-center gap-3"><span>⚡</span><span className="text-gray-700 font-medium">Add Booster Points</span></button>
+                <button onClick={handleExportTeams} disabled={Object.keys(teams).length === 0 || Object.values(teams).every(team => (team.players || []).length === 0)} className="w-full text-left px-4 py-3 hover:bg-blue-50 flex items-center gap-3 disabled:opacity-50"><span>📊</span><span className="text-gray-700 font-medium">Export Teams</span></button>
+                <button onClick={handleExportAllTeamsImage} disabled={Object.keys(teams).length === 0} className="w-full text-left px-4 py-3 hover:bg-emerald-50 flex items-center gap-3 disabled:opacity-50"><span>🖼️</span><span className="text-gray-700 font-medium">Export All Teams (Image)</span></button>
+                <button onClick={handlePlayerSpin} className="w-full text-left px-4 py-3 hover:bg-purple-50 flex items-center gap-3"><span>🎡</span><span className="text-gray-700 font-medium">Player Spin</span></button>
+                <button onClick={handleJerseyColor} className="w-full text-left px-4 py-3 hover:bg-indigo-50 flex items-center gap-3"><span>👕</span><span className="text-gray-700 font-medium">Jersey Color</span></button>
+                <button onClick={handleWhatsAppSettings} className="w-full text-left px-4 py-3 hover:bg-green-50 flex items-center gap-3"><span>📱</span><span className="text-gray-700 font-medium">WhatsApp Settings</span></button>
+                <div className="border-t border-gray-200 my-1"></div>
+                <button onClick={handleResetAuction} className="w-full text-left px-4 py-3 hover:bg-red-50 flex items-center gap-3"><span>🔄</span><span className="text-gray-700 font-medium">Reset Auction</span></button>
+            </StandardNavigationMenu>
 
             {/* Confirmation Modal */}
             {showConfirmation && (
