@@ -279,27 +279,60 @@ export default function CricketAuctionTool() {
   };
 
   const handleResetAuction = () => {
+    persistence.logAuditEvent('auction_reset_confirmation_opened', 'info', {
+      tournament_name: tournamentName || null,
+      players_count: players.length,
+      teams_count: Object.keys(teams || {}).length,
+      current_page: currentPage
+    });
     setShowResetConfirmation(true);
   };
 
-  const confirmResetAuction = () => {
+  const cancelResetAuction = () => {
+    persistence.logAuditEvent('auction_reset_cancelled', 'cancelled', {
+      tournament_name: tournamentName || null,
+      current_page: currentPage
+    });
+    setShowResetConfirmation(false);
+  };
+
+  const confirmResetAuction = async () => {
+    // Persist the confirmation event and reset-start audit before changing app state.
+    await persistence.logAuditEvent('auction_reset_confirmed', 'confirmed', {
+      tournament_name: tournamentName || null,
+      players_count: players.length,
+      teams_count: Object.keys(teams || {}).length,
+      current_page: currentPage
+    });
+
+    const resetSucceeded = await persistence.clearState({
+      tournamentName,
+      playersCount: players.length,
+      teamsCount: Object.keys(teams || {}).length,
+      currentPage
+    });
+
     setPlayers([]);
     setTeams({});
     setCategoryConfigs({});
     setBoosterPointsPerBooster(10);
     auction.resetAuction();
     setShowResetConfirmation(false);
-    persistence.clearState();
     setIsTournamentNameSet(false);
     setTournamentName("");
     setSponsorName("");
     setTickerDetails("");
     setCurrentPage('auction');
-    showManagedToast('success', 'Auction has been completely reset! All saved data cleared.', {
-      style: TOAST_STYLES.success,
-      icon: EMOJIS.REFRESH,
-      duration: 5000,
-    });
+
+    showManagedToast(resetSucceeded ? 'success' : 'error',
+      resetSucceeded
+        ? 'Auction has been reset. Reset activity was recorded.'
+        : 'Auction reset completed with a storage error. Check audit logs before continuing.',
+      {
+        style: resetSucceeded ? TOAST_STYLES.success : TOAST_STYLES.error,
+        icon: EMOJIS.REFRESH,
+        duration: 7000,
+      });
   };
 
   const handleWhatsAppSettings = () => {
@@ -368,7 +401,7 @@ export default function CricketAuctionTool() {
           }
           showManagedToast={showManagedToast}
         />
-        <ResetConfirmation isOpen={showResetConfirmation} onConfirm={confirmResetAuction} onCancel={() => setShowResetConfirmation(false)} />
+        <ResetConfirmation isOpen={showResetConfirmation} onConfirm={confirmResetAuction} onCancel={cancelResetAuction} />
         <WhatsAppSettings isOpen={showWhatsAppSettings} settings={whatsappSettings} onSave={handleSaveWhatsAppSettings} onClose={() => setShowWhatsAppSettings(false)} onTest={handleWhatsAppTest} />
       </>
     );
@@ -393,7 +426,7 @@ export default function CricketAuctionTool() {
         <ResetConfirmation 
           isOpen={showResetConfirmation}
           onConfirm={confirmResetAuction}
-          onCancel={() => setShowResetConfirmation(false)}
+          onCancel={cancelResetAuction}
         />
         <WhatsAppSettings
           isOpen={showWhatsAppSettings}
@@ -441,7 +474,7 @@ onUpdatePointsPerBooster={handleUpdatePointsPerBooster}
         <ResetConfirmation 
           isOpen={showResetConfirmation}
           onConfirm={confirmResetAuction}
-          onCancel={() => setShowResetConfirmation(false)}
+          onCancel={cancelResetAuction}
         />
         <WhatsAppSettings
           isOpen={showWhatsAppSettings}
@@ -479,7 +512,7 @@ onUpdatePointsPerBooster={handleUpdatePointsPerBooster}
         <ResetConfirmation 
           isOpen={showResetConfirmation}
           onConfirm={confirmResetAuction}
-          onCancel={() => setShowResetConfirmation(false)}
+          onCancel={cancelResetAuction}
         />
         <WhatsAppSettings
           isOpen={showWhatsAppSettings}
@@ -509,7 +542,7 @@ onUpdatePointsPerBooster={handleUpdatePointsPerBooster}
         <ResetConfirmation 
           isOpen={showResetConfirmation}
           onConfirm={confirmResetAuction}
-          onCancel={() => setShowResetConfirmation(false)}
+          onCancel={cancelResetAuction}
         />
         <WhatsAppSettings
           isOpen={showWhatsAppSettings}
@@ -538,7 +571,7 @@ onUpdatePointsPerBooster={handleUpdatePointsPerBooster}
         <ResetConfirmation 
           isOpen={showResetConfirmation}
           onConfirm={confirmResetAuction}
-          onCancel={() => setShowResetConfirmation(false)}
+          onCancel={cancelResetAuction}
         />
         <WhatsAppSettings
           isOpen={showWhatsAppSettings}
