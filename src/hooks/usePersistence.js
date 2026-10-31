@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../supabaseClient';
+import { buildViewerPayload } from '../utils/viewerPayload';
 import {
     saveAuctionState,
     loadAuctionState,
@@ -57,6 +58,36 @@ export const usePersistence = (showManagedToast, user = null) => {
                 if (!cloudSuccess) {
                     console.error('Supabase save failed after retries:', lastError);
                     return false;
+                }
+
+                // Publish a compact, viewer-specific snapshot. Public viewers never need
+                // the full auction backup JSON, so this dramatically reduces PostgREST egress.
+                const viewerPayload = {
+                    user_id: user.id,
+                    data: buildViewerPayload(dataToSave),
+                    updated_at: now
+                };
+                let viewerPublished = false;
+                let viewerError = null;
+                for (let attempt = 0; attempt < 3; attempt += 1) {
+                    try {
+                        const { error } = await supabase
+                            .from('auction_viewer_data')
+                            .upsert(viewerPayload, { onConflict: 'user_id' });
+                        if (!error) {
+                            viewerPublished = true;
+                            break;
+                        }
+                        viewerError = error;
+                    } catch (error) {
+                        viewerError = error;
+                    }
+                    if (attempt < 2) await new Promise(resolve => setTimeout(resolve, 500 * (2 ** attempt)));
+                }
+                if (!viewerPublished) {
+                    // The private auction backup is already safely saved. Do not report the
+                    // auction save itself as failed, but surface the stale-viewer risk clearly.
+                    console.error('Viewer snapshot publish failed after retries:', viewerError);
                 }
             } else if (user?.id) {
                 // Authenticated transactions may never be treated as saved without cloud confirmation.
@@ -167,6 +198,12 @@ export const usePersistence = (showManagedToast, user = null) => {
             try {
                 const { error } = await supabase
                     .from('auction_data')
+                    .delete()
+                    .eq('user_id', user.id);
+
+                // Best-effort cleanup of the public compact snapshot.
+                await supabase
+                    .from('auction_viewer_data')
                     .delete()
                     .eq('user_id', user.id);
 
