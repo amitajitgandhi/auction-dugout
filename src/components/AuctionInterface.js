@@ -4,6 +4,7 @@ import { EMOJIS } from "../utils/constants";
 import PlayerImage from "./PlayerImage";
 import PlayerInfo from "./PlayerInfo";
 import ConfirmationDialogs from "./ConfirmationDialogs";
+import StandardNavigationMenu from "./StandardNavigationMenu";
 
 const AuctionInterface = forwardRef(({
     currentPlayer,
