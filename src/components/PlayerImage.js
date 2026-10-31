@@ -11,7 +11,7 @@ const PlayerImage = ({ currentPlayer, imageKey, setImageKey }) => {
         if (currentPlayer) {
             console.log('=== PLAYER IMAGE DEBUG ===');
             console.log('Current player:', currentPlayer.name);
-            console.log('Player photo URL:', currentPlayer.photo);
+            console.log('Player photo URL:', currentPlayer.photoUrl || currentPlayer.photo);
             
             setImageLoadState('loading');
             setUseBackupIcon(false);
@@ -37,7 +37,7 @@ const PlayerImage = ({ currentPlayer, imageKey, setImageKey }) => {
         console.error('? Failed URL:', e.target.src);
         console.error('?? Attempt number:', urlAttempt + 1);
         
-        if (currentPlayer?.photo?.includes('drive.google.com') && urlAttempt < 3) {
+        if ((currentPlayer?.photoUrl || currentPlayer?.photo || '').includes('drive.google.com') && urlAttempt < 3) {
             console.log('?? Trying next URL format...');
             setUrlAttempt(prev => prev + 1);
             setImageKey(prev => prev + 1);
@@ -50,21 +50,22 @@ const PlayerImage = ({ currentPlayer, imageKey, setImageKey }) => {
     };
 
     const getPlayerImageUrl = () => {
-        if (!currentPlayer?.photo) {
+        if (!(currentPlayer?.photoUrl || currentPlayer?.photo)) {
             return getDefaultPlayerImage();
         }
-        return currentPlayer.photo;
+        return currentPlayer.photoUrl || currentPlayer.photo;
     };
 
     const getOriginalDriveLink = () => {
-        if (currentPlayer?.photo && currentPlayer.photo.includes('drive.google.com/thumbnail')) {
-            const match = currentPlayer.photo.match(/id=([a-zA-Z0-9-_]+)/);
+        const photoUrl = currentPlayer?.photoUrl || currentPlayer?.photo || '';
+        if (photoUrl && photoUrl.includes('drive.google.com/thumbnail')) {
+            const match = photoUrl.match(/id=([a-zA-Z0-9-_]+)/);
             if (match) {
                 const fileId = match[1];
                 return `https://drive.google.com/file/d/${fileId}/view`;
             }
         }
-        return currentPlayer?.photo || '';
+        return photoUrl;
     };
 
     const renderPlayerIcon = () => {
