@@ -8,6 +8,7 @@ import CategoryConfig from "./components/CategoryConfig";
 import CategorySelection from "./components/CategorySelection";
 import AuctionInterface from "./components/AuctionInterface";
 import TeamsPage from "./components/TeamsPage";
+import SpinWheelPage from "./components/SpinWheelPage";
 import MaxBidPage from "./components/MaxBidPage";
 import ResetConfirmation from "./components/ResetConfirmation";
 import WhatsAppSettings from "./components/WhatsAppSettings";
@@ -500,6 +501,10 @@ function CricketAuctionSession({ auth }) {
     );
   }
 
+  if (currentPage === 'tablespin' || currentPage === 'jerseyspin') {
+    return <SpinWheelPage mode={currentPage === 'jerseyspin' ? 'jersey' : 'table'} onBack={goToTeamsPage} />;
+  }
+
   if (currentPage === 'teams') {
     return (
       <>
@@ -531,6 +536,8 @@ onUpdatePointsPerBooster={handleUpdatePointsPerBooster}
           onViewMasterPlayers={goToMasterPlayersPage}
           onViewAuction={goToAuctionPage}
           onViewMaxBid={goToMaxBidPage}
+          onTableSpin={() => setCurrentPage('tablespin')}
+          onJerseySpin={() => setCurrentPage('jerseyspin')}
           onLogout={handleLogout}
         />
         <ResetConfirmation 
