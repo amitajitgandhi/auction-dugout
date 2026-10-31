@@ -8,6 +8,9 @@ const UnsoldPlayersPage = ({
   tournamentName,
   tickerDetails = "",
   onBackToTeams,
+  onBackToAuction,
+  onViewMasterPlayers,
+  onViewMaxBid,
   onSellUnsoldPlayer,
   showManagedToast
 }) => {
@@ -41,6 +44,7 @@ const UnsoldPlayersPage = ({
       <div className="fixed top-0 left-0 right-0 z-40 bg-gradient-to-r from-yellow-400 via-red-500 to-pink-500 text-white py-2 shadow-lg">
         <div className="overflow-hidden whitespace-nowrap"><div className="animate-marquee inline-block font-bold text-lg">{EMOJIS.TROPHY} {tournamentName.toUpperCase()} - UNSOLD PLAYERS {EMOJIS.TROPHY}</div></div>
       </div>
+      <StandardNavigationMenu currentPage="unsoldplayers" onAuction={onBackToAuction} onTeamSummary={onBackToTeams} onPlayerSummary={onViewMasterPlayers} onUnsoldPlayers={() => {}} onMaxBid={onViewMaxBid} />
       <div className="pt-16 pb-20 px-4">
         <div className="w-full max-w-5xl mx-auto">
           <div className="mb-6 text-center">
