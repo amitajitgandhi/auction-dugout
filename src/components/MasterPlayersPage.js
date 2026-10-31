@@ -202,10 +202,6 @@ const MasterPlayersPage = ({
 
     const saveEdit = async () => {
         const photoUrl = editForm.photoUrl.trim();
-        if (photoUrl && (!/^https?:\/\//i.test(photoUrl) || !/supabase\.co\/storage\/v1\/object\/(public|sign)\//i.test(photoUrl))) {
-            showManagedToast?.('error', 'Please enter a valid resolvable Supabase Storage photo URL.', { icon: EMOJIS.WARNING, duration: 3500 });
-            return;
-        }
         const updated = {
             ...editingPlayer,
             name: editForm.name.trim(),
