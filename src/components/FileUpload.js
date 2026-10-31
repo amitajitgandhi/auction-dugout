@@ -220,7 +220,12 @@ const FileUpload = ({
 
                                 // Client error (4xx) � don't retry, it won't help
                                 if (response.status < 500) {
-                                    lastErr = new Error(`API request failed: ${response.status} ${response.statusText}`);
+                                    let detail = '';
+                                    try {
+                                        const errorBody = await response.json();
+                                        detail = errorBody?.message || errorBody?.error || JSON.stringify(errorBody);
+                                    } catch (_) {}
+                                    lastErr = new Error(`API request failed: ${response.status} ${response.statusText}${detail ? ' - ' + detail : ''}`);
                                     break;
                                 }
 
