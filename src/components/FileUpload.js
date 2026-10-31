@@ -25,6 +25,20 @@ const FileUpload = ({
     const [uploadProgress, setUploadProgress] = useState(0);
     const [showProceedConfirmation, setShowProceedConfirmation] = useState(false);
 
+
+    const hasPlayerPhoto = player => {
+        const url = String(player.photoUrl || player.photo || '').trim();
+        if (!url || url.startsWith('data:image/svg+xml') || url.startsWith('data:image/') || url.startsWith('blob:')) return false;
+        const defaultImage = getDefaultPlayerImage();
+        return url !== defaultImage && /^https?:\/\//i.test(url);
+    };
+    const getPhotoReport = list => ({
+        total: list.length,
+        withPhotos: list.filter(hasPlayerPhoto).length,
+        missing: list.filter(player => !hasPlayerPhoto(player)).map(player => player.name)
+    });
+    const photoReport = getPhotoReport(players);
+
     // Calculate auction summary for proceed confirmation
     const calculateAuctionSummary = () => {
         const totalPlayers = players.length;
@@ -34,7 +48,7 @@ const FileUpload = ({
         const teamBudget = totalTeams > 0 ? Object.values(teams)[0]?.purse || 0 : 0;
         
         // Players with valid photos (non-empty photo URLs)
-        const playersWithValidPhoto = players.filter(p => p.photo && p.photo.includes('.supabase.co/storage/v1/object/')).length;
+        const playersWithValidPhoto = photoReport.withPhotos;
         const playersWithLinkedPhoto = players.filter(p => p.photo && p.photo.trim() && !p.photo.includes('data:image/svg+xml') && !p.photo.includes('.supabase.co/storage/v1/object/')).length;
         
         // Players with valid CricHeroes links
@@ -952,6 +966,22 @@ const FileUpload = ({
                             </div>
                         )}
 						
+                        {players.length > 0 && (
+                            <div className="rounded-lg border border-blue-200 bg-white p-4 space-y-2 text-sm">
+                                <div className="font-semibold text-blue-900">Player photos: {photoReport.withPhotos}/{photoReport.total}</div>
+                                <div className="w-full bg-gray-200 rounded-full h-2" role="progressbar" aria-valuenow={photoReport.withPhotos} aria-valuemin={0} aria-valuemax={photoReport.total}>
+                                    <div className="bg-green-600 h-2 rounded-full" style={{ width: `${photoReport.total ? (photoReport.withPhotos / photoReport.total) * 100 : 0}%` }} />
+                                </div>
+                                {photoReport.missing.length > 0 && (
+                                    <div className="text-amber-800">
+                                        <p className="font-semibold">{photoReport.missing.length} player(s) need photos. Open Player Summary to edit and upload their photos:</p>
+                                        <ul className="list-disc list-inside max-h-40 overflow-y-auto">
+                                            {photoReport.missing.map((name, index) => <li key={index}>{name}</li>)}
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                         {players.length > 0 && (
                             <div className="flex items-center text-sm text-green-700 bg-green-100 rounded-lg p-3">
                                 <span className="mr-2">{EMOJIS.CHECK_MARK}</span>
