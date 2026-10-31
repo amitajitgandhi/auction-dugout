@@ -90,7 +90,7 @@ const ViewerPage = ({ userId }) => {
                 </div>
             </div>
 
-            <div className={`${tickerDetails.trim() ? "pt-4" : "pt-2"} pb-16 px-3`}>
+            <div className="pb-16 px-3">
                 <div className="max-w-lg mx-auto text-center text-gray-200 text-sm md:text-base font-bold mb-3">
                     🔄 This page refreshes automatically every 30 seconds
                 </div>
