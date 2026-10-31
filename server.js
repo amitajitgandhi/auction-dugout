@@ -33,9 +33,17 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Extract Google Drive file ID from various link formats
-const getDriveFileId = (link) => {
-    const match = link.match(/(?:id=|\/d\/)([a-zA-Z0-9_-]{25,})/);
-    return match ? match[1] : null;
+const getDriveFileId = (link = '') => {
+    const patterns = [
+        /[?&]id=([a-zA-Z0-9_-]+)/,
+        /\/file\/d\/([a-zA-Z0-9_-]+)/,
+        /\/d\/([a-zA-Z0-9_-]+)/
+    ];
+    for (const pattern of patterns) {
+        const match = link.match(pattern);
+        if (match?.[1]) return match[1];
+    }
+    return null;
 };
 
 // Build multiple download URLs to try in order (most reliable first)
@@ -43,10 +51,12 @@ const getDriveDownloadUrls = (link) => {
     const fileId = getDriveFileId(link);
     if (!fileId) return [];
     return [
-        // 1. Google's content server — most reliable for images, bypasses virus scan entirely
-        `https://lh3.googleusercontent.com/d/${fileId}=s0`,
-        // 2. Classic export download with virus-scan bypass
+        // 1. Google Drive direct content endpoint
+        `https://drive.usercontent.google.com/download?id=${fileId}&export=download&confirm=t`,
+        // 2. Classic download endpoint
         `https://drive.google.com/uc?export=download&confirm=t&id=${fileId}`,
+        // 3. Thumbnail fallback (works for publicly shared image files)
+        `https://drive.google.com/thumbnail?id=${fileId}&sz=w2000`,
     ];
 };
 
@@ -300,6 +310,15 @@ app.post('/api/fix-storage-content-types', async (req, res) => {
         console.error('Fix storage error:', err.message);
         res.status(500).json({ message: 'Fix failed', error: err.message });
     }
+});
+
+// Endpoint: Diagnose bucket — check files, sizes, content types, and public URL accessibility
+app.get('/api/health', async (req, res) => {
+    res.json({
+        ok: true,
+        bucket: BUCKET_NAME,
+        supabaseConfigured: Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY)
+    });
 });
 
 // Endpoint: Diagnose bucket — check files, sizes, content types, and public URL accessibility
