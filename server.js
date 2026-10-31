@@ -184,6 +184,11 @@ app.post('/api/upload-player', async (req, res) => {
         }
 
         if (!photoLink) {
+            const { error: dbError } = await supabase.from('players').upsert([{
+                name, skill, category, image_url: null,
+            }]);
+            if (dbError) throw dbError;
+
             return res.json({
                 message: 'No existing unambiguous image and no CSV photo link',
                 image_url: '',
