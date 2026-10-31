@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import { EMOJIS } from "../utils/constants";
 import MaxBidAnalysisTable from "./MaxBidAnalysisTable";
 import MaxBidHelpPopup from "./MaxBidHelpPopup";
+import StandardNavigationMenu from './StandardNavigationMenu';
 
 const MaxBidPage = ({ 
     teams, 
