@@ -366,9 +366,9 @@ boosterPointsPerBooster,
                                 <span className="text-gray-700 font-medium">Unsold Players</span>
                             </button>
 
-                            <button onClick={handleViewMasterPlayers} className="w-full text-left px-4 py-3 hover:bg-indigo-50 transition-colors duration-200 flex items-center gap-3"><span>📋</span><span className="text-gray-700 font-medium">Master Players</span></button>
-                            <button onClick={handleViewAuction} className="w-full text-left px-4 py-3 hover:bg-yellow-50 transition-colors duration-200 flex items-center gap-3"><span>🏏</span><span className="text-gray-700 font-medium">Auction Page</span></button>
-                            <button onClick={handleViewMaxBid} className="w-full text-left px-4 py-3 hover:bg-purple-50 transition-colors duration-200 flex items-center gap-3"><span>📊</span><span className="text-gray-700 font-medium">Max Bid Analysis</span></button>
+                            <button onClick={handleViewMasterPlayers} className="w-full text-left px-4 py-3 hover:bg-indigo-50 transition-colors duration-200 flex items-center gap-3"><span>📋</span><span className="text-gray-700 font-medium">Player Summary</span></button>
+                            <button onClick={handleViewAuction} className="w-full text-left px-4 py-3 hover:bg-yellow-50 transition-colors duration-200 flex items-center gap-3"><span>🏏</span><span className="text-gray-700 font-medium">Auction</span></button>
+                            <button onClick={handleViewMaxBid} className="w-full text-left px-4 py-3 hover:bg-purple-50 transition-colors duration-200 flex items-center gap-3"><span>📊</span><span className="text-gray-700 font-medium">Max Bid</span></button>
 
                             {/* Edit Balance - First Option */}
                             <button
