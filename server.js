@@ -260,7 +260,7 @@ app.post('/api/upload-player', async (req, res) => {
 
 // Endpoint: upload an edited player photo to the authenticated user's Storage folder.
 app.post('/api/upload-player-photo', async (req, res) => {
-    const { name: rawName, contentType, imageBase64, accessToken } = req.body || {};
+    const { name: rawName, skill, category = 'OPEN', tournamentName = null, contentType, imageBase64, accessToken } = req.body || {};
     const name = sanitizePlayerName(String(rawName || ''));
     if (!name || !imageBase64 || !accessToken) {
         return res.status(400).json({ message: 'Player name, image and authenticated session are required.' });
@@ -285,6 +285,31 @@ app.post('/api/upload-player-photo', async (req, res) => {
         }
 
         const userId = authData.user.id;
+
+        // Resolve exactly one existing players row before uploading. The UI's
+        // player id is only a CSV array index, not the Supabase players.id.
+        let playerQuery = supabase.from('players')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('name', name)
+            .eq('category', category || 'OPEN');
+        playerQuery = tournamentName
+            ? playerQuery.eq('tournament_name', tournamentName)
+            : playerQuery.is('tournament_name', null);
+        playerQuery = skill
+            ? playerQuery.eq('skill', skill)
+            : playerQuery.is('skill', null);
+
+        const { data: matchingPlayers, error: lookupError } = await playerQuery;
+        if (lookupError) throw lookupError;
+        if (!matchingPlayers || matchingPlayers.length !== 1) {
+            return res.status(409).json({
+                message: matchingPlayers?.length
+                    ? 'More than one matching player record exists. Photo was not linked to avoid updating the wrong player.'
+                    : 'No matching player record was found for this account and tournament. Photo was not uploaded.'
+            });
+        }
+
         const baseName = sanitizeFileName(name).replace(/\.(?:jpe?g|png|webp)$/i, '') || 'player';
         const uniqueSuffix = Date.now() + '_' + Math.random().toString(36).slice(2, 8);
         const storagePath = `${userId}/${baseName}_${uniqueSuffix}${detected.ext}`;
@@ -303,7 +328,16 @@ app.post('/api/upload-player-photo', async (req, res) => {
             throw new Error('Could not generate a public URL for the uploaded image.');
         }
 
-        return res.json({ message: 'Player photo uploaded successfully.', image_url: imageUrl, storagePath });
+        const { error: playerUpdateError } = await supabase.from('players')
+            .update({ photo_url: imageUrl })
+            .eq('id', matchingPlayers[0].id)
+            .eq('user_id', userId);
+        if (playerUpdateError) {
+            await storage.remove([storagePath]);
+            throw playerUpdateError;
+        }
+
+        return res.json({ message: 'Player photo uploaded and players.photo_url updated successfully.', image_url: imageUrl, storagePath });
     } catch (error) {
         console.error('[PLAYER_PHOTO] Upload failed:', error.message);
         return res.status(500).json({ message: 'Player photo upload failed.', error: error.message });
