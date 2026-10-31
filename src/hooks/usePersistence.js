@@ -11,6 +11,11 @@ export const usePersistence = (showManagedToast, user = null) => {
     const [lastSaveTime, setLastSaveTime] = useState(null);
     const [autoBackupEnabled, setAutoBackupEnabled] = useState(true);
     const lastAutoSaveAtRef = useRef(0);
+
+    useEffect(() => {
+        lastAutoSaveAtRef.current = 0;
+        setLastSaveTime(null);
+    }, [user?.id]);
     // Serialize writes so rapid auction actions cannot be dropped during another save.
     const saveQueueRef = useRef(Promise.resolve());
     const revisionRef = useRef(0);
@@ -57,7 +62,7 @@ export const usePersistence = (showManagedToast, user = null) => {
             const dataToSave = { ...stateData, timestamp: now, revision: ++revisionRef.current, version: '3.0' };
             let cloudSuccess = false;
 
-            if (user?.id && user?.email) {
+            if (user?.id) {
                 const payload = {
                     user_id: user.id,
                     user_email: user.email,
@@ -114,9 +119,6 @@ export const usePersistence = (showManagedToast, user = null) => {
                     // auction save itself as failed, but surface the stale-viewer risk clearly.
                     console.error('Viewer snapshot publish failed after retries:', viewerError);
                 }
-            } else if (user?.id) {
-                // Authenticated transactions may never be treated as saved without cloud confirmation.
-                return false;
             }
 
             if (cloudSuccess) setLastSaveTime(now);
