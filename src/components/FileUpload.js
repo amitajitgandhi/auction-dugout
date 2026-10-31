@@ -34,7 +34,8 @@ const FileUpload = ({
         const teamBudget = totalTeams > 0 ? Object.values(teams)[0]?.purse || 0 : 0;
         
         // Players with valid photos (non-empty photo URLs)
-        const playersWithValidPhoto = players.filter(p => p.photo && p.photo.trim() && !p.photo.includes('data:image/svg+xml')).length;
+        const playersWithValidPhoto = players.filter(p => p.photo && p.photo.includes('.supabase.co/storage/v1/object/')).length;
+        const playersWithLinkedPhoto = players.filter(p => p.photo && p.photo.trim() && !p.photo.includes('data:image/svg+xml') && !p.photo.includes('.supabase.co/storage/v1/object/')).length;
         
         // Players with valid CricHeroes links
         const playersWithCricHeroes = players.filter(p => p.cricHeroesProfile && p.cricHeroesProfile.trim()).length;
@@ -45,6 +46,7 @@ const FileUpload = ({
             playersPerTeam,
             teamBudget,
             playersWithValidPhoto,
+            playersWithLinkedPhoto,
             playersWithCricHeroes
         };
     };
@@ -185,20 +187,25 @@ const FileUpload = ({
                                         name,
                                         skill,
                                         category,
-                                        photoUrl: rawPhotoUrl,
+                                        photoUrl: (row["Photo Link"] || "").trim(),
                                         cricHeroesProfile
                                     })
                                 });
 
                                 if (response.ok) {
                                     const result = await response.json();
+                                    const uploadedPhotoUrl = result.image_url || '';
+                                    if (!uploadedPhotoUrl.includes('.supabase.co/storage/v1/object/')) {
+                                        lastErr = new Error('Backend returned success without a valid Supabase Storage URL');
+                                        continue;
+                                    }
 
                                     enrichedPlayers.push({
                                         id: index,
                                         name,
                                         skill,
                                         category,
-                                        photo: result.image_url || rawPhotoUrl,
+                                        photo: uploadedPhotoUrl,
                                         driveLink: row["Photo Link"]?.trim() || "",
                                         cricHeroesProfile,
                                         sold: false,
