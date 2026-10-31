@@ -674,7 +674,7 @@ onUpdatePointsPerBooster={handleUpdatePointsPerBooster}
               {EMOJIS.TEAMOWNERVIEW} Copy Viewer Link
             </button>
           )}
-          <span>Powered by <a href="https://www.linkedin.com/in/amitajitgandhi/" className="underline hover:text-yellow-400" target="_blank" rel="noopener noreferrer">Amit Gandhi</a></span>
+          <span>Designed with ❤️ by <a href="https://wa.me/917276319578" className="underline hover:text-yellow-400" target="_blank" rel="noopener noreferrer">Amit Gandhi</a></span>
         </div>
       </footer>
     </>
