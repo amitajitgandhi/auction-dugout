@@ -12,7 +12,8 @@ export const useAutoSave = (
     categoryConfigs = {}, // Removed boosterData parameter
     boosterPointsPerBooster = 10, // Tournament-wide points-per-booster value
     sponsorName = "",
-    tickerDetails = ""
+    tickerDetails = "",
+    accountReady = true
 ) => {
     // Keep the interval stable while always reading the latest React state.
     const autoSaveIntervalRef = useRef(null);
@@ -27,7 +28,7 @@ export const useAutoSave = (
             }
             
             // Only start auto-save if user is authenticated and tournament is set
-            if (!user?.id || !isTournamentNameSet) {
+            if (!user?.id || !isTournamentNameSet || !accountReady) {
                 console.log('?? Auto-save not started: waiting for authentication and tournament setup');
                 return;
             }
@@ -86,6 +87,7 @@ export const useAutoSave = (
         // Only restart auto-save when these essential conditions change
         user?.id,                    // User authentication changes
         isTournamentNameSet,         // Tournament setup changes
+        accountReady,                // Wait for account state initialization
         // Remove frequently changing dependencies to prevent restart loops
     ]);
 
