@@ -1,10 +1,38 @@
 import React, { useEffect, useRef, useState } from 'react';
 
+const JERSEY_STORAGE_KEY = 'auction-dugout-jersey-spin-wheel-v1';
+
+const loadJerseyOptions = () => {
+  const fallback = { labels: Array(20).fill(''), checked: Array(20).fill(false) };
+  try {
+    const saved = JSON.parse(window.localStorage.getItem(JERSEY_STORAGE_KEY));
+    if (!saved || !Array.isArray(saved.labels) || !Array.isArray(saved.checked)) return fallback;
+    return {
+      labels: Array.from({ length: 20 }, (_, i) => typeof saved.labels[i] === 'string' ? saved.labels[i] : ''),
+      checked: Array.from({ length: 20 }, (_, i) => saved.checked[i] === true)
+    };
+  } catch (error) {
+    return fallback;
+  }
+};
+
 export default function SpinWheelPage({ mode, onBack }) {
   const jersey = mode === 'jersey';
   const title = jersey ? 'Jersey Color - Spin Wheel' : 'Table - Spin Wheel';
-  const [labels, setLabels] = useState(() => Array.from({ length: 20 }, (_, i) => jersey ? '' : String(i + 1)));
-  const [checked, setChecked] = useState(() => Array(20).fill(!jersey));
+  const [initialOptions] = useState(() => jersey ? loadJerseyOptions() : {
+    labels: Array.from({ length: 20 }, (_, i) => String(i + 1)),
+    checked: Array(20).fill(true)
+  });
+  const [labels, setLabels] = useState(initialOptions.labels);
+  const [checked, setChecked] = useState(initialOptions.checked);
+  useEffect(() => {
+    if (!jersey) return;
+    try {
+      window.localStorage.setItem(JERSEY_STORAGE_KEY, JSON.stringify({ labels, checked }));
+    } catch (error) {
+      console.warn('Unable to save jersey spin wheel options:', error);
+    }
+  }, [jersey, labels, checked]);
   const [rotation, setRotation] = useState(0);
   const [spinning, setSpinning] = useState(false);
   const [winner, setWinner] = useState(null);
