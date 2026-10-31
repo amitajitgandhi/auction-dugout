@@ -162,13 +162,10 @@ app.post('/api/upload-player', async (req, res) => {
 
         const storage = supabase.storage.from(BUCKET_NAME);
         const baseName = sanitizeFileName(name).replace(/\.(?:jpe?g|png)$/i, '');
-        const escapedBaseName = baseName.replace(/[.*+?^$()|[\]\\]/g, '\\        const baseName = sanitizeFileName(name).replace(/\.jpg$/i, '');
         const escapedBaseName = baseName.replace(/[.*+?^$()|[\]\\]/g, '\\$&');
-        const matchingFilePattern = new RegExp('^' + escapedBaseName + '(?:_[^/]*)?\\.jpg$', 'i');');
         // Existing player photos may be JPG/JPEG or PNG. Match both formats,
-        // including uniquely suffixed fallback uploads, without matching
-        // unrelated names that merely begin with the player's name.
-        const matchingFilePattern = new RegExp('^' + escapedBaseName + '(?:_[^/]*)?\\.(?:jpe?g|png)
+        // including uniquely suffixed fallback uploads.
+        const matchingFilePattern = new RegExp('^' + escapedBaseName + '(?:_[^/]*)?\\.(?:jpe?g|png)$', 'i');
 
         const matchingFiles = [];
         const pageSize = 1000;
