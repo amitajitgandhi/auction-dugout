@@ -19,6 +19,40 @@ export const usePersistence = (showManagedToast, user = null) => {
     const saveQueueRef = useRef(Promise.resolve());
     const revisionRef = useRef(0);
 
+    const createAuditContext = useCallback(() => ({
+        actor_user_id: user?.id || null,
+        actor_email: user?.email || null,
+        page_url: typeof window !== 'undefined' ? window.location.href : null,
+        user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || null,
+        client_timestamp: new Date().toISOString()
+    }), [user]);
+
+    // Audit writes are best-effort and must never prevent a reset from completing.
+    const logAuditEvent = useCallback(async (eventType, status = 'info', details = {}) => {
+        if (!user?.id) {
+            console.warn('[AUCTION_AUDIT] Skipped audit event: no authenticated user', { eventType, status });
+            return false;
+        }
+
+        try {
+            const { error } = await supabase.from('auction_audit_logs').insert([{
+                user_id: user.id,
+                event_type: eventType,
+                status,
+                details: { ...createAuditContext(), ...details }
+            }]);
+            if (error) throw error;
+            console.info('[AUCTION_AUDIT] ' + eventType + ' [' + status + ']', details);
+            return true;
+        } catch (error) {
+            console.error('[AUCTION_AUDIT] Failed to persist audit event:', {
+                eventType, status, message: error.message
+            });
+            return false;
+        }
+    }, [user, createAuditContext]);
+
     // Get localStorage key based on user email
     const getLocalStorageKey = useCallback((userEmail) => {
         return userEmail ? `auction_${userEmail}` : 'cricketAuction_state';
@@ -173,57 +207,97 @@ export const usePersistence = (showManagedToast, user = null) => {
         return fallbackData ? { ...fallbackData, source: 'fallback' } : null;
     }, [user, getLocalStorageKey]);
 
-    // Clear saved state from both localStorage and Supabase
-    const clearState = useCallback(async () => {
+    // Clear saved state from both localStorage and Supabase, with an audit trail.
+    const clearState = useCallback(async (resetContext = {}) => {
+        const resetId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+            ? crypto.randomUUID()
+            : 'reset_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
+        const startedAt = new Date().toISOString();
         let localSuccess = false;
-        let supabaseSuccess = false;
+        let auctionDeleteSuccess = false;
+        let viewerDeleteSuccess = false;
+        let localError = null;
+        let auctionDeleteError = null;
+        let viewerDeleteError = null;
 
-        // Clear localStorage
+        await logAuditEvent('auction_reset_started', 'started', {
+            reset_id: resetId,
+            tournament_name: resetContext.tournamentName || null,
+            players_count: Number(resetContext.playersCount || 0),
+            teams_count: Number(resetContext.teamsCount || 0),
+            current_page: resetContext.currentPage || null,
+            trigger: 'reset_confirmation'
+        });
+
+        // Clear localStorage and record any failure.
         if (user?.email) {
             try {
                 const key = getLocalStorageKey(user.email);
                 localStorage.removeItem(key);
                 localStorage.removeItem(`${key}__backup`);
                 localSuccess = true;
-                console.log('??? Cleared localStorage data');
             } catch (error) {
-                console.error('? Failed to clear localStorage:', error);
+                localError = error.message;
+                console.error('[AUCTION_AUDIT] Failed to clear localStorage:', error);
             }
         } else {
-            localSuccess = clearSavedState();
+            try {
+                localSuccess = clearSavedState();
+            } catch (error) {
+                localError = error.message;
+            }
         }
 
-        // Clear Supabase data
+        // Delete both cloud rows separately so each outcome is observable.
         if (user?.id) {
             try {
                 const { error } = await supabase
                     .from('auction_data')
                     .delete()
                     .eq('user_id', user.id);
+                if (error) throw error;
+                auctionDeleteSuccess = true;
+            } catch (error) {
+                auctionDeleteError = error.message;
+                console.error('[AUCTION_AUDIT] auction_data delete failed:', error);
+            }
 
-                // Best-effort cleanup of the public compact snapshot.
-                await supabase
+            try {
+                const { error } = await supabase
                     .from('auction_viewer_data')
                     .delete()
                     .eq('user_id', user.id);
-
-                if (!error) {
-                    supabaseSuccess = true;
-                    console.log('?? Cleared Supabase data');
-                } else {
-                    console.error('? Failed to clear Supabase data:', error);
-                }
+                if (error) throw error;
+                viewerDeleteSuccess = true;
             } catch (error) {
-                console.error('? Failed to clear Supabase data:', error);
+                viewerDeleteError = error.message;
+                console.error('[AUCTION_AUDIT] auction_viewer_data delete failed:', error);
             }
         }
 
-        if (localSuccess || supabaseSuccess) {
+        const completedAt = new Date().toISOString();
+        const overallSuccess = localSuccess && (!user?.id || (auctionDeleteSuccess && viewerDeleteSuccess));
+        const auditDetails = {
+            reset_id: resetId,
+            started_at: startedAt,
+            completed_at: completedAt,
+            duration_ms: Date.parse(completedAt) - Date.parse(startedAt),
+            local_storage_cleared: localSuccess,
+            local_storage_error: localError,
+            auction_data_deleted: auctionDeleteSuccess,
+            auction_data_error: auctionDeleteError,
+            auction_viewer_data_deleted: viewerDeleteSuccess,
+            auction_viewer_data_error: viewerDeleteError
+        };
+
+        await logAuditEvent('auction_reset_completed', overallSuccess ? 'success' : 'partial_failure', auditDetails);
+
+        if (localSuccess || auctionDeleteSuccess || viewerDeleteSuccess) {
             setLastSaveTime(null);
         }
 
-        return localSuccess || supabaseSuccess;
-    }, [user, getLocalStorageKey]);
+        return overallSuccess;
+    }, [user, getLocalStorageKey, logAuditEvent]);
 
     // Export backup file
     const exportBackup = useCallback((auctionData, tournamentName) => {
@@ -349,6 +423,7 @@ export const usePersistence = (showManagedToast, user = null) => {
         saveState,
         loadState,
         clearState,
+        logAuditEvent,
         exportBackup,
         getSavedInfo,
         autoSave: conditionalAutoSave,
