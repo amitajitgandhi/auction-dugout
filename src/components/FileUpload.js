@@ -191,11 +191,17 @@ const FileUpload = ({
 
                             const result = await response.json().catch(() => ({}));
                             if (response.ok) {
-                                selectedPhoto = result.image_url || '';
                                 source = result.source || '';
-                                if (source === 'storage') summary.reused++;
-                                else if (source === 'drive') summary.uploaded++;
-                                else if (source === 'missing') summary.missing++;
+                                if (source === 'missing' && result.player_saved) {
+                                    // Missing photo is a successful player import, not an upload failure.
+                                    selectedPhoto = getDefaultPlayerImage();
+                                    summary.missing++;
+                                } else {
+                                    selectedPhoto = result.image_url || '';
+                                    if (source === 'storage') summary.reused++;
+                                    else if (source === 'drive') summary.uploaded++;
+                                    else if (source === 'missing') summary.missing++;
+                                }
                                 break;
                             }
 
@@ -213,7 +219,11 @@ const FileUpload = ({
 
                     if (!selectedPhoto) {
                         if (source !== 'missing') summary.failed++;
-                        selectedPhoto = rawPhotoUrl || getDefaultPlayerImage();
+                        // If the backend saved the player without a photo, keep
+                        // the placeholder; never treat this as a failed upload.
+                        selectedPhoto = source === 'missing'
+                            ? getDefaultPlayerImage()
+                            : (rawPhotoUrl || getDefaultPlayerImage());
                         if (source !== 'missing') {
                             console.warn(`Photo processing did not return a Storage URL for ${name}:`, lastError?.message || source);
                         }
