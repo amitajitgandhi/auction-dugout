@@ -585,7 +585,7 @@ onUpdatePointsPerBooster={handleUpdatePointsPerBooster}
               <div className="text-2xl md:text-3xl font-extrabold text-white break-words">{tournamentName}</div>
               {sponsorName.trim() && (
                   <div className="mt-2 text-yellow-300 break-words">
-                    <div className="text-xs md:text-sm font-medium leading-tight">Sponsored by</div>
+                    <div className="text-xs md:text-sm font-medium leading-tight text-purple-500">Sponsored by</div>
                     <div className="text-2xl md:text-3xl font-extrabold leading-tight">{sponsorName}</div>
                   </div>
                 )}
