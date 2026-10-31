@@ -258,6 +258,58 @@ app.post('/api/upload-player', async (req, res) => {
     }
 });
 
+// Endpoint: upload an edited player photo to the authenticated user's Storage folder.
+app.post('/api/upload-player-photo', async (req, res) => {
+    const { name: rawName, contentType, imageBase64, accessToken } = req.body || {};
+    const name = sanitizePlayerName(String(rawName || ''));
+    if (!name || !imageBase64 || !accessToken) {
+        return res.status(400).json({ message: 'Player name, image and authenticated session are required.' });
+    }
+
+    try {
+        const { data: authData, error: authError } = await supabase.auth.getUser(accessToken);
+        if (authError || !authData?.user?.id) {
+            return res.status(401).json({ message: 'Your session is invalid or expired. Please sign in again.' });
+        }
+
+        const buffer = Buffer.from(String(imageBase64), 'base64');
+        if (!buffer.length || buffer.length > 5 * 1024 * 1024) {
+            return res.status(400).json({ message: 'Image must be valid and no larger than 5 MB.' });
+        }
+        const detected = detectImageType(buffer);
+        if (!detected || !['image/jpeg', 'image/png', 'image/webp'].includes(detected.contentType)) {
+            return res.status(400).json({ message: 'Only JPG, PNG and WebP images are supported.' });
+        }
+        if (contentType && contentType !== detected.contentType) {
+            return res.status(400).json({ message: 'The uploaded image type does not match its file content.' });
+        }
+
+        const userId = authData.user.id;
+        const baseName = sanitizeFileName(name).replace(/\.(?:jpe?g|png|webp)$/i, '') || 'player';
+        const uniqueSuffix = Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+        const storagePath = `${userId}/${baseName}_${uniqueSuffix}${detected.ext}`;
+        const storage = supabase.storage.from(BUCKET_NAME);
+        const { error: uploadError } = await storage.upload(storagePath, buffer, {
+            contentType: detected.contentType,
+            cacheControl: '3600',
+            upsert: false,
+        });
+        if (uploadError) throw uploadError;
+
+        const { data: publicData } = storage.getPublicUrl(storagePath);
+        const imageUrl = publicData?.publicUrl || '';
+        if (!imageUrl) {
+            await storage.remove([storagePath]);
+            throw new Error('Could not generate a public URL for the uploaded image.');
+        }
+
+        return res.json({ message: 'Player photo uploaded successfully.', image_url: imageUrl, storagePath });
+    } catch (error) {
+        console.error('[PLAYER_PHOTO] Upload failed:', error.message);
+        return res.status(500).json({ message: 'Player photo upload failed.', error: error.message });
+    }
+});
+
 // Endpoint: Fix existing images in Supabase Storage with correct Content-Type
 // Re-downloads and re-uploads all images in the bucket with proper MIME types
 app.post('/api/fix-storage-content-types', async (req, res) => {
