@@ -210,11 +210,23 @@ app.post('/api/upload-player', async (req, res) => {
         }
 
         if (!photoLink) {
+            // A photo is optional. Persist the player even when Storage has no
+            // unambiguous match and the CSV has no Drive link.
             await savePlayerRecord(null);
+            console.info('[PLAYER_CSV] Saved player without a photo:', {
+                user_id: userId,
+                name,
+                matched_storage_files: matchingFiles.length,
+                reason: matchingFiles.length > 1
+                    ? 'multiple_storage_matches_no_csv_photo_link'
+                    : 'no_storage_match_or_csv_photo_link'
+            });
             return res.json({
-                message: 'No existing unambiguous image and no CSV photo link',
+                message: 'Player saved without a photo',
                 image_url: '',
+                photo_url: null,
                 source: 'missing',
+                player_saved: true,
                 matchedFiles: matchingFiles.length,
             });
         }
