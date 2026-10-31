@@ -2,11 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { EMOJIS } from '../utils/constants';
 import { getCategoryRequirementStatus } from '../utils/centralizedTeamData';
 
-// Derive a player's display status purely from the existing sold/soldTo/wasUnsold
-// fields plus the new retentionSource marker — there is no separate status field
-// to keep in sync, so this can never drift from the real auction state.
+// Master assignment uses the same normal sale logic as the auction.
 const getPlayerStatus = (p) => {
-    if (p.retentionSource === 'OWNER_RETENTION') return 'RETAINED';
     if (p.sold && p.soldTo !== 'Unsold') return 'SOLD';
     if (p.soldTo === 'Unsold') return 'UNSOLD';
     return 'AVAILABLE';
@@ -14,7 +11,6 @@ const getPlayerStatus = (p) => {
 
 const STATUS_BADGE = {
     AVAILABLE: 'bg-blue-100 text-blue-700',
-    RETAINED: 'bg-purple-100 text-purple-700',
     SOLD: 'bg-green-100 text-green-700',
     UNSOLD: 'bg-red-100 text-red-700'
 };
@@ -22,7 +18,6 @@ const STATUS_BADGE = {
 const FILTERS = [
     { key: 'ALL', label: 'All Players' },
     { key: 'AVAILABLE', label: 'Available Players' },
-    { key: 'RETAINED', label: 'Retained Owner-Players' },
     { key: 'UNSOLD', label: 'Unsold Players' }
 ];
 
@@ -33,7 +28,6 @@ const MasterPlayersPage = ({
     tickerDetails = "",
     categoryConfigs = {},
     onBackToTeams,
-    onRetainPlayer,
     onSellPlayer,
     showManagedToast
 }) => {
@@ -107,53 +101,7 @@ const MasterPlayersPage = ({
         }
     };
 
-    const handleSubmitRetention = async (player) => {
-        if (submittingId === player.id) return; // already in flight — ignore extra clicks
-        const inputs = getRowInputs(player.id);
-        const teamName = inputs.team;
-        const category = inputs.category || player.category;
-        const amount = parseInt(inputs.amount, 10);
-
-        if (!teamName) {
-            showManagedToast?.('error', 'Select a team before submitting.', { icon: EMOJIS.WARNING, duration: 3000 });
-            return;
-        }
-        if (!category) {
-            showManagedToast?.('error', 'Select a category before submitting.', { icon: EMOJIS.WARNING, duration: 3000 });
-            return;
-        }
-        if (isNaN(amount) || amount <= 0) {
-            showManagedToast?.('error', 'Enter a valid retention amount (greater than 0).', { icon: EMOJIS.WARNING, duration: 3000 });
-            return;
-        }
-
-        setSubmittingId(player.id);
-        try {
-            const result = await onRetainPlayer(player, teamName, category, amount);
-            if (result?.success) {
-                showManagedToast?.('success', result.message || `${player.name} retained by ${teamName}.`, {
-                    icon: EMOJIS.CROWN,
-                    duration: 3500
-                });
-                setRowInputs(prev => {
-                    const next = { ...prev };
-                    delete next[player.id];
-                    return next;
-                });
-            } else {
-                showManagedToast?.('error', result?.message || 'Failed to retain player.', {
-                    icon: EMOJIS.CROSS_MARK,
-                    duration: 3500
-                });
-            }
-        } finally {
-            setSubmittingId(null);
-        }
-    };
-
-    const statusCounts = useMemo(() => {
-        const visiblePlayers = (players || []).filter(p => getPlayerStatus(p) !== 'SOLD');
-        const counts = { ALL: visiblePlayers.length, AVAILABLE: 0, RETAINED: 0, UNSOLD: 0 };
+    const counts = { ALL: visiblePlayers.length, AVAILABLE: 0, RETAINED: 0, UNSOLD: 0 };
         visiblePlayers.forEach(p => { counts[getPlayerStatus(p)] += 1; });
         return counts;
     }, [players]);
@@ -175,7 +123,7 @@ const MasterPlayersPage = ({
                             {EMOJIS.CROWN} Master Players
                         </h1>
                         <p className="text-gray-300 text-lg mb-6">
-                            Review every player, sell available or unsold players directly to a team, or retain owner-players before bidding begins.
+                            Review every player and retain available or unsold players directly to a team before bidding begins.
                         </p>
                         <button
                             onClick={onBackToTeams}
@@ -295,12 +243,12 @@ const MasterPlayersPage = ({
                                                 <td className="px-4 py-2 text-sm text-gray-600">{player.category || '-'}</td>
                                                 <td className="px-4 py-2">
                                                     <span className={`text-xs font-bold px-2 py-1 rounded ${STATUS_BADGE[status]}`}>
-                                                        {status === 'RETAINED' ? `${EMOJIS.CROWN} RETAINED` : status}
+                                                        {status}
                                                     </span>
                                                 </td>
                                                 <td className="px-4 py-2 text-sm text-gray-700">{player.soldTo && player.soldTo !== 'Unsold' ? player.soldTo : '-'}</td>
                                                 <td className="px-4 py-2 text-sm text-gray-700">
-                                                    {(status === 'RETAINED' || status === 'SOLD') && player.soldPrice
+                                                    {status === 'SOLD' && player.soldPrice
                                                         ? `${EMOJIS.CURRENCY_RUPEE}${player.soldPrice.toLocaleString()}`
                                                         : '-'}
                                                 </td>
@@ -339,15 +287,9 @@ const MasterPlayersPage = ({
                                                                 disabled={isSubmitting}
                                                                 className="px-3 py-1.5 rounded-lg text-xs font-semibold shadow-md bg-gradient-to-r from-emerald-500 to-green-600 text-white hover:from-emerald-600 hover:to-green-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                                                             >
-                                                                {isSubmitting ? 'Selling…' : status === 'UNSOLD' ? 'Sell Again' : 'Sell'}
+                                                                {isSubmitting ? 'Retaining…' : status === 'UNSOLD' ? 'Retain Again' : 'Retain'}
                                                             </button>
-                                                            <button
-                                                                onClick={() => handleSubmitRetention(player)}
-                                                                disabled={isSubmitting}
-                                                                className="px-3 py-1.5 rounded-lg text-xs font-semibold shadow-md bg-gradient-to-r from-purple-500 to-indigo-600 text-white hover:from-purple-600 hover:to-indigo-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                            >
-                                                                {isSubmitting ? 'Retaining…' : 'Retain'}
-                                                            </button>
+
                                                         </div>
                                                     ) : status === 'UNSOLD' ? (
                                                         <span className="text-xs text-gray-500"></span>
