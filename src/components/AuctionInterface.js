@@ -170,6 +170,15 @@ const AuctionInterface = forwardRef(({
                     </div>
                 </div>
             )}
+            <StandardNavigationMenu
+                currentPage="auction"
+                onAuction={() => {}}
+                onTeamSummary={onViewTeams}
+                onPlayerSummary={onViewMasterPlayers}
+                onUnsoldPlayers={onViewUnsoldPlayers}
+                onMaxBid={onViewMaxBid}
+            />
+
             {/* Main Content Area */}
                 {!categoryStarted ? (
                     /* START Category Section */
