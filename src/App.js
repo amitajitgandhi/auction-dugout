@@ -355,6 +355,9 @@ export default function CricketAuctionTool() {
           categoryConfigs={categoryConfigs}
           onBackToTeams={goToTeamsPage}
           onRetainPlayer={handleRetainPlayer}
+          onUpdatePlayer={(updatedPlayer) => {
+            setPlayers(prev => prev.map(player => player.id === updatedPlayer.id ? updatedPlayer : player));
+          }}
           onSellPlayer={async (player, teamName, amount, wasUnsold, category) =>
             wasUnsold
               ? await sellUnsoldPlayerLater(player, teamName, amount, category)
