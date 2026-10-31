@@ -354,6 +354,9 @@ export default function CricketAuctionTool() {
           tickerDetails={tickerDetails}
           categoryConfigs={categoryConfigs}
           onBackToTeams={goToTeamsPage}
+          onBackToAuction={goToAuctionPage}
+          onViewUnsoldPlayers={goToUnsoldPlayersPage}
+          onViewMaxBid={goToMaxBidPage}
           onRetainPlayer={handleRetainPlayer}
           onUpdatePlayer={(updatedPlayer) => {
             setPlayers(prev => prev.map(player => player.id === updatedPlayer.id ? updatedPlayer : player));
