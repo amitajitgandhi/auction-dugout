@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { parseCSV, validatePlayerCSV, validateTeamCSV, formatDriveLink, formatCricHeroesProfile } from "../utils/csvUtils";
 import { EMOJIS, getDefaultPlayerImage } from "../utils/constants";
-import { supabase } from "../supabaseClient"; // Make sure this is correct
 
 const FileUpload = ({ 
     players, 
@@ -132,154 +131,113 @@ const FileUpload = ({
 
                 const enrichedPlayers = [];
                 const totalPlayers = data.length;
+                const normalizedName = (value) => String(value || '')
+                    .replace(/[\u200B-\u200D\uFEFF\uFFFD]/g, '')
+                    .trim()
+                    .replace(/\s+/g, ' ')
+                    .toLowerCase();
+
+                const nameCounts = new Map();
+                data.forEach((row) => {
+                    const key = normalizedName(row.Name);
+                    if (key) nameCounts.set(key, (nameCounts.get(key) || 0) + 1);
+                });
+
+                const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "https://auction-backend-xeai.onrender.com";
+                const summary = { reused: 0, uploaded: 0, missing: 0, failed: 0, duplicates: 0 };
 
                 for (const [index, row] of data.entries()) {
-                    // Strip invisible/control/replacement characters from CSV values
                     const name = (row["Name"] || "").replace(/[\u200B-\u200D\uFEFF\uFFFD]/g, '').trim();
                     const skill = (row["Skillset"] || "").replace(/[\u200B-\u200D\uFEFF\uFFFD]/g, '').trim();
                     const category = (row["Category"] || "").replace(/[\u200B-\u200D\uFEFF\uFFFD]/g, '').trim() || "OPEN";
-                    const rawPhotoUrl = formatDriveLink(row["Photo Link"] || "");
-                    const cricHeroesProfile = formatCricHeroesProfile(row["CricHeroes_Profile"] || ""); // Extract and format URL
+                    const originalPhotoLink = (row["Photo Link"] || "").trim();
+                    const rawPhotoUrl = formatDriveLink(originalPhotoLink);
+                    const cricHeroesProfile = formatCricHeroesProfile(row["CricHeroes_Profile"] || "");
 
                     if (!name) {
-                        // Name is required — skip only when missing
                         setUploadProgress(Math.round(((index + 1) / totalPlayers) * 100));
                         continue;
                     }
 
-                    if (!rawPhotoUrl) {
-                        // No photo link provided — still include the player with a dummy image
-                        enrichedPlayers.push({
-                            id: index,
-                            name,
-                            skill,
-                            category,
-                            photo: getDefaultPlayerImage(),
-                            driveLink: "",
-                            cricHeroesProfile,
-                            sold: false,
-                            soldTo: null,
-                            soldPrice: null,
-                        });
+                    const isDuplicateInCsv = (nameCounts.get(normalizedName(name)) || 0) > 1;
+                    if (isDuplicateInCsv) summary.duplicates++;
 
-                        console.log(`?? Added ${name} with dummy image (no Photo Link provided)`);
-                        setUploadProgress(Math.round(((index + 1) / totalPlayers) * 100));
-                        continue;
-                    }
+                    let selectedPhoto = '';
+                    let source = '';
+                    let lastError = null;
 
-                    {
-                        // Use your Render backend API for image processing
-                        const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "https://auction-backend-xeai.onrender.com";
-
-                        // Retry up to 2 times for transient errors (500s, 502 Bad Gateway, network failures)
-                        const MAX_RETRIES = 2;
-                        let lastErr = null;
-                        let success = false;
-
-                        for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-                            try {
-                                const response = await fetch(`${API_BASE_URL}/api/upload-player`, {
-                                    method: "POST",
-                                    headers: {
-                                        "Content-Type": "application/json"
-                                    },
-                                    body: JSON.stringify({
-                                        name,
-                                        skill,
-                                        category,
-                                        photoUrl: (row["Photo Link"] || "").trim(),
-                                        cricHeroesProfile
-                                    })
-                                });
-
-                                if (response.ok) {
-                                    const result = await response.json();
-                                    const uploadedPhotoUrl = result.image_url || '';
-                                    if (!uploadedPhotoUrl.includes('.supabase.co/storage/v1/object/')) {
-                                        lastErr = new Error('Backend returned success without a valid Supabase Storage URL');
-                                        continue;
-                                    }
-
-                                    enrichedPlayers.push({
-                                        id: index,
-                                        name,
-                                        skill,
-                                        category,
-                                        photo: uploadedPhotoUrl,
-                                        driveLink: row["Photo Link"]?.trim() || "",
-                                        cricHeroesProfile,
-                                        sold: false,
-                                        soldTo: null,
-                                        soldPrice: null,
-                                    });
-
-                                    console.log(`? Successfully processed ${name} with backend API`);
-                                    success = true;
-                                    break;
-                                }
-
-                                // Client error (4xx) � don't retry, it won't help
-                                if (response.status < 500) {
-                                    let detail = '';
-                                    try {
-                                        const errorBody = await response.json();
-                                        detail = errorBody?.message || errorBody?.error || JSON.stringify(errorBody);
-                                    } catch (_) {}
-                                    lastErr = new Error(`API request failed: ${response.status} ${response.statusText}${detail ? ' - ' + detail : ''}`);
-                                    break;
-                                }
-
-                                // Server error (5xx) � retry
-                                lastErr = new Error(`API request failed: ${response.status} ${response.statusText}`);
-                            } catch (fetchErr) {
-                                // Network error (e.g. 502 + CORS block = "Failed to fetch")
-                                lastErr = fetchErr;
-                            }
-
-                            if (attempt < MAX_RETRIES) {
-                                console.warn(`?? Retry ${attempt + 1}/${MAX_RETRIES} for ${name}: ${lastErr?.message}`);
-                                await new Promise(r => setTimeout(r, (attempt + 1) * 1000));
-                            }
-                        }
-
-                        if (!success) {
-                            console.warn(`?? Server upload failed for ${name}:`, lastErr?.message);
-
-                            // Fallback: Use the Google Drive thumbnail URL directly as photo.
-                            // Don't try a fetch/HEAD check here � Google Drive blocks CORS for
-                            // fetch requests, but the URL works fine inside <img> tags.
-                            const fallbackPhoto = rawPhotoUrl || getDefaultPlayerImage();
-
-                            enrichedPlayers.push({
-                                id: index,
-                                name,
-                                skill,
-                                category,
-                                photo: fallbackPhoto,
-                                driveLink: row["Photo Link"]?.trim() || "",
-                                cricHeroesProfile,
-                                sold: false,
-                                soldTo: null,
-                                soldPrice: null,
+                    for (let attempt = 0; attempt <= 2; attempt++) {
+                        try {
+                            const response = await fetch(`${API_BASE_URL}/api/upload-player`, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                    name,
+                                    skill,
+                                    category,
+                                    photoUrl: originalPhotoLink,
+                                    forceDownload: isDuplicateInCsv,
+                                    cricHeroesProfile
+                                })
                             });
 
-                            console.log(`?? Added ${name} with fallback image (Drive thumbnail)`);
+                            const result = await response.json().catch(() => ({}));
+                            if (response.ok) {
+                                selectedPhoto = result.image_url || '';
+                                source = result.source || '';
+                                if (source === 'storage') summary.reused++;
+                                else if (source === 'drive') summary.uploaded++;
+                                else if (source === 'missing') summary.missing++;
+                                break;
+                            }
+
+                            lastError = new Error(result.message || `API request failed: ${response.status} ${response.statusText}`);
+                            if (response.status < 500) break;
+                        } catch (requestError) {
+                            lastError = requestError;
+                        }
+
+                        if (attempt < 2) {
+                            console.warn(`Retry ${attempt + 1}/2 for ${name}: ${lastError?.message || 'request failed'}`);
+                            await new Promise(resolve => setTimeout(resolve, (attempt + 1) * 1000));
                         }
                     }
 
-                    // Update progress after each player
+                    if (!selectedPhoto) {
+                        if (source !== 'missing') summary.failed++;
+                        selectedPhoto = rawPhotoUrl || getDefaultPlayerImage();
+                        if (source !== 'missing') {
+                            console.warn(`Photo processing did not return a Storage URL for ${name}:`, lastError?.message || source);
+                        }
+                    }
+
+                    enrichedPlayers.push({
+                        id: index,
+                        name,
+                        skill,
+                        category,
+                        photo: selectedPhoto,
+                        driveLink: originalPhotoLink,
+                        cricHeroesProfile,
+                        sold: false,
+                        soldTo: null,
+                        soldPrice: null,
+                    });
+
                     setUploadProgress(Math.round(((index + 1) / totalPlayers) * 100));
                 }
 
-                // Show appropriate message based on results
                 if (enrichedPlayers.length === 0) {
-                    onError(`${EMOJIS.WARNING} No valid players were processed! Please check your CSV file format and ensure:\n� Players have both Name and Photo Link\n� Photo links are accessible\n� CSV follows the required format`);
-                    // Don't call onPlayersLoad for empty results
+                    onError(`${EMOJIS.WARNING} No valid players were processed! Please check your CSV file format and ensure player names are provided.`);
                 } else {
                     onPlayersLoad(enrichedPlayers);
-                    console.log(`? Successfully loaded ${enrichedPlayers.length} players from CSV file!`);
+                    console.log("Player CSV photo processing summary:", summary);
+                    if (showManagedToast) {
+                        showManagedToast('success',
+                            `Players loaded: ${enrichedPlayers.length}. Photos reused: ${summary.reused}; uploaded: ${summary.uploaded}; missing: ${summary.missing}; failed: ${summary.failed}; duplicate rows: ${summary.duplicates}.`);
+                    }
                 }
-                
+
                 setIsUploadingPlayers(false);
                 setUploadProgress(0);
             } catch (err) {
