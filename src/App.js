@@ -384,6 +384,9 @@ export default function CricketAuctionTool() {
           tournamentName={tournamentName}
           tickerDetails={tickerDetails}
           onBackToTeams={goToTeamsPage}
+          onBackToAuction={goToAuctionPage}
+          onViewMasterPlayers={goToMasterPlayersPage}
+          onViewMaxBid={goToMaxBidPage}
           onSellUnsoldPlayer={sellUnsoldPlayerLater}
           showManagedToast={showManagedToast}
         />
@@ -414,6 +417,9 @@ export default function CricketAuctionTool() {
           tickerDetails={tickerDetails}
           onResetAuction={handleResetAuction}
           onBackToAuction={goToAuctionPage}
+          onBackToTeams={goToTeamsPage}
+          onViewMasterPlayers={goToMasterPlayersPage}
+          onViewUnsoldPlayers={goToUnsoldPlayersPage}
           showManagedToast={showManagedToast}
           onWhatsAppSettings={handleWhatsAppSettings}
           onTeamWhatsAppShare={(teamName, teamData) => handleTeamWhatsAppShare(teamName, teamData, tournamentName)}
