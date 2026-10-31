@@ -28,6 +28,9 @@ const MasterPlayersPage = ({
     tickerDetails = "",
     categoryConfigs = {},
     onBackToTeams,
+    onBackToAuction,
+    onViewUnsoldPlayers,
+    onViewMaxBid,
     onSellPlayer,
     onUpdatePlayer,
     showManagedToast
