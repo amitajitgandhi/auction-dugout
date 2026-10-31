@@ -288,7 +288,8 @@ const AuctionInterface = forwardRef(({
                                             <label className="font-semibold text-gray-700">Bid Amount</label>
                                             <input
                                                 type="number"
-                                                min="1"
+                                                min="0"
+                                                step="200000"
                                                 className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
                                                 value={bidAmountInput}
                                                 onChange={e => setBidAmountInput(e.target.value)}
