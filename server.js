@@ -132,14 +132,13 @@ const sanitizePlayerName = (name) => {
         .trim();
 };
 
-// Endpoint: Resolve/reuse a player's existing Storage photo, or download and upload a fallback.
+// Endpoint: Always download and upload a new player photo; use a placeholder on image failure.
 app.post('/api/upload-player', async (req, res) => {
     const {
         name: rawName,
         skill,
         category = 'OPEN',
         photoUrl = '',
-        forceDownload = false,
         cricHeroesProfile = '',
         tournamentName = null,
         accessToken = ''
@@ -161,27 +160,7 @@ app.post('/api/upload-player', async (req, res) => {
         const userId = authData.user.id;
 
         const storage = supabase.storage.from(BUCKET_NAME);
-        const baseName = sanitizeFileName(name).replace(/\.(?:jpe?g|png)$/i, '');
-        const escapedBaseName = baseName.replace(/[.*+?^$()|[\]\\]/g, '\\$&');
-        // Existing player photos may be JPG/JPEG or PNG. Match both formats,
-        // including uniquely suffixed fallback uploads.
-        const matchingFilePattern = new RegExp('^' + escapedBaseName + '(?:_[^/]*)?\\.(?:jpe?g|png)$', 'i');
-
-        const matchingFiles = [];
-        const pageSize = 1000;
-        for (let offset = 0; ; offset += pageSize) {
-            const { data: files, error: listError } = await storage.list('', {
-                limit: pageSize,
-                offset,
-                search: baseName,
-            });
-            if (listError) throw listError;
-
-            const page = files || [];
-            matchingFiles.push(...page.filter(file => matchingFilePattern.test(file.name)));
-            if (page.length < pageSize) break;
-        }
-
+        const baseName = sanitizeFileName(name).replace(/\.(?:jpe?g|png)$/i, '') || 'player';
         const savePlayerRecord = async (photoUrlValue) => {
             const { error: dbError } = await supabase.from('players').insert([{
                 user_id: userId,
@@ -195,43 +174,15 @@ app.post('/api/upload-player', async (req, res) => {
             if (dbError) throw dbError;
         };
 
-        if (!forceDownload && matchingFiles.length === 1) {
-            const existingFileName = matchingFiles[0].name;
-            const { data: publicData } = storage.getPublicUrl(existingFileName);
-            const imageUrl = publicData?.publicUrl || '';
-            if (!imageUrl) throw new Error('Could not generate public URL for ' + existingFileName);
-
-            await savePlayerRecord(imageUrl);
-            console.log('♻️ [' + name + '] Reusing existing Storage image: ' + existingFileName);
-            return res.json({
-                message: 'Existing Storage image reused',
-                image_url: imageUrl,
-                source: 'storage',
-                matchedFiles: matchingFiles.length,
-            });
-        }
-
-        if (!photoLink) {
-            // A photo is optional. Persist the player even when Storage has no
-            // unambiguous match and the CSV has no Drive link.
-            await savePlayerRecord(null);
-            console.info('[PLAYER_CSV] Saved player without a photo:', {
-                user_id: userId,
-                name,
-                matched_storage_files: matchingFiles.length,
-                reason: matchingFiles.length > 1
-                    ? 'multiple_storage_matches_no_csv_photo_link'
-                    : 'no_storage_match_or_csv_photo_link'
-            });
-            return res.json({
-                message: 'Player saved without a photo',
-                image_url: '',
-                photo_url: null,
-                source: 'missing',
-                player_saved: true,
-                matchedFiles: matchingFiles.length,
-            });
-        }
+        // Use the same stable, self-contained SVG placeholder as the frontend.
+        const placeholderSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="288" height="288" viewBox="0 0 288 288"><rect width="288" height="288" rx="144" fill="#f3f4f6"/><circle cx="144" cy="115" r="35" fill="#d1d5db"/><path d="M75 220 Q75 180 144 180 Q213 180 213 220 L213 288 H75Z" fill="#d1d5db"/><text x="144" y="256" font-family="Arial" font-size="14" fill="#6b7280" text-anchor="middle">No Image</text></svg>';
+        const dummyImageUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(placeholderSvg);
+        const saveWithDummy = async (reason) => {
+            await savePlayerRecord(dummyImageUrl);
+            console.warn('[PLAYER_CSV] Placeholder used for ' + name + ': ' + reason);
+            return res.json({ message: 'Player saved with dummy image', image_url: dummyImageUrl, source: 'dummy', player_saved: true });
+        };
+        if (!photoLink) return await saveWithDummy('Missing photo link');
 
         let buffer = null;
         let lastError = null;
@@ -239,7 +190,7 @@ app.post('/api/upload-player', async (req, res) => {
 
         for (const url of urls) {
             try {
-                console.log('📥 [' + name + '] Downloading fallback photo from ' + url.substring(0, 100));
+                console.log('📥 [' + name + '] Downloading player photo from ' + url.substring(0, 100));
                 const controller = new AbortController();
                 const timeout = setTimeout(() => controller.abort(), 30000);
                 let response;
@@ -275,14 +226,10 @@ app.post('/api/upload-player', async (req, res) => {
             }
         }
 
-        if (!buffer) {
-            return res.status(400).json({
-                message: ('Could not download image for ' + name + '. Ensure the Drive file is shared with anyone who has the link. ' + (lastError || '')).trim(),
-            });
-        }
+        if (!buffer) return await saveWithDummy(lastError || 'Image download failed');
 
         const detected = detectImageType(buffer);
-        if (!detected) throw new Error('Downloaded file is not a supported image');
+        if (!detected) return await saveWithDummy('Unsupported image format');
 
         const uniqueSuffix = Date.now() + '_' + Math.random().toString(36).slice(2, 8);
         const fileName = baseName + '_' + uniqueSuffix + detected.ext;
@@ -291,19 +238,18 @@ app.post('/api/upload-player', async (req, res) => {
             cacheControl: '3600',
             upsert: false,
         });
-        if (uploadError) throw uploadError;
+        if (uploadError) return await saveWithDummy('Storage upload failed: ' + uploadError.message);
 
         const { data: publicData } = storage.getPublicUrl(fileName);
         const imageUrl = publicData?.publicUrl || '';
-        if (!imageUrl) throw new Error('Could not generate public URL for uploaded image');
+        if (!imageUrl) return await saveWithDummy('Could not generate public URL');
 
         await savePlayerRecord(imageUrl);
-        console.log('✅ [' + name + '] Uploaded fallback image to Storage: ' + fileName);
+        console.log('✅ [' + name + '] Uploaded player image to Storage: ' + fileName);
         return res.json({
-            message: 'Fallback image downloaded and uploaded',
+            message: 'New player image downloaded and uploaded',
             image_url: imageUrl,
             source: 'drive',
-            matchedFiles: matchingFiles.length,
             storageFile: fileName,
         });
     } catch (err) {
