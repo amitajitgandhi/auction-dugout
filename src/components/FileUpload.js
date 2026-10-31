@@ -117,7 +117,7 @@ const FileUpload = ({
         if (!file) return;
 
         if (!file.name.toLowerCase().endsWith('.csv')) {
-            onError(\`\${EMOJIS.CROSS_MARK} Invalid file type! Please select a CSV file (.csv extension required).\`);
+            onError(`${EMOJIS.CROSS_MARK} Invalid file type! Please select a CSV file (.csv extension required).`);
             e.target.value = '';
             return;
         }
@@ -168,7 +168,7 @@ const FileUpload = ({
 
                     for (let attempt = 0; attempt <= 2; attempt++) {
                         try {
-                            const response = await fetch(\`\${API_BASE_URL}/api/upload-player\`, {
+                            const response = await fetch(`${API_BASE_URL}/api/upload-player`, {
                                 method: "POST",
                                 headers: { "Content-Type": "application/json" },
                                 body: JSON.stringify({
@@ -191,22 +191,24 @@ const FileUpload = ({
                                 break;
                             }
 
-                            lastError = new Error(result.message || \`API request failed: \${response.status} \${response.statusText}\`);
+                            lastError = new Error(result.message || `API request failed: ${response.status} ${response.statusText}`);
                             if (response.status < 500) break;
                         } catch (requestError) {
                             lastError = requestError;
                         }
 
                         if (attempt < 2) {
-                            console.warn(\`Retry \${attempt + 1}/2 for \${name}: \${lastError?.message || 'request failed'}\`);
+                            console.warn(`Retry ${attempt + 1}/2 for ${name}: ${lastError?.message || 'request failed'}`);
                             await new Promise(resolve => setTimeout(resolve, (attempt + 1) * 1000));
                         }
                     }
 
                     if (!selectedPhoto) {
-                        summary.failed++;
+                        if (source !== 'missing') summary.failed++;
                         selectedPhoto = rawPhotoUrl || getDefaultPlayerImage();
-                        console.warn(\`Photo processing did not return a Storage URL for \${name}:\`, lastError?.message || source);
+                        if (source !== 'missing') {
+                            console.warn(`Photo processing did not return a Storage URL for ${name}:`, lastError?.message || source);
+                        }
                     }
 
                     enrichedPlayers.push({
@@ -226,13 +228,13 @@ const FileUpload = ({
                 }
 
                 if (enrichedPlayers.length === 0) {
-                    onError(\`\${EMOJIS.WARNING} No valid players were processed! Please check your CSV file format and ensure player names are provided.\`);
+                    onError(`${EMOJIS.WARNING} No valid players were processed! Please check your CSV file format and ensure player names are provided.`);
                 } else {
                     onPlayersLoad(enrichedPlayers);
                     console.log("Player CSV photo processing summary:", summary);
                     if (showManagedToast) {
                         showManagedToast('success',
-                            \`Players loaded: \${enrichedPlayers.length}. Photos reused: \${summary.reused}; uploaded: \${summary.uploaded}; missing: \${summary.missing}; failed: \${summary.failed}; duplicate rows: \${summary.duplicates}.\`);
+                            `Players loaded: ${enrichedPlayers.length}. Photos reused: ${summary.reused}; uploaded: ${summary.uploaded}; missing: ${summary.missing}; failed: ${summary.failed}; duplicate rows: ${summary.duplicates}.`);
                     }
                 }
 
@@ -245,7 +247,7 @@ const FileUpload = ({
                 setUploadProgress(0);
             }
         }, (err) => {
-            onError(\`\${EMOJIS.CROSS_MARK} Failed to read CSV file: \${err}\`);
+            onError(`${EMOJIS.CROSS_MARK} Failed to read CSV file: ${err}`);
             e.target.value = '';
             setIsUploadingPlayers(false);
             setUploadProgress(0);
