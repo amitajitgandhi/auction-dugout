@@ -318,7 +318,6 @@ const AuctionInterface = forwardRef(({
                     onConfirmCategoryChange={confirmCategoryChange}
                     onCancelCategoryChange={() => setShowCategoryChangeConfirm(false)}
                 />
-            </div>
         </>
     );
 });
