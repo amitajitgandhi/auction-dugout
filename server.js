@@ -183,7 +183,7 @@ app.post('/api/upload-player', async (req, res) => {
 
                     // Validate: must be a real image (magic bytes)
                     if (!detectImageType(candidateBuffer)) {
-                        lastError = `Not a valid image (first bytes: ${candidateBuffer.slice(0, 16).toString('hex')})`;
+                        lastError = `Not a valid image from ${url} (content-type: ${response.headers.get('content-type') || 'unknown'}, first bytes: ${candidateBuffer.slice(0, 16).toString('hex')})`;
                         console.warn(`⚠️ [${name}] ${lastError}`);
                         continue;
                     }
@@ -194,6 +194,42 @@ app.post('/api/upload-player', async (req, res) => {
                 } catch (fetchErr) {
                     lastError = fetchErr.message;
                     console.warn(`⚠️ [${name}] Fetch failed: ${lastError}`);
+                }
+            }
+
+            // Final Drive fallback: inspect the public preview page and extract its og:image URL.
+            if (!buffer) {
+                try {
+                    console.log(`📥 [${name}] Trying Drive preview metadata fallback...`);
+                    const preview = await fetch(photoUrl, {
+                        headers: {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36',
+                            'Accept': 'text/html,application/xhtml+xml',
+                        },
+                        redirect: 'follow',
+                    });
+                    const html = await preview.text();
+                    const match = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)
+                        || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
+                    if (match?.[1]) {
+                        const imageUrl = match[1].replace(/\\u003d/g, '=').replace(/&amp;/g, '&');
+                        console.log(`📥 [${name}] Trying og:image: ${imageUrl.substring(0, 100)}...`);
+                        const imageResponse = await fetch(imageUrl, {
+                            headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'image/*,*/*;q=0.8' },
+                            redirect: 'follow',
+                        });
+                        const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+                        if (imageResponse.ok && detectImageType(imageBuffer)) {
+                            buffer = imageBuffer;
+                            console.log(`✅ [${name}] Downloaded image via Drive preview metadata (${buffer.length} bytes)`);
+                        } else {
+                            lastError = `Drive preview og:image was not a valid image (status: ${imageResponse.status}, content-type: ${imageResponse.headers.get('content-type') || 'unknown'})`;
+                        }
+                    } else {
+                        lastError = 'Drive preview page did not expose an og:image URL';
+                    }
+                } catch (previewErr) {
+                    lastError = `Drive preview fallback failed: ${previewErr.message}`;
                 }
             }
         } else {
