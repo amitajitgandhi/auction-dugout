@@ -60,9 +60,13 @@ export function useAuth() {
   // Sign out
   const signOut = async () => {
     setLoading(true);
-    await supabase.auth.signOut();
-    setUser(null);
-    setLoading(false);
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (!error) setUser(null);
+      return { error };
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Get current user (if already logged in)
