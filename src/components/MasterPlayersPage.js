@@ -127,7 +127,7 @@ const MasterPlayersPage = ({
         });
     };
 
-    const saveEdit = () => {
+    const saveEdit = async () => {
         const photoUrl = editForm.photoUrl.trim();
         if (photoUrl && (!/^https?:\/\//i.test(photoUrl) || !/supabase\.co\/storage\/v1\/object\/(public|sign)\//i.test(photoUrl))) {
             showManagedToast?.('error', 'Please enter a valid resolvable Supabase Storage photo URL.', { icon: EMOJIS.WARNING, duration: 3500 });
@@ -140,11 +140,23 @@ const MasterPlayersPage = ({
             skill: editForm.skill.trim(),
             basePrice: editForm.basePrice === '' ? editingPlayer.basePrice : Number(editForm.basePrice),
             cricHeroesLink: editForm.cricHeroesLink.trim(),
-            photoUrl
+            photoUrl,
+            photo: photoUrl
         };
-        onUpdatePlayer?.(updated);
-        setEditingPlayer(null);
-        showManagedToast?.('success', 'Player details updated successfully.', { icon: EMOJIS.CHECK_MARK, duration: 3000 });
+
+        try {
+            const saved = await onUpdatePlayer?.(updated);
+            if (saved === false) throw new Error('Player update was not confirmed as saved.');
+            setEditingPlayer(null);
+            showManagedToast?.('success', 'Player details updated and saved successfully.', { icon: EMOJIS.CHECK_MARK, duration: 3000 });
+        } catch (error) {
+            console.error('[PLAYER_EDIT] Failed to persist edited player:', {
+                playerId: updated.id,
+                playerName: updated.name,
+                error: error?.message || error
+            });
+            showManagedToast?.('error', 'Player details could not be saved to the cloud. Please retry.', { icon: EMOJIS.WARNING, duration: 4000 });
+        }
     };
 
     return (

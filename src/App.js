@@ -391,8 +391,31 @@ export default function CricketAuctionTool() {
           onViewUnsoldPlayers={goToUnsoldPlayersPage}
           onViewMaxBid={goToMaxBidPage}
           onRetainPlayer={handleRetainPlayer}
-          onUpdatePlayer={(updatedPlayer) => {
-            setPlayers(prev => prev.map(player => player.id === updatedPlayer.id ? updatedPlayer : player));
+          onUpdatePlayer={async (updatedPlayer) => {
+            const updatedPlayers = players.map(player =>
+              player.id === updatedPlayer.id ? updatedPlayer : player
+            );
+            setPlayers(updatedPlayers);
+
+            // Persist the full current auction snapshot immediately after an edit.
+            const currentState = {
+              players: updatedPlayers,
+              teams,
+              tournamentName,
+              sponsorName,
+              tickerDetails,
+              isTournamentNameSet,
+              whatsappSettings,
+              categoryConfigs,
+              boosterPointsPerBooster,
+              auctionStarted: auction.auctionStarted,
+              selectedCategory: auction.selectedCategory,
+              completedCategories: Array.from(auction.completedCategories || []),
+              currentPlayerName: auction.currentPlayer?.name || null
+            };
+            const saved = await persistence.saveState(currentState);
+            if (!saved) throw new Error('Supabase did not confirm saving the updated player details.');
+            return true;
           }}
           onSellPlayer={async (player, teamName, amount, wasUnsold, category) =>
             wasUnsold
