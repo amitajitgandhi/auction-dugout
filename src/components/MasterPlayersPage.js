@@ -29,12 +29,15 @@ const MasterPlayersPage = ({
     categoryConfigs = {},
     onBackToTeams,
     onSellPlayer,
+    onUpdatePlayer,
     showManagedToast
 }) => {
     const [statusFilter, setStatusFilter] = useState('ALL');
     const [categoryFilter, setCategoryFilter] = useState('ALL');
     const [rowInputs, setRowInputs] = useState({});
     const [submittingId, setSubmittingId] = useState(null);
+    const [editingPlayer, setEditingPlayer] = useState(null);
+    const [editForm, setEditForm] = useState({ name: '', category: '', skill: '', basePrice: '', cricHeroesLink: '', photoUrl: '' });
 
     const teamNames = useMemo(() => Object.keys(teams || {}), [teams]);
 
@@ -57,8 +60,6 @@ const MasterPlayersPage = ({
 
     const filteredPlayers = useMemo(() => {
         return (players || []).filter(p => {
-            // This page is for assigning/selling players; already-sold players are intentionally hidden.
-            if (getPlayerStatus(p) === 'SOLD') return false;
             if (statusFilter !== 'ALL' && getPlayerStatus(p) !== statusFilter) return false;
             if (categoryFilter !== 'ALL' && p.category !== categoryFilter) return false;
             return true;
@@ -102,13 +103,45 @@ const MasterPlayersPage = ({
     };
 
     const statusCounts = useMemo(() => {
-        const result = { ALL: (players || []).length, AVAILABLE: 0, UNSOLD: 0 };
+        const result = { ALL: (players || []).length, AVAILABLE: 0, SOLD: 0, UNSOLD: 0 };
         (players || []).forEach(p => {
             const status = getPlayerStatus(p);
             if (status in result) result[status] += 1;
         });
         return result;
     }, [players]);
+
+    const openEdit = (player) => {
+        setEditingPlayer(player);
+        setEditForm({
+            name: player.name || '',
+            category: player.category || '',
+            skill: player.skill || '',
+            basePrice: player.basePrice ?? '',
+            cricHeroesLink: player.cricHeroesLink || player.cricHeroesUrl || '',
+            photoUrl: player.photoUrl || player.photo || ''
+        });
+    };
+
+    const saveEdit = () => {
+        const photoUrl = editForm.photoUrl.trim();
+        if (photoUrl && (!/^https?:\/\//i.test(photoUrl) || !/supabase\.co\/storage\/v1\/object\/(public|sign)\//i.test(photoUrl))) {
+            showManagedToast?.('error', 'Please enter a valid resolvable Supabase Storage photo URL.', { icon: EMOJIS.WARNING, duration: 3500 });
+            return;
+        }
+        const updated = {
+            ...editingPlayer,
+            name: editForm.name.trim(),
+            category: editForm.category.trim(),
+            skill: editForm.skill.trim(),
+            basePrice: editForm.basePrice === '' ? editingPlayer.basePrice : Number(editForm.basePrice),
+            cricHeroesLink: editForm.cricHeroesLink.trim(),
+            photoUrl
+        };
+        onUpdatePlayer?.(updated);
+        setEditingPlayer(null);
+        showManagedToast?.('success', 'Player details updated successfully.', { icon: EMOJIS.CHECK_MARK, duration: 3000 });
+    };
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-800 to-gray-900 bg-fixed relative overflow-x-hidden">
@@ -243,7 +276,12 @@ const MasterPlayersPage = ({
                                         return (
                                             <tr key={player.id} className="border-t border-gray-200 hover:bg-gray-50">
                                                 <td className="px-4 py-2 text-sm font-medium text-gray-700">{idx + 1}</td>
-                                                <td className="px-4 py-2 text-sm font-semibold text-gray-800">{player.name}</td>
+                                                <td className="px-4 py-2 text-sm font-semibold text-gray-800">
+                                                    <div className="flex items-center gap-2">
+                                                        <span>{player.name}</span>
+                                                        <button onClick={() => openEdit(player)} title="Edit player details" className="text-indigo-600 hover:text-indigo-800 text-base">✏️</button>
+                                                    </div>
+                                                </td>
                                                 <td className="px-4 py-2 text-sm text-gray-600">{player.category || '-'}</td>
                                                 <td className="px-4 py-2">
                                                     <span className={`text-xs font-bold px-2 py-1 rounded ${STATUS_BADGE[status]}`}>
@@ -295,6 +333,8 @@ const MasterPlayersPage = ({
                                                             </button>
 
                                                         </div>
+                                                    ) : status === 'SOLD' ? (
+                                                        <span className="text-xs text-gray-400">Already retained</span>
                                                     ) : status === 'UNSOLD' ? (
                                                         <span className="text-xs text-gray-500"></span>
                                                     ) : (
@@ -310,6 +350,33 @@ const MasterPlayersPage = ({
                     </div>
                 </div>
             </div>
+            {editingPlayer && (
+                <div className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-5 max-h-[90vh] overflow-y-auto">
+                        <h3 className="text-xl font-bold text-gray-800 mb-4">✏️ Edit Player</h3>
+                        <div className="space-y-3">
+                            {[
+                                ['name', 'Player Name', 'text'],
+                                ['category', 'Category', 'text'],
+                                ['skill', 'Skill', 'text'],
+                                ['basePrice', 'Base Price', 'number'],
+                                ['cricHeroesLink', 'CricHeroes Link', 'url'],
+                                ['photoUrl', 'Supabase Storage Photo URL', 'url']
+                            ].map(([field, label, type]) => (
+                                <label key={field} className="block text-sm font-semibold text-gray-700">
+                                    {label}
+                                    <input type={type} value={editForm[field]} onChange={e => setEditForm(prev => ({ ...prev, [field]: e.target.value }))} className="mt-1 w-full border rounded-lg px-3 py-2 text-sm" />
+                                </label>
+                            ))}
+                            <p className="text-xs text-gray-500">Photo URL must be a resolvable Supabase Storage public/signed URL.</p>
+                        </div>
+                        <div className="flex justify-end gap-3 mt-5">
+                            <button onClick={() => setEditingPlayer(null)} className="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-semibold">Cancel</button>
+                            <button onClick={saveEdit} className="px-4 py-2 rounded-lg bg-indigo-600 text-white font-semibold">Save Changes</button>
+                        </div>
+                    </div>
+                </div>
+            )}
             <footer className="w-full text-center py-4 mt-8 text-white bg-black bg-opacity-60 text-lg font-semibold tracking-wide fixed bottom-0 left-0 z-50">Product by Amit Gandhi</footer>
         </div>
     );
