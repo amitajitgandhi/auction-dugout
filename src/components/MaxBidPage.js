@@ -11,6 +11,9 @@ const MaxBidPage = ({
     tickerDetails = "", 
     onResetAuction, 
     onBackToAuction,
+    onBackToTeams,
+    onViewMasterPlayers,
+    onViewUnsoldPlayers,
     showManagedToast,
     onWhatsAppSettings,
     onTeamWhatsAppShare,
@@ -208,8 +211,11 @@ const MaxBidPage = ({
     };
 
     if (availableCategories.length === 0) {
-        return (
+        const sharedNav = <StandardNavigationMenu currentPage="maxbid" onAuction={onBackToAuction} onTeamSummary={onBackToTeams} onPlayerSummary={onViewMasterPlayers} onUnsoldPlayers={onViewUnsoldPlayers} onMaxBid={() => {}} />;
+
+    return (
             <div className="min-h-screen bg-gradient-to-br from-gray-800 to-gray-900 bg-fixed relative overflow-x-hidden">
+            {sharedNav}
                 {/* Tournament Name Ticker */}
                 <div className="fixed top-0 left-0 right-0 z-40 bg-gradient-to-r from-yellow-400 via-red-500 to-pink-500 text-white py-2 shadow-lg">
                     <div className="overflow-hidden whitespace-nowrap">
