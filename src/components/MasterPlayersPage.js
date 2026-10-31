@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { EMOJIS } from '../utils/constants';
 import { getCategoryRequirementStatus } from '../utils/centralizedTeamData';
+import StandardNavigationMenu from './StandardNavigationMenu';
 
 // Master assignment uses the same normal sale logic as the auction.
 const getPlayerStatus = (p) => {
