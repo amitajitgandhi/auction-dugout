@@ -107,6 +107,27 @@ export const useAuction = (players, showManagedToast) => {
             return;
         }
 
+        // Reconcile against the authoritative player list before leaving Round 1.
+        // Retentions and edits are pre-auction, so this is a safety check, not a live queue rebuild.
+        if (!isUnsoldRound) {
+            const queuedIds = new Set(queueArr.map(key => String(key)));
+            const missedAvailable = players.filter(player =>
+                normalize(player.category) === normalize(selectedCategory) &&
+                !player.sold && player.soldTo !== 'Unsold' &&
+                !queuedIds.has(String(player.id ?? `name:${player.name}`))
+            );
+            if (missedAvailable.length > 0) {
+                const names = missedAvailable.map(player => player.name).join(', ');
+                showManagedToast && showManagedToast('error',
+                    `Found ${missedAvailable.length} available player(s) missing from the auction queue: ${names}. Adding them to Round 1.`);
+                setCurrentQueue(new Set([...queueArr, ...missedAvailable.map(player => player.id ?? `name:${player.name}`)]));
+                setCurrentQueuePointer(queueArr.length);
+                setCurrentPlayer(null);
+                setPlayerProcessed(false);
+                return;
+            }
+        }
+
         // Round 1 is over. Give its unsold players exactly one more pass.
         if (!isUnsoldRound) {
             const unsoldKeys = queueArr.filter(key => {
