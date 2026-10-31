@@ -161,6 +161,18 @@ app.post('/api/upload-player', async (req, res) => {
 
         const storage = supabase.storage.from(BUCKET_NAME);
         const baseName = sanitizeFileName(name).replace(/\.(?:jpe?g|png)$/i, '') || 'player';
+        // A retry may arrive after the database committed but the response was lost.
+        const findExistingPlayer = async () => {
+            let query = supabase.from('players').select('id, photo_url')
+                .eq('user_id', userId).eq('name', name);
+            query = tournamentName ? query.eq('tournament_name', tournamentName) : query.is('tournament_name', null);
+            const { data, error } = await query.limit(2);
+            if (error) throw error;
+            if (data.length > 1) throw new Error('Multiple matching player records; manual reconciliation required');
+            return data[0] || null;
+        };
+        const existing = await findExistingPlayer();
+        if (existing) return res.json({ message: 'Player already saved', image_url: existing.photo_url, source: 'existing', player_saved: true });
         const savePlayerRecord = async (photoUrlValue) => {
             const { error: dbError } = await supabase.from('players').insert([{
                 user_id: userId,
@@ -182,7 +194,13 @@ app.post('/api/upload-player', async (req, res) => {
             console.warn('[PLAYER_CSV] Placeholder used for ' + name + ': ' + reason);
             return res.json({ message: 'Player saved with dummy image', image_url: dummyImageUrl, source: 'dummy', player_saved: true });
         };
-        if (!photoLink) return await saveWithDummy('Missing photo link');
+        // Persist the player before attempting photo downloads.
+        await savePlayerRecord(dummyImageUrl);
+        const afterInsertFallback = async (reason) => {
+            console.warn('[PLAYER_CSV] Placeholder used for ' + name + ': ' + reason);
+            return res.json({ message: 'Player saved with dummy image', image_url: dummyImageUrl, source: 'dummy', player_saved: true });
+        };
+        if (!photoLink) return await afterInsertFallback('Missing photo link');
 
         let buffer = null;
         let lastError = null;
@@ -226,10 +244,10 @@ app.post('/api/upload-player', async (req, res) => {
             }
         }
 
-        if (!buffer) return await saveWithDummy(lastError || 'Image download failed');
+        if (!buffer) return await afterInsertFallback(lastError || 'Image download failed');
 
         const detected = detectImageType(buffer);
-        if (!detected) return await saveWithDummy('Unsupported image format');
+        if (!detected) return await afterInsertFallback('Unsupported image format');
 
         const uniqueSuffix = Date.now() + '_' + Math.random().toString(36).slice(2, 8);
         const fileName = baseName + '_' + uniqueSuffix + detected.ext;
@@ -238,13 +256,16 @@ app.post('/api/upload-player', async (req, res) => {
             cacheControl: '3600',
             upsert: false,
         });
-        if (uploadError) return await saveWithDummy('Storage upload failed: ' + uploadError.message);
+        if (uploadError) return await afterInsertFallback('Storage upload failed: ' + uploadError.message);
 
         const { data: publicData } = storage.getPublicUrl(fileName);
         const imageUrl = publicData?.publicUrl || '';
-        if (!imageUrl) return await saveWithDummy('Could not generate public URL');
+        if (!imageUrl) return await afterInsertFallback('Could not generate public URL');
 
-        await savePlayerRecord(imageUrl);
+        const saved = await findExistingPlayer();
+        const { error: photoUpdateError } = await supabase.from('players')
+            .update({ photo_url: imageUrl }).eq('id', saved.id).eq('user_id', userId);
+        if (photoUpdateError) return await afterInsertFallback('Photo URL update failed: ' + photoUpdateError.message);
         console.log('✅ [' + name + '] Uploaded player image to Storage: ' + fileName);
         return res.json({
             message: 'New player image downloaded and uploaded',
