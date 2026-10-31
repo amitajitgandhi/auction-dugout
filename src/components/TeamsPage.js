@@ -28,7 +28,7 @@ onDecrementTeamBooster,
 onUpdatePointsPerBooster,
 boosterPointsPerBooster,
     updateTeamPurse,
-    onViewUnsoldPlayers, onViewMasterPlayers, onViewAuction, onViewMaxBid, onLogout // shared navigation
+    onViewUnsoldPlayers, onViewMasterPlayers, onViewAuction, onViewMaxBid, onTableSpin, onJerseySpin, onLogout // shared navigation
 }) => {
     const [showMenu, setShowMenu] = useState(false);
     const [showPlayerSpin, setShowPlayerSpin] = useState(false);
@@ -354,6 +354,8 @@ boosterPointsPerBooster,
                 <button onClick={handleBoosterOpen} className="w-full text-left px-4 py-3 hover:bg-yellow-50 flex items-center gap-3"><span>⚡</span><span className="text-gray-700 font-medium">Add Booster Points</span></button>
                 <button onClick={handleExportTeams} disabled={Object.keys(teams).length === 0 || Object.values(teams).every(team => (team.players || []).length === 0)} className="w-full text-left px-4 py-3 hover:bg-blue-50 flex items-center gap-3 disabled:opacity-50"><span>📊</span><span className="text-gray-700 font-medium">Export Teams</span></button>
                 <button onClick={handleExportAllTeamsImage} disabled={Object.keys(teams).length === 0} className="w-full text-left px-4 py-3 hover:bg-emerald-50 flex items-center gap-3 disabled:opacity-50"><span>🖼️</span><span className="text-gray-700 font-medium">Export All Teams (Image)</span></button>
+                <button onClick={onTableSpin} className="w-full text-left px-4 py-3 hover:bg-purple-50 flex items-center gap-3"><span>🎯</span><span className="text-gray-700 font-medium">Table - Spin Wheel</span></button>
+                <button onClick={onJerseySpin} className="w-full text-left px-4 py-3 hover:bg-indigo-50 flex items-center gap-3"><span>🎨</span><span className="text-gray-700 font-medium">Jersey Color - Spin Wheel</span></button>
                 <button onClick={handlePlayerSpin} className="w-full text-left px-4 py-3 hover:bg-purple-50 flex items-center gap-3"><span>🎡</span><span className="text-gray-700 font-medium">Player Spin</span></button>
                 <button onClick={handleJerseyColor} className="w-full text-left px-4 py-3 hover:bg-indigo-50 flex items-center gap-3"><span>👕</span><span className="text-gray-700 font-medium">Jersey Color</span></button>
                 <button onClick={handleWhatsAppSettings} className="w-full text-left px-4 py-3 hover:bg-green-50 flex items-center gap-3"><span>📱</span><span className="text-gray-700 font-medium">WhatsApp Settings</span></button>
