@@ -263,11 +263,12 @@ const MasterPlayersPage = ({
                                         <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600">Assigned Team</th>
                                         <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600">Sale / Retention Price</th>
                                         <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600">Action</th>
+                                         <th className="px-4 py-2 text-center text-xs font-semibold text-gray-600">Edit</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {filteredPlayers.length === 0 && (
-                                        <tr><td colSpan={7} className="px-4 py-6 text-center text-gray-500 text-sm">No players match this filter.</td></tr>
+                                        <tr><td colSpan={8} className="px-4 py-6 text-center text-gray-500 text-sm">No players match this filter.</td></tr>
                                     )}
                                     {filteredPlayers.map((player, idx) => {
                                         const status = getPlayerStatus(player);
@@ -296,7 +297,7 @@ const MasterPlayersPage = ({
                                                 </td>
                                                 <td className="px-4 py-2">
                                                     {(status === 'AVAILABLE' || status === 'UNSOLD') ? (
-                                                        <div className="flex flex-wrap items-center gap-1.5">
+                                                        <div className="flex flex-nowrap items-center gap-1.5 whitespace-nowrap">
                                                             <select
                                                                 value={inputs.team}
                                                                 onChange={(e) => handleInputChange(player.id, 'team', e.target.value)}
@@ -322,24 +323,27 @@ const MasterPlayersPage = ({
                                                                 onChange={(e) => handleInputChange(player.id, 'amount', e.target.value)}
                                                                 disabled={isSubmitting}
                                                                 placeholder="Amount"
-                                                                className="w-24 border rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
+                                                                className="w-24 shrink-0 border rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
                                                             />
                                                             <button
                                                                 onClick={() => handleSubmitSale(player)}
                                                                 disabled={isSubmitting}
-                                                                className="px-3 py-1.5 rounded-lg text-xs font-semibold shadow-md bg-gradient-to-r from-emerald-500 to-green-600 text-white hover:from-emerald-600 hover:to-green-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                                className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-md bg-gradient-to-r from-emerald-500 to-green-600 text-white hover:from-emerald-600 hover:to-green-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                                                             >
                                                                 {isSubmitting ? 'Retaining…' : status === 'UNSOLD' ? 'Retain Again' : 'Retain'}
                                                             </button>
 
                                                         </div>
                                                     ) : status === 'SOLD' ? (
-                                                        <span className="text-xs text-gray-400">Already retained</span>
+                                                        <span className="text-xs text-gray-400">Already retained/sold</span>
                                                     ) : status === 'UNSOLD' ? (
                                                         <span className="text-xs text-gray-500"></span>
                                                     ) : (
                                                         <span className="text-xs text-gray-400">—</span>
                                                     )}
+                                                </td>
+                                                <td className="px-4 py-2 text-center">
+                                                    <button onClick={() => openEdit(player)} title="Edit player details" className="text-indigo-600 hover:text-indigo-800 text-base" aria-label={`Edit ${player.name}`}>✏️</button>
                                                 </td>
                                             </tr>
                                         );
