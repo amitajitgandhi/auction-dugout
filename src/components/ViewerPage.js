@@ -101,8 +101,8 @@ const ViewerPage = ({ userId }) => {
             </div>
 
             <div className={`${tickerDetails.trim() ? "pt-4" : "pt-2"} pb-16 px-3`}>
-                <div className="max-w-lg mx-auto text-center text-gray-400 text-[10px] mb-2">
-                    This page refreshes automatically every 15 seconds.
+                <div className="max-w-lg mx-auto text-center text-gray-200 text-sm md:text-base font-bold mb-3">
+                    🔄 This page refreshes automatically every 30 seconds
                 </div>
                 {error && hasData && (
                     <div role="status" className="max-w-lg mx-auto mb-3 rounded-lg border border-amber-400 bg-amber-50 px-3 py-2 text-xs text-amber-900">
