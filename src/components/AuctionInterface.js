@@ -181,30 +181,37 @@ const AuctionInterface = forwardRef(({
                 onLogout={onLogout}
             />
 
-            {/* Compact category progress panel — mirrors the Viewer page. */}
-            <div className="mb-3 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 px-3 py-2 text-white shadow-md">
-                <div className="mb-1 text-center">
-                    <span className="text-sm font-bold opacity-90">
-                        {EMOJIS.CLIPBOARD} {selectedCategory}
-                    </span>
-                </div>
-                <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs">
-                    <div className="flex items-center gap-1">
-                        <span className="text-green-300">{EMOJIS.CHECK_MARK}</span>
-                        <span className="font-bold">{soldCount}</span>
-                        <span className="opacity-75">Sold</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                        <span className="text-red-300">{EMOJIS.CROSS_MARK}</span>
-                        <span className="font-bold">{markedUnsoldCount}</span>
-                        <span className="opacity-75">Unsold</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                        <span className="text-blue-300">{EMOJIS.PEOPLE}</span>
-                        <span className="font-bold">{currentCategoryUnsoldCount}</span>
-                        <span className="opacity-75">Left</span>
+            {/* Category and round header, restored from the earlier auction interface. */}
+            <div className="mb-3 space-y-3">
+                <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg shadow-md p-3">
+                    <div className="flex flex-wrap items-center justify-center gap-6">
+                        <div className="flex items-center gap-2">
+                            <span className="text-xl">{EMOJIS.CLIPBOARD}</span>
+                            <div><div className="text-sm opacity-75">Category</div><div className="text-lg font-bold">{selectedCategory}</div></div>
+                        </div>
+                        <div className="w-px h-6 bg-white opacity-30"></div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-xl">{isUnsoldRound ? EMOJIS.REFRESH : EMOJIS.TARGET}</span>
+                            <div><div className="text-sm opacity-75">Round</div><div className="text-lg font-bold">{isUnsoldRound ? `Unsold ${round}` : `Round ${round}`}</div></div>
+                        </div>
+                        {currentPlayer && !playerProcessed && soldCount === 0 && markedUnsoldCount === 0 && round === 1 && !isUnsoldRound && (
+                            <button onClick={handleCategoryChangeRequest}
+                                className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-3 py-1.5 rounded-lg text-sm font-semibold border border-white border-opacity-30"
+                                title="Change category if selected by mistake">
+                                {EMOJIS.REFRESH} Change Category
+                            </button>
+                        )}
                     </div>
                 </div>
+                {categoryStarted && (
+                    <div className="bg-white bg-opacity-95 rounded-lg shadow-md p-3">
+                        <div className="flex flex-wrap justify-center gap-8">
+                            <div className="flex items-center gap-2"><span className="text-green-500">{EMOJIS.CHECK_MARK}</span><span className="text-gray-700 font-medium text-sm">Sold:</span><span className="text-green-600 font-bold text-lg">{soldCount}</span></div>
+                            <div className="flex items-center gap-2"><span className="text-red-500">{EMOJIS.CROSS_MARK}</span><span className="text-gray-700 font-medium text-sm">Unsold:</span><span className="text-red-600 font-bold text-lg">{markedUnsoldCount}</span></div>
+                            <div className="flex items-center gap-2"><span className="text-blue-500">{EMOJIS.PEOPLE}</span><span className="text-gray-700 font-medium text-sm">Remaining:</span><span className="text-blue-600 font-bold text-lg">{currentCategoryUnsoldCount}</span></div>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Main Content Area */}
