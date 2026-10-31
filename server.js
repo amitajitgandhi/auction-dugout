@@ -51,12 +51,16 @@ const getDriveDownloadUrls = (link) => {
     const fileId = getDriveFileId(link);
     if (!fileId) return [];
     return [
-        // 1. Google Drive direct content endpoint
-        `https://drive.usercontent.google.com/download?id=${fileId}&export=download&confirm=t`,
-        // 2. Classic download endpoint
-        `https://drive.google.com/uc?export=download&confirm=t&id=${fileId}`,
-        // 3. Thumbnail fallback (works for publicly shared image files)
+        // Google image CDN is the most likely to return actual image bytes for public Drive photos
+        `https://lh3.googleusercontent.com/d/${fileId}=s2000`,
+        // Drive thumbnail endpoint
         `https://drive.google.com/thumbnail?id=${fileId}&sz=w2000`,
+        // Direct content download
+        `https://drive.usercontent.google.com/download?id=${fileId}&export=download&confirm=t`,
+        // Classic download endpoint
+        `https://drive.google.com/uc?export=download&confirm=t&id=${fileId}`,
+        // View endpoint fallback
+        `https://drive.google.com/uc?id=${fileId}&export=view`,
     ];
 };
 
