@@ -9,6 +9,7 @@ const TournamentSetup = ({
     tickerDetails,
     setTickerDetails,
     onSubmit,
+    onLogout,
     isSubmitting = false
 }) => {
     const handleKeyPress = (e) => {
@@ -19,6 +20,13 @@ const TournamentSetup = ({
 
     return (
         <div className="mb-8 space-y-5 bg-white bg-opacity-95 rounded-xl shadow-lg p-5 md:p-6">
+            {onLogout && (
+                <div className="flex justify-end">
+                    <button type="button" onClick={onLogout} className="rounded-lg bg-red-50 border border-red-200 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100">
+                        Logout
+                    </button>
+                </div>
+            )}
             <div className="text-center mb-4">
                 <h2 className="text-2xl font-bold text-gray-800 mb-2">{EMOJIS.TROPHY} Setup Tournament</h2>
                 <p className="text-gray-600">Add your tournament branding and custom ticker message</p>
