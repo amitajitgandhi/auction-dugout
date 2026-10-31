@@ -61,7 +61,7 @@ export const useAuction = (players, showManagedToast) => {
         });
     };
 
-    // Pick next player (single pass only)
+    // Round 1 visits every player once; Round 2 revisits unsold players once.
     const pickNextPlayer = () => {
         const queueArr = Array.from(currentQueue);
         let idx = currentQueuePointer;
@@ -94,7 +94,7 @@ export const useAuction = (players, showManagedToast) => {
                 continue;
             }
 
-            if (player.soldTo === 'Unsold') {
+            if (!isUnsoldRound && player.soldTo === 'Unsold') {
                 setUnsoldQueue(prev => new Set(prev).add(keyForPlayer));
                 idx += 1;
                 continue;
@@ -107,7 +107,26 @@ export const useAuction = (players, showManagedToast) => {
             return;
         }
 
-        // ✅ No valid players left
+        // Round 1 is over. Give its unsold players exactly one more pass.
+        if (!isUnsoldRound) {
+            const unsoldKeys = queueArr.filter(key => {
+                const player = typeof key === 'string' && key.startsWith('name:')
+                    ? players.find(p => p.name === key.slice(5) && normalize(p.category) === normalize(selectedCategory))
+                    : players.find(p => p.id === key);
+                return player && !player.sold && player.soldTo === 'Unsold';
+            });
+            if (unsoldKeys.length > 0) {
+                setCurrentQueue(new Set(unsoldKeys));
+                setCurrentQueuePointer(0);
+                setRound(2);
+                setIsUnsoldRound(true);
+                setCurrentPlayer(null);
+                setPlayerProcessed(false);
+                showManagedToast && showManagedToast('info', 'Round 2: retrying unsold players once.');
+                return;
+            }
+        }
+        // End after Round 2, even when players remain unsold.
         setCurrentQueuePointer(idx);
         finishCategory();
     };
@@ -130,11 +149,8 @@ export const useAuction = (players, showManagedToast) => {
         setTeamNameInput("");
         setBidAmountInput("");
         const queueArr = Array.from(currentQueue);
-        if (currentQueuePointer + 1 >= queueArr.length) {
-            finishCategory();
-        } else {
-            setTimeout(pickNextPlayer, 0);
-        }
+        // Next Player handles both the Round 2 transition and category completion.
+        setPlayerProcessed(true);
     };
 
     const startCategoryAuction = () => {
