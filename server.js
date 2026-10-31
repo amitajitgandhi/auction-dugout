@@ -132,164 +132,146 @@ const sanitizePlayerName = (name) => {
         .trim();
 };
 
-// Endpoint: Upload Player
+// Endpoint: Resolve/reuse a player's existing Storage photo, or download and upload a fallback.
 app.post('/api/upload-player', async (req, res) => {
-    const { name: rawName, skill, category = 'OPEN', photoUrl } = req.body;
-    const name = sanitizePlayerName(rawName || '');
+    const { name: rawName, skill, category = 'OPEN', photoUrl = '', forceDownload = false } = req.body || {};
+    const name = sanitizePlayerName(String(rawName || ''));
+    const photoLink = String(photoUrl || '').trim();
 
-    if (!name || !photoUrl) {
-        return res.status(400).json({ message: 'Missing required fields' });
+    if (!name) {
+        return res.status(400).json({ message: 'Missing player name' });
     }
 
     try {
+        const storage = supabase.storage.from(BUCKET_NAME);
+        const baseName = sanitizeFileName(name).replace(/\.jpg$/i, '');
+        const escapedBaseName = baseName.replace(/[.*+?^$()|[\]\\]/g, '\\$&');
+        const matchingFilePattern = new RegExp('^' + escapedBaseName + '(?:_[^/]*)?\\.jpg$', 'i');
+
+        const matchingFiles = [];
+        const pageSize = 1000;
+        for (let offset = 0; ; offset += pageSize) {
+            const { data: files, error: listError } = await storage.list('', {
+                limit: pageSize,
+                offset,
+                search: baseName,
+            });
+            if (listError) throw listError;
+
+            const page = files || [];
+            matchingFiles.push(...page.filter(file => matchingFilePattern.test(file.name)));
+            if (page.length < pageSize) break;
+        }
+
+        if (!forceDownload && matchingFiles.length === 1) {
+            const existingFileName = matchingFiles[0].name;
+            const { data: publicData } = storage.getPublicUrl(existingFileName);
+            const imageUrl = publicData?.publicUrl || '';
+            if (!imageUrl) throw new Error('Could not generate public URL for ' + existingFileName);
+
+            const { error: dbError } = await supabase.from('players').upsert([{
+                name, skill, category, image_url: imageUrl,
+            }]);
+            if (dbError) throw dbError;
+
+            console.log('♻️ [' + name + '] Reusing existing Storage image: ' + existingFileName);
+            return res.json({
+                message: 'Existing Storage image reused',
+                image_url: imageUrl,
+                source: 'storage',
+                matchedFiles: matchingFiles.length,
+            });
+        }
+
+        if (!photoLink) {
+            return res.json({
+                message: 'No existing unambiguous image and no CSV photo link',
+                image_url: '',
+                source: 'missing',
+                matchedFiles: matchingFiles.length,
+            });
+        }
+
         let buffer = null;
         let lastError = null;
+        const urls = photoLink.includes('drive.google.com') ? getDriveDownloadUrls(photoLink) : [photoLink];
 
-        if (photoUrl.includes('drive.google.com')) {
-            // Try multiple Google Drive download strategies
-            const urls = getDriveDownloadUrls(photoUrl);
-            for (const url of urls) {
+        for (const url of urls) {
+            try {
+                console.log('📥 [' + name + '] Downloading fallback photo from ' + url.substring(0, 100));
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 30000);
+                let response;
                 try {
-                    console.log(`📥 [${name}] Trying: ${url.substring(0, 80)}...`);
-                    const controller = new AbortController();
-                    const timeout = setTimeout(() => controller.abort(), 30000); // 30s timeout
-                    const response = await fetch(url, {
+                    response = await fetch(url, {
                         headers: {
-                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                            'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
-                            'Accept-Language': 'en-US,en;q=0.9',
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36',
+                            'Accept': 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
                             'Referer': 'https://drive.google.com/',
                         },
                         redirect: 'follow',
                         signal: controller.signal,
                     });
+                } finally {
                     clearTimeout(timeout);
-
-                    if (!response.ok) {
-                        lastError = `HTTP ${response.status} from ${url.substring(0, 60)}`;
-                        console.warn(`⚠️ [${name}] ${lastError}`);
-                        continue;
-                    }
-
-                    const arrayBuffer = await response.arrayBuffer();
-                    const candidateBuffer = Buffer.from(arrayBuffer);
-
-                    // Validate: must be at least 1KB (error pages are usually tiny HTML snippets)
-                    if (candidateBuffer.length < 1024) {
-                        lastError = `Response too small (${candidateBuffer.length} bytes), likely not an image`;
-                        console.warn(`⚠️ [${name}] ${lastError}`);
-                        continue;
-                    }
-
-                    // Validate: must be a real image (magic bytes)
-                    if (!detectImageType(candidateBuffer)) {
-                        lastError = `Not a valid image from ${url} (content-type: ${response.headers.get('content-type') || 'unknown'}, first bytes: ${candidateBuffer.slice(0, 16).toString('hex')})`;
-                        console.warn(`⚠️ [${name}] ${lastError}`);
-                        continue;
-                    }
-
-                    buffer = candidateBuffer;
-                    console.log(`✅ [${name}] Downloaded ${buffer.length} bytes from ${url.substring(0, 60)}`);
-                    break;
-                } catch (fetchErr) {
-                    lastError = fetchErr.message;
-                    console.warn(`⚠️ [${name}] Fetch failed: ${lastError}`);
                 }
-            }
 
-            /*
-            // Final Drive fallback: inspect the public preview page and extract its og:image URL.
-            if (!buffer) {
-                try {
-                    console.log(`📥 [${name}] Trying Drive preview metadata fallback...`);
-                    const preview = await fetch(photoUrl, {
-                        headers: {
-                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36',
-                            'Accept': 'text/html,application/xhtml+xml',
-                        },
-                        redirect: 'follow',
-                    });
-                    const html = await preview.text();
-                    const match = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)
-                        || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
-                    if (match?.[1]) {
-                        const imageUrl = match[1].replace(/\\u003d/g, '=').replace(/&amp;/g, '&');
-                        console.log(`📥 [${name}] Trying og:image: ${imageUrl.substring(0, 100)}...`);
-                        const imageResponse = await fetch(imageUrl, {
-                            headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'image/*,*/*;q=0.8' },
-                            redirect: 'follow',
-                        });
-                        const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
-                        if (imageResponse.ok && detectImageType(imageBuffer)) {
-                            buffer = imageBuffer;
-                            console.log(`✅ [${name}] Downloaded image via Drive preview metadata (${buffer.length} bytes)`);
-                
-            */
-        } else {
-                            lastError = `Drive preview og:image was not a valid image (status: ${imageResponse.status}, content-type: ${imageResponse.headers.get('content-type') || 'unknown'})`;
-                        }
-                    } else {
-                        lastError = 'Drive preview page did not expose an og:image URL';
-                    }
-                } catch (previewErr) {
-                    lastError = `Drive preview fallback failed: ${previewErr.message}`;
+                if (!response.ok) {
+                    lastError = 'HTTP ' + response.status;
+                    continue;
                 }
+
+                const candidateBuffer = Buffer.from(await response.arrayBuffer());
+                if (candidateBuffer.length < 12 || !detectImageType(candidateBuffer)) {
+                    lastError = 'Downloaded response was not a recognized image';
+                    continue;
+                }
+
+                buffer = candidateBuffer;
+                break;
+            } catch (downloadError) {
+                lastError = downloadError.message;
             }
-        } else {
-            // Non-Drive URL — direct download
-            const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 30000); // 30s timeout
-            const response = await fetch(photoUrl, {
-                headers: { 'User-Agent': 'Mozilla/5.0' },
-                redirect: 'follow',
-                signal: controller.signal,
-            });
-            clearTimeout(timeout);
-            if (!response.ok) throw new Error(`Failed to download image: HTTP ${response.status}`);
-            const arrayBuffer = await response.arrayBuffer();
-            buffer = Buffer.from(arrayBuffer);
         }
 
         if (!buffer) {
-            console.error(`❌ [${name}] All download attempts failed. Last error: ${lastError}`);
             return res.status(400).json({
-                message: `Could not download image for ${name}. Ensure the Google Drive file is shared as "Anyone with the link". Last error: ${lastError}`,
+                message: ('Could not download image for ' + name + '. Ensure the Drive file is shared with anyone who has the link. ' + (lastError || '')).trim(),
             });
         }
 
-        // Detect image type from magic bytes
         const detected = detectImageType(buffer);
-        if (!detected) {
-            console.error(`❌ [${name}] Downloaded file is not a recognized image. Size: ${buffer.length}, first bytes: ${buffer.slice(0, 16).toString('hex')}`);
-            return res.status(400).json({ message: 'Downloaded file is not a valid image. Google Drive may have returned an HTML page instead. Check that the file is shared publicly.' });
-        }
+        if (!detected) throw new Error('Downloaded file is not a supported image');
 
-        const { contentType, ext } = detected;
-        const fileName = `${sanitizeFileName(name)}${ext}`;
-        const uploadInfo = await uploadToSupabase(buffer, fileName, contentType);
+        const uniqueSuffix = Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+        const fileName = baseName + '_' + uniqueSuffix + detected.ext;
+        const { error: uploadError } = await storage.upload(fileName, buffer, {
+            contentType: detected.contentType,
+            cacheControl: '3600',
+            upsert: false,
+        });
+        if (uploadError) throw uploadError;
 
-        // Get public URL
-        const { data: publicData } = supabase.storage
-            .from(BUCKET_NAME)
-            .getPublicUrl(fileName);
+        const { data: publicData } = storage.getPublicUrl(fileName);
         const imageUrl = publicData?.publicUrl || '';
+        if (!imageUrl) throw new Error('Could not generate public URL for uploaded image');
 
-        console.log(`✅ [${name}] Uploaded to Supabase: ${imageUrl} (${contentType}, ${buffer.length} bytes)`);
+        const { error: dbError } = await supabase.from('players').upsert([{
+            name, skill, category, image_url: imageUrl,
+        }]);
+        if (dbError) throw dbError;
 
-        // Save to Supabase DB
-        await supabase.from('players').upsert([
-            {
-                name,
-                skill,
-                category,
-                image_url: imageUrl,
-            },
-        ]);
-
-        res.json({ message: 'Uploaded successfully', image_url: imageUrl, originalPhotoUrl: photoUrl });
+        console.log('✅ [' + name + '] Uploaded fallback image to Storage: ' + fileName);
+        return res.json({
+            message: 'Fallback image downloaded and uploaded',
+            image_url: imageUrl,
+            source: 'drive',
+            matchedFiles: matchingFiles.length,
+            storageFile: fileName,
+        });
     } catch (err) {
-        console.error(`Error uploading ${name}:`, err.message);
-        res.status(500).json({ message: 'Upload failed', error: err.message });
+        console.error('Error processing photo for ' + name + ':', err.message);
+        return res.status(500).json({ message: 'Player photo processing failed', error: err.message });
     }
 });
 
