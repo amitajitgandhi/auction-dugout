@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { parseCSV, validatePlayerCSV, validateTeamCSV, formatDriveLink, formatCricHeroesProfile } from "../utils/csvUtils";
 import { EMOJIS, getDefaultPlayerImage } from "../utils/constants";
+import { supabase } from "../supabaseClient";
 
 const FileUpload = ({ 
     players, 
@@ -144,6 +145,11 @@ const FileUpload = ({
                 });
 
                 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "https://auction-backend-xeai.onrender.com";
+                const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+                const accessToken = sessionData?.session?.access_token;
+                if (sessionError || !accessToken || !authUser?.id) {
+                    throw new Error("Your login session could not be verified. Please sign in again before uploading players.");
+                }
                 const summary = { reused: 0, uploaded: 0, missing: 0, failed: 0, duplicates: 0 };
 
                 for (const [index, row] of data.entries()) {
@@ -177,7 +183,9 @@ const FileUpload = ({
                                     category,
                                     photoUrl: originalPhotoLink,
                                     forceDownload: isDuplicateInCsv,
-                                    cricHeroesProfile
+                                    cricHeroesProfile,
+                                    tournamentName: tournamentName || null,
+                                    accessToken
                                 })
                             });
 
