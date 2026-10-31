@@ -4,6 +4,7 @@
 create table if not exists public.auction_audit_logs (
     id bigint generated always as identity primary key,
     user_id uuid not null references auth.users(id) on delete restrict,
+    actor_user_id uuid null,
     event_type text not null,
     status text not null default 'info',
     details jsonb not null default '{}'::jsonb,
@@ -33,6 +34,51 @@ create policy "Users can read their own auction audit logs"
     for select
     to authenticated
     using (auth.uid() = user_id);
+
+
+-- Database-level DELETE auditing catches deletes regardless of whether they
+-- originate from this UI, another client, the Supabase SQL editor, or an API.
+create or replace function public.audit_auction_row_delete()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $
+begin
+    insert into public.auction_audit_logs (
+        user_id,
+        actor_user_id,
+        event_type,
+        status,
+        details
+    ) values (
+        old.user_id,
+        auth.uid(),
+        'database_row_deleted',
+        'success',
+        jsonb_build_object(
+            'table_name', tg_table_name,
+            'deleted_user_id', old.user_id,
+            'database_operation', tg_op,
+            'database_timestamp', now(),
+            'request_role', current_setting('role', true),
+            'request_jwt_claims', nullif(current_setting('request.jwt.claims', true), '')::jsonb
+        )
+    );
+    return old;
+end;
+$;
+
+drop trigger if exists audit_auction_data_delete on public.auction_data;
+create trigger audit_auction_data_delete
+after delete on public.auction_data
+for each row execute function public.audit_auction_row_delete();
+
+drop trigger if exists audit_auction_viewer_data_delete on public.auction_viewer_data;
+create trigger audit_auction_viewer_data_delete
+after delete on public.auction_viewer_data
+for each row execute function public.audit_auction_row_delete();
+
 
 -- Intentionally do not create UPDATE or DELETE policies: audit entries are append-only.
 grant insert, select on public.auction_audit_logs to authenticated;
