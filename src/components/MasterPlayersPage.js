@@ -157,7 +157,9 @@ const MasterPlayersPage = ({
                 </div>
             </div>
 
-            <div className="absolute top-4 right-4 z-50">
+            <StandardNavigationMenu currentPage="masterplayers" onAuction={onBackToAuction} onTeamSummary={onBackToTeams} onPlayerSummary={() => {}} onUnsoldPlayers={onViewUnsoldPlayers} onMaxBid={onViewMaxBid} />
+            {/* Legacy menu retained below temporarily */}
+            <div className="hidden">
                 <details className="relative">
                     <summary className="list-none cursor-pointer bg-white/15 hover:bg-white/25 text-white rounded-lg px-4 py-2 text-2xl shadow-lg">☰</summary>
                     <div className="absolute right-0 mt-2 w-52 bg-white rounded-lg shadow-xl overflow-hidden text-sm">
