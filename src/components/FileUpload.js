@@ -164,7 +164,7 @@ const FileUpload = ({
                 if (sessionError || !accessToken || !authUser?.id) {
                     throw new Error("Your login session could not be verified. Please sign in again before uploading players.");
                 }
-                const summary = { uploaded: 0, dummy: 0, failed: 0, duplicates: 0 };
+                const summary = { uploaded: 0, dummy: 0, failed: 0, duplicates: 0, failedNames: [] };
 
                 for (const [index, row] of data.entries()) {
                     const name = (row["Name"] || "").replace(/[\u200B-\u200D\uFEFF\uFFFD]/g, '').trim();
@@ -225,6 +225,7 @@ const FileUpload = ({
 
                     if (!selectedPhoto) {
                         summary.failed++;
+                        summary.failedNames.push(name);
                         selectedPhoto = getDefaultPlayerImage();
                         console.warn('Player could not be saved by backend:', name, lastError?.message || source);
                         // Do not present a player as imported when its database insert failed.
@@ -248,7 +249,11 @@ const FileUpload = ({
                     setUploadProgress(Math.round(((index + 1) / totalPlayers) * 100));
                 }
 
-                if (enrichedPlayers.length === 0) {
+                // Never replace the UI with an incomplete player list.
+                // The backend now reconciles already-saved records on the next CSV retry.
+                if (summary.failed > 0 || enrichedPlayers.length !== data.filter(row => normalizedName(row.Name)).length) {
+                    onError(`Player import incomplete: ${enrichedPlayers.length}/${totalPlayers} confirmed. Failed: ${summary.failedNames.join(', ') || 'unknown rows'}. Check backend connectivity and retry the same CSV. Existing database records will be reused; auction data has not been replaced.`);
+                } else if (enrichedPlayers.length === 0) {
                     onError(`${EMOJIS.WARNING} No valid players were processed! Please check your CSV file format and ensure player names are provided.`);
                 } else {
                     onPlayersLoad(enrichedPlayers);
