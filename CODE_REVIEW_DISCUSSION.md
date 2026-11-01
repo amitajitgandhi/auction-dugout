@@ -9,7 +9,7 @@ Discuss one issue at a time. Record verified behavior, corrections, remaining ri
 
 ## Issue 1: Duplicate player names
 
-Status: CSV prevention verified; remaining identity safeguards under discussion. No application change agreed or implemented.
+Status: Closed for the current workflow — CSV prevention verified; residual risk accepted by the user. No application changes requested or implemented.
 
 ### User clarification and verified behavior
 
@@ -42,12 +42,12 @@ Fresh CSV imports through this validated path are protected. This does not estab
 
 These are conditional remaining risks, not evidence that the user's current data contains duplicates. No live database was queried.
 
-### Recommendation awaiting discussion
+### Review recommendation and user decision
 
-Preserve CSV rejection. Consider enforcing normalized-name uniqueness when renaming players and using ID-first matching for roster edits/transfers (name fallback only when an ID is unavailable). Decide how to handle any legacy duplicates before declaring the issue fully closed.
+Preserve CSV rejection. Consider enforcing normalized-name uniqueness when renaming players and using ID-first matching for roster edits/transfers (name fallback only when an ID is unavailable). These remain optional defensive improvements, not agreed work.
 
-User decision on remaining safeguards: pending.
+User decision (2026-11-01): Player Summary edits are very rare, and CSV upload validation is sufficient for the current operating workflow. Close this review item without code changes. Retain the conditional risks above as accepted residual risk; do not describe every entry/edit/restore path as technically protected. Reopen only if the workflow changes or duplicate data is observed.
 
 ## Continuation
 
-Stay on Issue 1 until the user decides how to handle the remaining paths. Do not treat this document as authorization to implement fixes or as a guarantee about deployed behavior. Re-read the relevant current source before acting.
+Issue 1 is closed by user decision. Continue with one remaining review issue at a time; the recommended next topic is overlapping saves and stale snapshots. Do not treat this document as authorization to implement fixes or as a guarantee about deployed behavior. Re-read the relevant current source before acting.
