@@ -45,6 +45,7 @@ const MasterPlayersPage = ({
     const [editingPlayer, setEditingPlayer] = useState(null);
     const [editForm, setEditForm] = useState({ name: '', category: '', skill: '', basePrice: '', cricHeroesLink: '', photoUrl: '' });
     const [uploadingPhoto, setUploadingPhoto] = useState(false);
+    const [failedPhotoIds, setFailedPhotoIds] = useState(() => new Set());
 
     const teamNames = useMemo(() => Object.keys(teams || {}), [teams]);
 
@@ -359,6 +360,7 @@ const MasterPlayersPage = ({
                                 <thead>
                                     <tr className="bg-gray-100">
                                         <th className="px-2 py-2 text-left text-xs font-semibold text-gray-600">#</th>
+                                        <th className="px-2 py-2 text-center text-xs font-semibold text-gray-600">Photo</th>
                                         <th className="px-2 py-2 text-left text-xs font-semibold text-gray-600">Player Name</th>
                                         <th className="px-2 py-2 text-left text-xs font-semibold text-gray-600">Category</th>
                                         <th className="px-2 py-2 text-left text-xs font-semibold text-gray-600">Status</th>
@@ -370,7 +372,7 @@ const MasterPlayersPage = ({
                                 </thead>
                                 <tbody>
                                     {filteredPlayers.length === 0 && (
-                                        <tr><td colSpan={8} className="px-4 py-6 text-center text-gray-500 text-xs">No players match this filter.</td></tr>
+                                        <tr><td colSpan={9} className="px-4 py-6 text-center text-gray-500 text-xs">No players match this filter.</td></tr>
                                     )}
                                     {filteredPlayers.map((player, idx) => {
                                         const status = getPlayerStatus(player);
@@ -379,6 +381,32 @@ const MasterPlayersPage = ({
                                         return (
                                             <tr key={player.id} className="border-t border-gray-200 hover:bg-gray-50">
                                                 <td className="px-2 py-2 text-xs font-medium text-gray-700 whitespace-nowrap">{idx + 1}</td>
+                                                <td className="px-2 py-2 text-center">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openEdit(player)}
+                                                        title={player.photoUrl || player.photo ? `View or replace photo for ${player.name}` : `Upload photo for ${player.name}`}
+                                                        className="group inline-flex flex-col items-center gap-1 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                                                        aria-label={`View or replace photo for ${player.name}`}
+                                                    >
+                                                        {(player.photoUrl || player.photo) && !failedPhotoIds.has(player.id) ? (
+                                                            <img
+                                                                src={player.photoUrl || player.photo}
+                                                                alt={`${player.name} thumbnail`}
+                                                                loading="lazy"
+                                                                onError={() => setFailedPhotoIds(prev => new Set(prev).add(player.id))}
+                                                                className="h-12 w-12 rounded-lg border border-gray-300 bg-gray-100 object-cover shadow-sm group-hover:ring-2 group-hover:ring-indigo-400"
+                                                            />
+                                                        ) : (
+                                                            <span className="flex h-12 w-12 items-center justify-center rounded-lg border border-dashed border-amber-400 bg-amber-50 text-[10px] font-bold text-amber-700">
+                                                                NO PHOTO
+                                                            </span>
+                                                        )}
+                                                        <span className="text-[10px] font-semibold text-indigo-600 group-hover:text-indigo-800">
+                                                            {(player.photoUrl || player.photo) && !failedPhotoIds.has(player.id) ? 'Replace' : 'Upload'}
+                                                        </span>
+                                                    </button>
+                                                </td>
                                                 <td className="px-3 py-2 text-xs font-semibold text-gray-800 whitespace-nowrap">{player.name}</td>
                                                 <td className="px-2 py-2 text-xs text-gray-600 whitespace-nowrap">{player.category || '-'}</td>
                                                 <td className="px-2 py-2 whitespace-nowrap">
