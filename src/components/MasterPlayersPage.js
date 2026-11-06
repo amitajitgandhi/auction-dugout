@@ -48,7 +48,6 @@ const MasterPlayersPage = ({
     const [uploadingPhoto, setUploadingPhoto] = useState(false);
     const [failedPhotoIds, setFailedPhotoIds] = useState(() => new Set());
     const [cropSource, setCropSource] = useState('');
-    const [cropMode, setCropMode] = useState('');
 
     const teamNames = useMemo(() => Object.keys(teams || {}), [teams]);
 
@@ -147,20 +146,17 @@ const MasterPlayersPage = ({
             showManagedToast?.('error', 'Image must be 5 MB or smaller.', { icon: EMOJIS.WARNING, duration: 3500 });
             return;
         }
-        setCropMode('upload');
         setCropSource(URL.createObjectURL(file));
     };
 
     const openExistingPhotoCrop = () => {
         if (!editForm.photoUrl) return;
-        setCropMode('existing');
         setCropSource(editForm.photoUrl);
     };
 
     const closePhotoCrop = () => {
         if (cropSource.startsWith('blob:')) URL.revokeObjectURL(cropSource);
         setCropSource('');
-        setCropMode('');
     };
 
     const saveCroppedPhoto = async (blob) => {
