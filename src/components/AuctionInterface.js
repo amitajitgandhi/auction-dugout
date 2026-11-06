@@ -9,6 +9,8 @@ import StandardNavigationMenu from "./StandardNavigationMenu";
 const AuctionInterface = forwardRef(({
     currentPlayer,
     teams,
+    players = [],
+    categoryConfigs = {},
     teamNameInput,
     setTeamNameInput,
     bidAmountInput,
@@ -265,6 +267,11 @@ const AuctionInterface = forwardRef(({
                                     currentPlayer={currentPlayer}
                                     showSoldStamp={showSoldStamp}
                                     showUnsoldStamp={showUnsoldStamp}
+                                    teams={teams}
+                                    players={players}
+                                    categoryConfigs={categoryConfigs}
+                                    selectedCategory={selectedCategory}
+                                    onViewMaxBid={onViewMaxBid}
                                 />
 
                                 {/* Bidding Controls */}
