@@ -3,6 +3,7 @@ import { EMOJIS } from "../utils/constants";
 import MaxBidAnalysisTable from "./MaxBidAnalysisTable";
 import MaxBidHelpPopup from "./MaxBidHelpPopup";
 import StandardNavigationMenu from './StandardNavigationMenu';
+import { calculateTeamMaxBidAnalysis } from "../utils/maxBidCalculator";
 
 const MaxBidPage = ({ 
     teams, 
@@ -32,80 +33,13 @@ const MaxBidPage = ({
         return Object.keys(categoryConfigs || {});
     }, [categoryConfigs]);
 
-    // Purse is canonical and already includes boosters when applied.
-    const getAdjustedPurse = (teamName, teamData) => {
-        return teamData.purse;
-    };
-
-    // Calculate comprehensive team analysis with category-wise breakdown
-    const teamAnalysis = useMemo(() => {
-        if (Object.keys(teams).length === 0 || Object.keys(categoryConfigs).length === 0) {
-            return [];
-        }
-
-        return Object.entries(teams).map(([teamName, teamData]) => {
-            const remainingPoints = getAdjustedPurse(teamName, teamData);
-            let totalReservedPoints = 0;
-            const categoryBreakdown = {}
-
-            // Calculate for each category
-            availableCategories.forEach(categoryName => {
-                const config = categoryConfigs[categoryName];
-                const basePrice = parseInt(config?.basePrice, 10) || 0;
-                const playersAllowed = parseInt(config?.playersPerCategory, 10) || 0;
-                
-                // ? FIXED: Count players bought from the actual players array, not teamData.players
-                const playersBought = players.filter(p => 
-                    (p.category || 'OPEN') === categoryName && 
-                    p.soldTo === teamName && 
-                    p.sold === true
-                ).length;
-                
-                // Calculate remaining players to buy in this category
-                const playersRemaining = Math.max(0, playersAllowed - playersBought);
-                
-                // Calculate points reserved for this category
-                let pointsReserved = 0;
-                if (categoryName === selectedCategoryForAnalysis) {
-                    // For selected category: (Remaining - 1) * Base Price
-                    pointsReserved = Math.max(0, playersRemaining - 1) * basePrice;
-                } else {
-                    // For other categories: Remaining * Base Price
-                    pointsReserved = playersRemaining * basePrice;
-                }
-                
-                totalReservedPoints += pointsReserved;
-                
-                categoryBreakdown[categoryName] = {
-                    playersBought,
-                    playersAllowed,
-                    playersRemaining,
-                    basePrice,
-                    pointsReserved,
-                    canBuyMore: playersRemaining > 0
-                };
-            });
-
-            // Calculate max bid
-            const maxBid = Math.max(0, remainingPoints - totalReservedPoints);
-            
-            // Determine if team can bid for selected category
-            const selectedCategoryData = categoryBreakdown[selectedCategoryForAnalysis];
-            const canBidForSelectedCategory = selectedCategoryData?.canBuyMore && 
-                                           remainingPoints >= selectedCategoryData?.basePrice;
-
-            return {
-                teamName,
-                owner: teamData.owner,
-                remainingPoints,
-                totalReservedPoints,
-                maxBid,
-                categoryBreakdown,
-                canBidForSelectedCategory,
-                playersToBuy: teamData.playersToBuy
-            };
-        });
-    }, [teams, categoryConfigs, availableCategories, selectedCategoryForAnalysis, players]); // ? FIXED: Added players to dependency array
+    // Use the shared calculation source also consumed by the auction popup.
+    const teamAnalysis = useMemo(() => calculateTeamMaxBidAnalysis({
+        teams,
+        players,
+        categoryConfigs,
+        selectedCategoryForAnalysis
+    }), [teams, players, categoryConfigs, selectedCategoryForAnalysis]);
 
     // Sort teams by highest max bid (default sorting)
     const sortedTeams = useMemo(() => {
