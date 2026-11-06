@@ -3,6 +3,7 @@ import { supabase } from '../supabaseClient';
 import { EMOJIS } from '../utils/constants';
 import { getCategoryRequirementStatus } from '../utils/centralizedTeamData';
 import StandardNavigationMenu from './StandardNavigationMenu';
+import PlayerPhotoCropper from './PlayerPhotoCropper';
 
 // Master assignment uses the same normal sale logic as the auction.
 const getPlayerStatus = (p) => {
@@ -46,6 +47,7 @@ const MasterPlayersPage = ({
     const [editForm, setEditForm] = useState({ name: '', category: '', skill: '', basePrice: '', cricHeroesLink: '', photoUrl: '' });
     const [uploadingPhoto, setUploadingPhoto] = useState(false);
     const [failedPhotoIds, setFailedPhotoIds] = useState(() => new Set());
+    const [cropSource, setCropSource] = useState('');
 
     const teamNames = useMemo(() => Object.keys(teams || {}), [teams]);
 
@@ -131,11 +133,10 @@ const MasterPlayersPage = ({
         });
     };
 
-    const handlePhotoUpload = async (event) => {
+    const handlePhotoUpload = (event) => {
         const file = event.target.files?.[0];
         event.target.value = '';
         if (!file || !editingPlayer) return;
-
         const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
         if (!allowedTypes.includes(file.type)) {
             showManagedToast?.('error', 'Please upload a JPG, PNG or WebP image.', { icon: EMOJIS.WARNING, duration: 3500 });
@@ -145,26 +146,35 @@ const MasterPlayersPage = ({
             showManagedToast?.('error', 'Image must be 5 MB or smaller.', { icon: EMOJIS.WARNING, duration: 3500 });
             return;
         }
-        if (!authUser?.id) {
+        setCropSource(URL.createObjectURL(file));
+    };
+
+    const openExistingPhotoCrop = () => {
+        if (!editForm.photoUrl) return;
+        setCropSource(editForm.photoUrl);
+    };
+
+    const closePhotoCrop = () => {
+        if (cropSource.startsWith('blob:')) URL.revokeObjectURL(cropSource);
+        setCropSource('');
+    };
+
+    const saveCroppedPhoto = async (blob) => {
+        if (!editingPlayer || !authUser?.id) {
             showManagedToast?.('error', 'Your login session is unavailable. Please sign in again.', { icon: EMOJIS.WARNING, duration: 3500 });
             return;
         }
-
         setUploadingPhoto(true);
         try {
             const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
             const accessToken = sessionData?.session?.access_token;
-            if (sessionError || !accessToken) {
-                throw new Error('Your login session could not be verified. Please sign in again.');
-            }
-
+            if (sessionError || !accessToken) throw new Error('Your login session could not be verified. Please sign in again.');
             const base64 = await new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
-                reader.onerror = () => reject(new Error('Could not read the selected image.'));
-                reader.readAsDataURL(file);
+                reader.onerror = () => reject(new Error('Could not read the cropped image.'));
+                reader.readAsDataURL(blob);
             });
-
             const apiBaseUrl = process.env.REACT_APP_API_BASE_URL || 'https://auction-backend-xeai.onrender.com';
             const response = await fetch(`${apiBaseUrl}/api/upload-player-photo`, {
                 method: 'POST',
@@ -174,16 +184,13 @@ const MasterPlayersPage = ({
                     skill: editingPlayer.skill || null,
                     category: editingPlayer.category || 'OPEN',
                     tournamentName: tournamentName || null,
-                    contentType: file.type,
+                    contentType: 'image/jpeg',
                     imageBase64: base64,
                     accessToken
                 })
             });
             const result = await response.json().catch(() => ({}));
-            if (!response.ok || !result.image_url) {
-                throw new Error(result.message || 'Photo upload failed.');
-            }
-
+            if (!response.ok || !result.image_url) throw new Error(result.message || 'Photo upload failed.');
             const updatedPlayer = {
                 ...editingPlayer,
                 photo: result.image_url,
@@ -192,13 +199,13 @@ const MasterPlayersPage = ({
             };
             const saved = await onUpdatePlayer?.(updatedPlayer);
             if (saved === false) throw new Error('The photo uploaded, but the player record could not be saved.');
-
             setEditingPlayer(updatedPlayer);
             setEditForm(prev => ({ ...prev, photoUrl: result.image_url }));
-            showManagedToast?.('success', 'Player photo uploaded and linked successfully.', { icon: EMOJIS.CHECK_MARK, duration: 3500 });
+            closePhotoCrop();
+            showManagedToast?.('success', 'Cropped player photo saved successfully.', { icon: EMOJIS.CHECK_MARK, duration: 3500 });
         } catch (error) {
-            console.error('[PLAYER_PHOTO] Upload/link failed:', error);
-            showManagedToast?.('error', error.message || 'Could not upload the player photo. Please retry.', { icon: EMOJIS.WARNING, duration: 4500 });
+            console.error('[PLAYER_PHOTO] Crop/upload failed:', error);
+            showManagedToast?.('error', error.message || 'Could not save the cropped photo. Please retry.', { icon: EMOJIS.WARNING, duration: 4500 });
         } finally {
             setUploadingPhoto(false);
         }
@@ -519,7 +526,12 @@ const MasterPlayersPage = ({
                                         >
                                             {uploadingPhoto ? 'Uploading photo…' : editForm.photoUrl ? 'Change Photo' : 'Upload Photo'}
                                         </label>
-                                        <p className="text-xs text-gray-500 mt-2">JPG, PNG or WebP · Maximum 5 MB. Stored in Supabase and linked to this player.</p>
+                                        <div className="mt-2 flex flex-wrap gap-2">
+                                            {editForm.photoUrl && (
+                                                <button type="button" onClick={openExistingPhotoCrop} className="rounded-md border border-indigo-200 px-2 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-50">✂️ Crop Existing Photo</button>
+                                            )}
+                                        </div>
+                                        <p className="text-xs text-gray-500 mt-2">JPG, PNG or WebP · Maximum 5 MB. Crop or reposition the face for the circular auction frame.</p>
                                     </div>
                                 </div>
                             </div>
@@ -530,6 +542,14 @@ const MasterPlayersPage = ({
                         </div>
                     </div>
                 </div>
+            )}
+            {cropSource && (
+                <PlayerPhotoCropper
+                    src={cropSource}
+                    saving={uploadingPhoto}
+                    onCancel={closePhotoCrop}
+                    onSave={saveCroppedPhoto}
+                />
             )}
             <footer className="w-full text-center py-4 mt-8 text-white bg-black bg-opacity-60 text-lg font-semibold tracking-wide fixed bottom-0 left-0 z-50">Product by Amit Gandhi</footer>
         </div>
