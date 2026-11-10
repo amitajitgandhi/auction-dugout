@@ -133,10 +133,51 @@ const sanitizePlayerName = (name) => {
 };
 
 // Endpoint: Always download and upload a new player photo; use a placeholder on image failure.
+
+// Reset one authenticated user's tournament players and their referenced Storage images.
+app.post('/api/reset-tournament-players', async (req, res) => {
+    const { tournamentName = null, accessToken = '' } = req.body || {};
+    if (!accessToken || !tournamentName) {
+        return res.status(400).json({ message: 'Tournament name and authenticated session are required.' });
+    }
+    try {
+        const { data: authData, error: authError } = await supabase.auth.getUser(accessToken);
+        if (authError || !authData?.user?.id) return res.status(401).json({ message: 'Invalid or expired session.' });
+        const userId = authData.user.id;
+        const { data: rows, error: lookupError } = await supabase.from('players')
+            .select('id, photo_url')
+            .eq('user_id', userId)
+            .eq('tournament_name', tournamentName);
+        if (lookupError) throw lookupError;
+
+        const publicPrefix = '/storage/v1/object/public/' + BUCKET_NAME + '/';
+        const objectPaths = (rows || []).map(row => {
+            const url = String(row.photo_url || '');
+            const markerIndex = url.indexOf(publicPrefix);
+            if (markerIndex < 0) return null;
+            try { return decodeURIComponent(url.slice(markerIndex + publicPrefix.length).split('?')[0]); }
+            catch { return url.slice(markerIndex + publicPrefix.length).split('?')[0]; }
+        }).filter(Boolean);
+        for (let i = 0; i < objectPaths.length; i += 100) {
+            const { error } = await supabase.storage.from(BUCKET_NAME).remove(objectPaths.slice(i, i + 100));
+            if (error) throw new Error('Storage cleanup failed; player records were retained: ' + error.message);
+        }
+        const { error: deleteError } = await supabase.from('players')
+            .delete().eq('user_id', userId).eq('tournament_name', tournamentName);
+        if (deleteError) throw deleteError;
+        return res.json({ success: true, playersDeleted: (rows || []).length, imagesDeleted: objectPaths.length });
+    } catch (error) {
+        console.error('[AUCTION_RESET] Tournament player cleanup failed:', error.message);
+        return res.status(500).json({ message: 'Could not completely reset tournament players.', error: error.message });
+    }
+});
+
 app.post('/api/upload-player', async (req, res) => {
     const {
         name: rawName,
         skill,
+        bowlingStyle = 'Does not bowl',
+        wicketkeeper = 'No',
         category = 'OPEN',
         photoUrl = '',
         cricHeroesProfile = '',
@@ -178,6 +219,8 @@ app.post('/api/upload-player', async (req, res) => {
                 user_id: userId,
                 name,
                 skill: skill || null,
+                bowling_style: bowlingStyle || 'Does not bowl',
+                wicketkeeper: /^yes$/i.test(String(wicketkeeper)) ? 'Yes' : 'No',
                 category: category || 'OPEN',
                 photo_url: photoUrlValue || null,
                 cricheroes_profile: cricHeroesProfile || null,
