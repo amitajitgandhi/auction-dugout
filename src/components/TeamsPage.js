@@ -233,12 +233,23 @@ boosterPointsPerBooster,
         setShowConfirmation(true);
     };
 
-    const handleConfirmUpdate = () => {
-        if (onPlayerEdit) {
-            onPlayerEdit(editingPlayer, editForm.newTeam, parseInt(editForm.newPrice));
+    const handleConfirmUpdate = async () => {
+        if (!onPlayerEdit || !editingPlayer) return;
+
+        // The business handler returns true only after validation and cloud save succeed.
+        // Do not show a success toast or close the editor when the operation fails.
+        const success = await onPlayerEdit(
+            editingPlayer,
+            editForm.newTeam,
+            parseInt(editForm.newPrice, 10)
+        );
+
+        if (!success) {
+            setShowConfirmation(false);
+            return;
         }
 
-        const actionMessage = editingPlayer.currentTeam !== editForm.newTeam 
+        const actionMessage = editingPlayer.currentTeam !== editForm.newTeam
             ? `Player "${editingPlayer.name}" transferred to ${editForm.newTeam}!`
             : `Player "${editingPlayer.name}" price updated!`;
 
