@@ -646,7 +646,7 @@ Activity history is implemented as a best-effort, asynchronous feature and is de
 
 ### Supabase setup required
 
-Run `supabase/activity_logs_setup.sql` once in the Supabase SQL Editor. It creates the append-only activity table, indexes, and row-level security policies. Users can insert and read only their own rows. No service-role key is exposed to the browser. Until this SQL is applied, activity inserts will fail harmlessly and appear as console warnings.
+Run `supabase/activity_logs_setup.sql` once in the Supabase SQL Editor. It creates the activity table, indexes, and row-level security policies. Users can insert, read and (for tournament reset) delete only their own rows. No service-role key is exposed to the browser. Until this SQL is applied, activity inserts will fail harmlessly and appear as console warnings.
 
 ### Events currently recorded
 
@@ -654,8 +654,8 @@ Run `supabase/activity_logs_setup.sql` once in the Supabase SQL Editor. It creat
 - Imports: `PLAYER_CSV_UPLOAD`, `TEAM_CSV_UPLOAD`.
 - Auction business actions after the main auction state save is confirmed: `PLAYER_SOLD`, `PLAYER_UNSOLD`, `UNSOLD_PLAYER_SOLD`, `OWNER_RETENTION`, `PURSE_UPDATE`, `BOOSTER_APPLIED`, `BOOSTER_REMOVED`, `BOOSTER_PPB_UPDATED`, `PLAYER_TRANSFER`, and `PLAYER_EDIT`.
 - Player Summary: `PLAYER_EDITED_PLAYER_SUMMARY`, `PLAYER_PHOTO_UPLOADED`, `PLAYER_PHOTO_CROPPED`.
-- Team Summary: `PLAYER_DETAILS_EDITED_TEAM_SUMMARY`.
-- Reset and system health: `AUCTION_RESET`, `CLOUD_SAVE_FAILED`, `VIEWER_SYNC_FAILED`.
+- Team Summary edits use the canonical `PLAYER_EDIT` event emitted by the shared business handler; Player Summary edits use `PLAYER_EDITED_PLAYER_SUMMARY`.
+- System health: `CLOUD_SAVE_FAILED`, `VIEWER_SYNC_FAILED`. Reset intentionally clears the selected tournament's activity history and does not retain an `AUCTION_RESET` event.
 
 The logger stores event descriptions, entity identifiers, limited before/after fields where available, and small metadata. It must not be used for passwords, access tokens, or full auction snapshots. Add new events through `src/utils/activityLogger.js`; keep calls fire-and-forget and place them only after the relevant operation succeeds.
 
