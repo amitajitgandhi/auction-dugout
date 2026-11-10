@@ -20,7 +20,7 @@ export default function ActivityLogsPage({ authUser, tournamentName, onBack }) {
         setError('');
         let query = supabase
             .from('activity_logs')
-            .select('id, created_at, event_category, event_type, description, entity_type, entity_id, status, metadata')
+            .select('id, created_at, event_category, event_type, description, entity_type, entity_id, status, metadata, old_data, new_data')
             .eq('user_id', authUser.id)
             .order('created_at', { ascending: false })
             .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
@@ -80,10 +80,11 @@ export default function ActivityLogsPage({ authUser, tournamentName, onBack }) {
                                     <div className="text-xs text-gray-500">{formatDate(row.created_at)}</div>
                                 </div>
                                 <p className="text-sm text-gray-700 mt-1">{row.description || '—'}</p>
+                                {row.old_data && row.new_data && <div className="mt-2 rounded-lg bg-slate-50 p-3 text-sm"><div className="font-semibold text-slate-800 mb-1">Changes made</div>{Object.keys(row.new_data).filter(key => JSON.stringify(row.old_data?.[key] ?? null) !== JSON.stringify(row.new_data?.[key] ?? null)).map(key => <div key={key} className="text-slate-700"><span className="font-medium capitalize">{key.replaceAll('_', ' ')}:</span> {String(row.old_data?.[key] ?? '—')} <span className="text-slate-400">→</span> <span className="font-medium">{String(row.new_data?.[key] ?? '—')}</span></div>)}</div>}
                                 {['PLAYER_SOLD', 'UNSOLD_PLAYER_SOLD', 'OWNER_RETENTION'].includes(row.event_type) && row.metadata?.amount != null && <p className="text-sm font-semibold text-emerald-700 mt-1">Sold amount: ₹{Number(row.metadata.amount).toLocaleString('en-IN')}</p>}
                                 <div className="flex flex-wrap gap-2 mt-2 text-xs">
                                     <span className="bg-slate-100 px-2 py-1 rounded">{row.event_category}</span>
-                                    {row.entity_type && <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded">{row.entity_type}{row.event_type === 'PLAYER_SELECTED' ? '' : (row.entity_id ? ` · ${row.entity_id}` : '')}</span>}
+                                    {row.entity_type && <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded">{row.entity_type}{row.entity_type === 'PLAYER' ? '' : (row.entity_id ? ` · ${row.entity_id}` : '')}</span>}
                                     {row.status && row.status !== 'SUCCESS' && <span className="bg-red-100 text-red-700 px-2 py-1 rounded">{row.status}</span>}
                                 </div>
                             </div>
