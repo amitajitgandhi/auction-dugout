@@ -49,39 +49,24 @@ const PlayerInfo = ({
             </div>
             
             <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-2 text-base sm:text-lg">
+                <div className="grid grid-cols-2 grid-rows-3 gap-2 text-base sm:text-lg">
                     <div className="flex items-center gap-2 rounded-lg bg-gray-100 px-3 py-2 font-semibold text-gray-700"><span aria-hidden="true">🏏</span><span>{currentPlayer?.skill || "—"}</span></div>
                     <div className="flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-2 font-semibold text-blue-800"><span aria-hidden="true">🥎</span><span>{currentPlayer?.bowlingStyle || "—"}</span></div>
                     <div className="flex items-center gap-2 rounded-lg bg-purple-50 px-3 py-2 font-semibold text-purple-800"><span aria-hidden="true">🧤</span><span>{currentPlayer?.wicketkeeper || "—"}</span></div>
                     <div className="flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 font-semibold text-amber-800"><span aria-hidden="true">🏆</span><span>{currentPlayer?.category || "—"}</span></div>
-                </div>
-                <div className="flex flex-wrap items-center gap-3">
-                    {/* CricHeroes Profile Link - Optional */}
-                    {currentPlayer?.cricHeroesProfile && currentPlayer.cricHeroesProfile.trim() && (
-                        <div className="text-blue-600 flex items-center gap-2 text-lg">
-                            <img
-                                src={cricheroeslogo}
-                                alt="CricHeroes"
-                                style={{ width: 24, height: 24 }}
-                            />
-                            <a
-                                href={currentPlayer.cricHeroesProfile}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="transition-colors duration-200 underline"
-                            >
-                                <span className="font-bold text-black">cric</span>
-                                <span className="font-bold text-red-600">heroes</span>
-                            </a>
-                        </div>
-                    )}
+                    <div className="flex min-w-0 items-center gap-2 rounded-lg bg-blue-50 px-3 py-2 text-base font-semibold text-blue-700">
+                        <img src={cricheroeslogo} alt="CricHeroes" className="h-6 w-6 shrink-0 object-contain" />
+                        {currentPlayer?.cricHeroesProfile?.trim() ? (
+                            <a href={currentPlayer.cricHeroesProfile} target="_blank" rel="noopener noreferrer" className="truncate underline transition-colors hover:text-blue-900">cricheroes</a>
+                        ) : <span> - </span>}
+                    </div>
                     <button
                         type="button"
                         onClick={() => setShowMaxBidSummary(true)}
-                        className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-amber-400 to-orange-500 px-3 py-2 text-sm font-bold text-white shadow-md transition hover:from-amber-500 hover:to-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-300"
+                        className="flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-base font-semibold text-amber-800 transition hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-orange-300"
                         title="View team-wise maximum bidding capacity"
                     >
-                        💰 Max Bid
+                        <span aria-hidden="true">💰</span><span>Max Bid</span>
                     </button>
                 </div>
 
