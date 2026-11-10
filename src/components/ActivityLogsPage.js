@@ -3,6 +3,7 @@ import { supabase } from '../supabaseClient';
 
 const PAGE_SIZE = 25;
 const formatDate = (value) => new Date(value).toLocaleString();
+const formatValue = (value) => value == null || value === '' ? '—' : (typeof value === 'object' ? JSON.stringify(value) : String(value));
 
 export default function ActivityLogsPage({ authUser, tournamentName, onBack }) {
     const [rows, setRows] = useState([]);
@@ -80,7 +81,7 @@ export default function ActivityLogsPage({ authUser, tournamentName, onBack }) {
                                     <div className="text-xs text-gray-500">{formatDate(row.created_at)}</div>
                                 </div>
                                 <p className="text-sm text-gray-700 mt-1">{row.description || '—'}</p>
-                                {row.old_data && row.new_data && <div className="mt-2 rounded-lg bg-slate-50 p-3 text-sm"><div className="font-semibold text-slate-800 mb-1">Changes made</div>{Object.keys(row.new_data).filter(key => JSON.stringify(row.old_data?.[key] ?? null) !== JSON.stringify(row.new_data?.[key] ?? null)).map(key => <div key={key} className="text-slate-700"><span className="font-medium capitalize">{key.replaceAll('_', ' ')}:</span> {String(row.old_data?.[key] ?? '—')} <span className="text-slate-400">→</span> <span className="font-medium">{String(row.new_data?.[key] ?? '—')}</span></div>)}</div>}
+                                {row.old_data && row.new_data && <div className="mt-2 rounded-lg bg-slate-50 p-3 text-sm"><div className="font-semibold text-slate-800 mb-1">Changes made</div>{Object.keys(row.new_data).filter(key => JSON.stringify(row.old_data?.[key] ?? null) !== JSON.stringify(row.new_data?.[key] ?? null)).map(key => <div key={key} className="text-slate-700"><span className="font-medium capitalize">{key.replaceAll('_', ' ')}:</span> {formatValue(row.old_data?.[key])} <span className="text-slate-400">→</span> <span className="font-medium">{formatValue(row.new_data?.[key])}</span></div>)}</div>}
                                 {['PLAYER_SOLD', 'UNSOLD_PLAYER_SOLD', 'OWNER_RETENTION'].includes(row.event_type) && row.metadata?.amount != null && <p className="text-sm font-semibold text-emerald-700 mt-1">Sold amount: ₹{Number(row.metadata.amount).toLocaleString('en-IN')}</p>}
                                 <div className="flex flex-wrap gap-2 mt-2 text-xs">
                                     <span className="bg-slate-100 px-2 py-1 rounded">{row.event_category}</span>
