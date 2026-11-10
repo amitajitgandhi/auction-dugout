@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { exportTeamsData, EMOJIS } from "../utils/constants";
 import { WHATSAPP_EMOJIS } from "../utils/whatsappUtils";
-import { exportTeamCardImage, exportAllTeamsImage } from "../utils/teamImageExport";
+import { exportAllTeamImagesZip } from "../utils/teamImageExport";
 import PlayerSpinWheel from "./PlayerSpinWheel";
 import JerseyColorAssignment from "./JerseyColorAssignment";
 import TeamEditPopup from "./TeamEditPopup";
@@ -106,6 +106,15 @@ boosterPointsPerBooster,
             });
         }
     };
+
+    useEffect(() => {
+        const handleExportSelection = (event) => {
+            if (event.detail === 'csv') handleExportTeams();
+            if (event.detail === 'image') handleExportAllTeamsImage();
+        };
+        document.addEventListener('auction-dugout-export', handleExportSelection);
+        return () => document.removeEventListener('auction-dugout-export', handleExportSelection);
+    }, [teams, tournamentName]);
 
     const handlePlayerSpin = () => {
         if (Object.keys(teams).length === 0) {
@@ -294,26 +303,6 @@ boosterPointsPerBooster,
         setShowMenu(false);
     };
 
-    // ✅ Export a single team's squad card as a shareable PNG (opens the native
-    // share sheet — WhatsApp included — on mobile, or downloads on desktop).
-    const handleExportTeamImage = async (teamName, data) => {
-        try {
-            const result = await exportTeamCardImage(teamName, data, tournamentName);
-            if (result === 'downloaded') {
-                showManagedToast('success', `${teamName} squad image saved! Attach it to WhatsApp to share.`, {
-                    icon: EMOJIS.DOWNLOAD,
-                    duration: 3500,
-                });
-            }
-        } catch (error) {
-            console.error('Failed to export team image:', error);
-            showManagedToast('error', 'Failed to generate the team image. Please try again.', {
-                icon: EMOJIS.WARNING,
-                duration: 3500,
-            });
-        }
-    };
-
     // ✅ Export one combined image with every team's squad — a single "final
     // results" poster to share on WhatsApp.
     const handleExportAllTeamsImage = async () => {
@@ -327,9 +316,9 @@ boosterPointsPerBooster,
         }
         setShowMenu(false);
         try {
-            const result = await exportAllTeamsImage(teams, tournamentName);
-            if (result === 'downloaded') {
-                showManagedToast('success', 'All-teams image saved! Attach it to WhatsApp to share.', {
+            const count = await exportAllTeamImagesZip(teams, tournamentName);
+            if (count > 0) {
+                showManagedToast('success', count + ' team images downloaded in a ZIP file.', {
                     icon: EMOJIS.DOWNLOAD,
                     duration: 3500,
                 });
@@ -361,16 +350,13 @@ boosterPointsPerBooster,
                 onPlayerSummary={onViewMasterPlayers}
                 onUnsoldPlayers={onViewUnsoldPlayers}
                 onMaxBid={onViewMaxBid}
+                onResetAuction={handleResetAuction}
                 onLogout={onLogout}
             >
                 <div className="border-t border-gray-200 my-1"></div>
                 <button onClick={handleTeamEdit} className="w-full text-left px-4 py-3 hover:bg-blue-50 flex items-center gap-3"><span>🖊️</span><span className="text-gray-700 font-medium">Edit Balance</span></button>
                 <button onClick={handleBoosterOpen} className="w-full text-left px-4 py-3 hover:bg-yellow-50 flex items-center gap-3"><span>⚡</span><span className="text-gray-700 font-medium">Add Booster Points</span></button>
-                <button onClick={handleExportTeams} disabled={Object.keys(teams).length === 0 || Object.values(teams).every(team => (team.players || []).length === 0)} className="w-full text-left px-4 py-3 hover:bg-blue-50 flex items-center gap-3 disabled:opacity-50"><span>📊</span><span className="text-gray-700 font-medium">Export Teams</span></button>
-                <button onClick={handleExportAllTeamsImage} disabled={Object.keys(teams).length === 0} className="w-full text-left px-4 py-3 hover:bg-emerald-50 flex items-center gap-3 disabled:opacity-50"><span>🖼️</span><span className="text-gray-700 font-medium">Export All Teams (Image)</span></button>
                 <button onClick={handleWhatsAppSettings} className="w-full text-left px-4 py-3 hover:bg-green-50 flex items-center gap-3"><span>📱</span><span className="text-gray-700 font-medium">WhatsApp Settings</span></button>
-                <div className="border-t border-gray-200 my-1"></div>
-                <button onClick={handleResetAuction} className="w-full text-left px-4 py-3 hover:bg-red-50 flex items-center gap-3"><span>🔄</span><span className="text-gray-700 font-medium">Reset Auction</span></button>
             </StandardNavigationMenu>
 
             {/* Confirmation Modal */}
@@ -575,15 +561,9 @@ boosterPointsPerBooster,
                                                         <span className="truncate" title={teamName}>{teamName}</span>
                                                     </h3>
                                                 </div>
-                                                {/* WhatsApp text share + image export/share icon buttons */}
+                                                {/* WhatsApp text share button */}
                                                 <div className="flex-shrink-0 flex items-center gap-1.5">
-                                                    <button
-                                                        onClick={() => handleExportTeamImage(teamName, data)}
-                                                        className="text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-full w-9 h-9 flex items-center justify-center shadow-sm transition-all duration-200"
-                                                        title={`Share ${teamName} squad as an image`}
-                                                    >
-                                                        <span className="text-base">{EMOJIS.CAMERA}</span>
-                                                    </button>
+
                                                     {whatsappSettings?.enabled && whatsappSettings?.groupNumber ? (
                                                         <button
                                                             onClick={() => onTeamWhatsAppShare && onTeamWhatsAppShare(teamName, data, tournamentName)}
