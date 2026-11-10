@@ -433,7 +433,7 @@ export const useAuctionBusinessLogic = (
             return false;
         }
 
-        const saved = await triggerAuctionSaveWithState('PURSE_UPDATE', `Team ${teamName} purse updated`, teamName, newPurse, null, updatedTeams);
+        const saved = await triggerAuctionSaveWithState('PURSE_UPDATE', `Team ${teamName} purse updated to ₹${Number(newPurse).toLocaleString('en-IN')}`, teamName, newPurse, null, updatedTeams);
         if (!saved) return false;
         setTeams(updatedTeams);
         return true;
@@ -451,7 +451,7 @@ export const useAuctionBusinessLogic = (
         const newCount = updatedTeams[teamName]?.boosterCount ?? 0;
         const saved = await triggerAuctionSaveWithState(
             'BOOSTER_APPLIED',
-            `Booster count for ${teamName} increased to ${newCount}`,
+            `Booster count for ${teamName} increased to ${newCount} ( ${Number(boosterPointsPerBooster).toLocaleString('en-IN')} points per booster; ${Number(newCount * boosterPointsPerBooster).toLocaleString('en-IN')} total booster points )`,
             teamName,
             newCount,
             null,
@@ -490,7 +490,7 @@ const handleDecrementTeamBooster = async (teamName) => {
 
     const saved = await triggerAuctionSaveWithState(
         'BOOSTER_REMOVED',
-        `Booster count for ${teamName} decreased to ${newCount}`,
+        `Booster count for ${teamName} decreased to ${newCount} ( ${Number(boosterPointsPerBooster).toLocaleString('en-IN')} points per booster; ${Number(newCount * boosterPointsPerBooster).toLocaleString('en-IN')} total booster points )`,
         teamName,
         newCount,
         null,
