@@ -224,12 +224,9 @@ function CricketAuctionSession({ auth }) {
   };
 
   const handlePlayersLoad = (loadedPlayers) => {
+    // FileUpload displays one detailed success toast after photo processing completes.
+    // Keep this callback focused on updating application state to avoid duplicate notifications.
     setPlayers(loadedPlayers);
-    showManagedToast('success', `Successfully loaded ${loadedPlayers.length} players from CSV file!`, {
-      style: TOAST_STYLES.success,
-      icon: EMOJIS.CHECK_MARK,
-      duration: 3000,
-    });
   };
 
   const handleTeamsLoad = (loadedTeams) => {
