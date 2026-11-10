@@ -733,6 +733,7 @@ onUpdatePointsPerBooster={handleUpdatePointsPerBooster}
                 ref={auctionInterfaceRef}
                 currentPlayer={auction.currentPlayer}
                 teams={teams}
+                tournamentName={tournamentName}
                 players={players}
                 categoryConfigs={categoryConfigs}
                 teamNameInput={auction.teamNameInput}
