@@ -586,6 +586,54 @@ Any AI tool working in this repository should follow these rules:
 - Reset progress is indeterminate unless a future backend progress API is introduced.
 - The app has several utilities that intentionally use localStorage (e.g. spin-wheel configuration); do not confuse these with private auction-state persistence.
 
+
+## 19. Code-review findings and operational risks (2026-11-11)
+
+This section records static-review findings from the current `master` implementation. These are code-level observations, not proof of a production data incident. Validate with a safe test tournament before changing business rules.
+
+### Confirmed risk areas requiring follow-up
+
+1. **Edit Balance can create a negative purse.** `updateTeamInitialPurse` recalculates current purse as the newly entered initial purse minus existing roster spend, but it does not reject a value below total spent. The UI and handler should validate this before committing the financial correction. A negative purse can then flow into Team Summary, Auction validation and Max Bid.
+2. **Edit Balance silently clears boosters.** The same helper resets `boosterCount` to zero and sets `baseInitialPurse` to the entered amount. This means an operator editing a team's initial balance can unintentionally erase its booster count and granted points. Decide explicitly whether Edit Balance should preserve boosters or intentionally reset them; keep the displayed booster count and purse formula consistent.
+3. **Transfers do not enforce destination category quotas.** `processPlayerTransfer` validates destination purse and total roster slots, but does not validate the player's category against `categoryConfigs`. A transfer can therefore put a team over its configured category limit unless a caller prevents it. Add category-aware validation in the shared transfer path before changing this behavior.
+4. **Concurrent operations can calculate from stale React snapshots.** Business handlers derive proposed `updatedPlayers` / `updatedTeams` from hook-captured `players` and `teams`, then await the serialized cloud-save queue before updating React state. The queue serializes writes, but it does not rebase a later proposal on the preceding committed state. Rapid overlapping actions (especially actions on different teams) can persist a later snapshot built from stale state and overwrite an earlier successful change. A transaction mutex or latest-state/reducer-based operation queue is needed around the complete read → validate → calculate → persist → commit sequence. Do not solve this by changing the auction rules independently.
+5. **Viewer publication is coupled to the main save latency.** `saveState` waits for the viewer snapshot upsert (including retries) before resolving success. The private auction row is already committed, but the UI action waits for the separate public-viewer write. Consider making viewer publication independently retryable/best-effort after the private save, with a visible stale-viewer signal; do not let viewer availability determine auction transaction success.
+6. **Page-unload saving is not reliable.** `beforeunload` awaits a normal Supabase request. Browsers may terminate the page before the promise completes, so this cannot be treated as a guaranteed final save. The periodic save and awaited business-action saves are the reliable paths; warn operators that closing immediately after a non-business state change may lose the last change.
+7. **Startup restore rehydrates only part of auction execution state.** The saved snapshot includes `currentPlayerName`, but the restore effect shown in `App.js` reselects the category and starts the category, rather than explicitly restoring the exact queue, pointer, round, unsold-round flag and current player identity. Resume behavior mid-category should be tested carefully; current persistence does not appear to represent the complete in-flight queue state.
+8. **Max Bid is a derived estimate, not a purchase authorization.** The calculator uses team purse and configured category requirements; purchase validation remains in the shared business logic. Keep both paths aligned and test category assignment/retention/transfer edge cases. Do not rely on Max Bid display alone to authorize a sale.
+
+### Cross-screen consistency contracts
+
+- Canonical player records live in the top-level `players` array; team roster copies are stored in each `teams[teamName].players` array. Every sale, later sale, retention, transfer and price correction must update both representations in the same proposed snapshot.
+- Team purse is stored as current `purse`; initial/base purse and booster count are also stored. Avoid recalculating these independently in pages.
+- Player status is inferred from `sold` and `soldTo`; unsold history can remain in `wasUnsold`. Do not treat `wasUnsold` alone as current unsold eligibility.
+- Max Bid uses the shared `calculateTeamMaxBidAnalysis` helper; the Auction popup should continue using the same helper.
+- Activity logging must remain asynchronous, best-effort and isolated from all auction state transitions. It is not a transactional audit record.
+
+### Recommended regression matrix before a production tournament
+
+Use a disposable tournament and verify after each action, in all relevant screens and after refresh/restore:
+
+| Workflow | Required checks |
+|---|---|
+| Auction sale | Player status/team/price, team roster, purse, remaining slots, category quota, viewer snapshot |
+| Mark unsold / Round 2 | Unsold status, queue progression exactly once, no purse or roster mutation |
+| Sell unsold later | Same consistency checks as a normal sale; retain `wasUnsold` history |
+| Owner retention | Correct category assignment, retention source, roster, purse and slots |
+| Player Summary assignment/edit | Top-level player and team roster remain aligned; no duplicate sale |
+| Team Summary price edit | Both player copies update; purse changes by exact price delta |
+| Team transfer | Source refund/slot restoration, destination deduction/slot consumption, category limit |
+| Edit Balance | Reject below-spend values; explicitly verify booster preservation/reset policy |
+| Add/remove booster | Booster count, base/initial/current purse and Max Bid agree after each action |
+| Change points per booster | All teams recalculate from base purse and existing booster counts |
+| Max Bid | Zero purse, full roster, category full, selected category with one remaining slot, retention and transfer cases |
+| Save/restore | Rapid successive operations, offline/reconnect, refresh during/after save, account switch |
+| Viewer sync | Private save success when viewer upsert fails; viewer eventually catches up |
+
+### Scope and verification status
+
+The review is a static source scan of the current frontend business logic, persistence hooks, shared financial helpers, key screens and this guide. It does not include live Supabase row inspection, production browser interaction, a Vercel/Render deployment smoke test, or a complete automated test suite. The repository currently declares no dedicated test script. Findings above should be treated as identified code risks until reproduced or fixed and regression-tested.
+
 ---
 
 **Auction Dugout** — Built for professional cricket auctions.  
