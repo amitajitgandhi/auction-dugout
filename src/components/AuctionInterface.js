@@ -25,6 +25,8 @@ const AuctionInterface = forwardRef(({
     onViewMaxBid,
     onViewUnsoldPlayers,
     onViewMasterPlayers,
+    onTableSpin,
+    onJerseySpin,
     onLogout,
     onResetAuction, // shared menu actions
     selectedCategory,
@@ -53,6 +55,30 @@ const AuctionInterface = forwardRef(({
 
     // State for hamburger menu
     const [showMenu, setShowMenu] = useState(false);
+
+    useEffect(() => {
+        const handleSpinSelection = (event) => {
+            switch (event.detail) {
+                case 'table':
+                    onTableSpin?.();
+                    break;
+                case 'custom':
+                    onJerseySpin?.();
+                    break;
+                case 'team':
+                case 'jersey':
+                    onViewTeams?.();
+                    window.setTimeout(() => {
+                        document.dispatchEvent(new CustomEvent('auction-dugout-spin', { detail: event.detail }));
+                    }, 150);
+                    break;
+                default:
+                    break;
+            }
+        };
+        document.addEventListener('auction-dugout-spin', handleSpinSelection);
+        return () => document.removeEventListener('auction-dugout-spin', handleSpinSelection);
+    }, [onTableSpin, onJerseySpin, onViewTeams]);
 
     // Reset animations for new player
     useEffect(() => {
