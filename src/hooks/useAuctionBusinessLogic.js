@@ -11,6 +11,7 @@ import {
     decrementTeamBooster
 } from '../utils/centralizedTeamData';
 import { EMOJIS } from '../utils/constants';
+import { logActivity } from '../utils/activityLogger';
 
 export const useAuctionBusinessLogic = (
     players,
@@ -71,6 +72,14 @@ export const useAuctionBusinessLogic = (
                 return false;
             } else {
                 console.log(`🔄 ${action} - Progress saved to cloud:`, description);
+                // Fire-and-forget telemetry only after the auction state is confirmed saved.
+                // A logging failure cannot change the transaction result.
+                logActivity(authUser, tournamentName, action, {
+                    description,
+                    entityType: teamName ? 'TEAM' : 'AUCTION',
+                    entityId: teamName || null,
+                    metadata: { amount: bidAmount ?? null }
+                });
                 return true;
             }
             
