@@ -528,6 +528,7 @@ function CricketAuctionSession({ auth }) {
           teams={teams}
           players={players}
           tournamentName={tournamentName}
+          sponsorName={sponsorName}
           tickerDetails={tickerDetails}
           onResetAuction={handleResetAuction}
           onBackToAuction={goToAuctionPage}
@@ -753,6 +754,7 @@ onUpdatePointsPerBooster={handleUpdatePointsPerBooster}
                 currentPlayer={auction.currentPlayer}
                 teams={teams}
                 tournamentName={tournamentName}
+                sponsorName={sponsorName}
                 players={players}
                 categoryConfigs={categoryConfigs}
                 teamNameInput={auction.teamNameInput}
