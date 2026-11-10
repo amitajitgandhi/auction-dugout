@@ -56,3 +56,23 @@ export const logActivity = (user, tournamentName, eventType, details = {}) => {
 };
 
 export const flushActivityLogs = () => flush();
+
+/**
+ * Clears this user's history for the reset tournament. This is intentionally
+ * called after auction persistence has completed and never participates in the
+ * auction save transaction.
+ */
+export const clearTournamentActivity = async (userId, tournamentName) => {
+    if (!userId || !tournamentName) return { success: false, reason: 'missing_scope' };
+    await flush();
+    const { error } = await supabase
+        .from('activity_logs')
+        .delete()
+        .eq('user_id', userId)
+        .eq('tournament_name', tournamentName);
+    if (error) {
+        console.warn('[ACTIVITY_LOG] Could not clear tournament history:', error.message);
+        return { success: false, reason: error.message };
+    }
+    return { success: true };
+};
