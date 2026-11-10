@@ -8,6 +8,9 @@ const PlayerImage = ({ currentPlayer, imageKey, setImageKey }) => {
     const [urlAttempt, setUrlAttempt] = useState(0);
     const [showPhotoPreview, setShowPhotoPreview] = useState(false);
     const [photoZoom, setPhotoZoom] = useState(1);
+    const [photoOffset, setPhotoOffset] = useState({ x: 0, y: 0 });
+    const [isPhotoDragging, setIsPhotoDragging] = useState(false);
+    const photoDragStart = React.useRef(null);
 
     // Reset states for new player
     useEffect(() => {
@@ -128,7 +131,7 @@ const PlayerImage = ({ currentPlayer, imageKey, setImageKey }) => {
                 <>
                     <button
                         type="button"
-                        onClick={() => { setPhotoZoom(1); setShowPhotoPreview(true); }}
+                        onClick={() => { setPhotoZoom(1); setPhotoOffset({ x: 0, y: 0 }); setShowPhotoPreview(true); }}
                         aria-label={`Enlarge photo of ${currentPlayer?.name || 'player'}`}
                         style={{ display: 'block', width: '100%', height: '100%', cursor: 'zoom-in' }}
                     >
@@ -148,7 +151,11 @@ const PlayerImage = ({ currentPlayer, imageKey, setImageKey }) => {
                             onClick={() => setShowPhotoPreview(false)}
                             onWheel={(event) => {
                                 event.preventDefault();
-                                setPhotoZoom(current => Math.min(3, Math.max(1, current + (event.deltaY < 0 ? 0.2 : -0.2))));
+                                setPhotoZoom(current => {
+                                    const next = Math.min(3, Math.max(1, +(current + (event.deltaY < 0 ? 0.2 : -0.2)).toFixed(1)));
+                                    if (next === 1) setPhotoOffset({ x: 0, y: 0 });
+                                    return next;
+                                });
                             }}
                             role="presentation"
                         >
@@ -160,13 +167,20 @@ const PlayerImage = ({ currentPlayer, imageKey, setImageKey }) => {
                                 onClick={event => event.stopPropagation()}
                             >
                                 <div className="mb-3 flex items-center gap-3 rounded-full bg-white/10 px-3 py-2 text-white">
-                                    <button type="button" onClick={() => setPhotoZoom(current => Math.max(1, +(current - 0.2).toFixed(1)))} disabled={photoZoom <= 1} className="h-9 w-9 rounded-full bg-white/20 text-2xl disabled:opacity-40" aria-label="Zoom out">−</button>
+                                    <button type="button" onClick={() => setPhotoZoom(current => { const next = Math.max(1, +(current - 0.2).toFixed(1)); if (next === 1) setPhotoOffset({ x: 0, y: 0 }); return next; })} disabled={photoZoom <= 1} className="h-9 w-9 rounded-full bg-white/20 text-2xl disabled:opacity-40" aria-label="Zoom out">−</button>
                                     <span className="min-w-14 text-center text-sm">{Math.round(photoZoom * 100)}%</span>
                                     <button type="button" onClick={() => setPhotoZoom(current => Math.min(3, +(current + 0.2).toFixed(1)))} disabled={photoZoom >= 3} className="h-9 w-9 rounded-full bg-white/20 text-2xl disabled:opacity-40" aria-label="Zoom in">+</button>
-                                    <button type="button" onClick={() => setPhotoZoom(1)} className="ml-1 rounded-full bg-white/20 px-3 py-2 text-sm">Reset</button>
+                                    <button type="button" onClick={() => { setPhotoZoom(1); setPhotoOffset({ x: 0, y: 0 }); }} className="ml-1 rounded-full bg-white/20 px-3 py-2 text-sm">Reset</button>
                                     <button type="button" onClick={() => setShowPhotoPreview(false)} className="ml-2 rounded-full bg-white px-3 py-2 text-lg font-bold text-gray-800" aria-label="Close photo">✕</button>
                                 </div>
-                                <div className="max-h-[80vh] max-w-[95vw] overflow-auto">
+                                <div
+                                    className="max-h-[80vh] max-w-[95vw] overflow-hidden rounded-xl"
+                                    style={{ cursor: photoZoom > 1 ? (isPhotoDragging ? "grabbing" : "grab") : "default", touchAction: "none" }}
+                                    onPointerDown={event => { if (photoZoom <= 1) return; event.currentTarget.setPointerCapture(event.pointerId); photoDragStart.current = { x: event.clientX - photoOffset.x, y: event.clientY - photoOffset.y }; setIsPhotoDragging(true); }}
+                                    onPointerMove={event => { if (!photoDragStart.current) return; setPhotoOffset({ x: event.clientX - photoDragStart.current.x, y: event.clientY - photoDragStart.current.y }); }}
+                                    onPointerUp={() => { photoDragStart.current = null; setIsPhotoDragging(false); }}
+                                    onPointerCancel={() => { photoDragStart.current = null; setIsPhotoDragging(false); }}
+                                >
                                     <img
                                         src={getPlayerImageUrl()}
                                         alt={currentPlayer?.name || 'Player'}
@@ -177,12 +191,12 @@ const PlayerImage = ({ currentPlayer, imageKey, setImageKey }) => {
                                             maxWidth: '95vw',
                                             width: 'auto',
                                             height: 'auto',
-                                            transform: `scale(${photoZoom})`,
+                                            transform: `translate(${photoOffset.x}px, ${photoOffset.y}px) scale(${photoZoom})`,
                                             transformOrigin: 'center center'
                                         }}
                                     />
                                 </div>
-                                <p className="mt-2 text-xs text-white/70">Use + / − or mouse wheel to zoom</p>
+                                <p className="mt-2 text-xs text-white/70">Use + / − or mouse wheel to zoom · Drag to move when zoomed</p>
                             </section>
                         </div>,
                         document.body
