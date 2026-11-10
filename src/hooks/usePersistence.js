@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 import { buildViewerPayload } from '../utils/viewerPayload';
+import { logActivity } from '../utils/activityLogger';
 import {
     exportAuctionBackup,
     TOAST_STYLES,
@@ -66,6 +67,7 @@ export const usePersistence = (showManagedToast, user = null) => {
                 }
                 if (!cloudSuccess) {
                     console.error('Supabase save failed after retries:', lastError);
+                    logActivity(user, dataToSave.tournamentName, 'CLOUD_SAVE_FAILED', { eventCategory: 'SYSTEM', description: 'Auction cloud save failed after retries', metadata: { error: lastError?.message || 'Unknown save error' }, status: 'FAILED' });
                     return false;
                 }
 
@@ -97,6 +99,7 @@ export const usePersistence = (showManagedToast, user = null) => {
                     // The private auction backup is already safely saved. Do not report the
                     // auction save itself as failed, but surface the stale-viewer risk clearly.
                     console.error('Viewer snapshot publish failed after retries:', viewerError);
+                    logActivity(user, dataToSave.tournamentName, 'VIEWER_SYNC_FAILED', { eventCategory: 'SYSTEM', description: 'Public viewer snapshot could not be updated', metadata: { error: viewerError?.message || 'Unknown viewer sync error' }, status: 'FAILED' });
                 }
             }
 
