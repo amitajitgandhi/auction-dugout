@@ -11,6 +11,7 @@ const AuctionInterface = forwardRef(({
     currentPlayer,
     teams,
     tournamentName,
+    sponsorName = '',
     players = [],
     categoryConfigs = {},
     teamNameInput,
@@ -90,7 +91,7 @@ const AuctionInterface = forwardRef(({
                     exportTeamsData(teams, tournamentName);
                     showManagedToast?.('success', 'Teams data exported successfully!', { icon: EMOJIS.CHART, duration: 4000 });
                 } else if (event.detail === 'image') {
-                    const count = await exportAllTeamImagesZip(teams, tournamentName);
+                    const count = await exportAllTeamImagesZip(teams, tournamentName, sponsorName);
                     showManagedToast?.('success', count + ' team images downloaded in a ZIP file.', { icon: EMOJIS.DOWNLOAD, duration: 4000 });
                 }
             } catch (error) {
