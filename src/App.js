@@ -46,6 +46,7 @@ function CricketAuctionSession({ auth }) {
   const [isTournamentNameSet, setIsTournamentNameSet] = useState(false);
   const [currentPage, setCurrentPage] = useState('auction');
   const [showResetConfirmation, setShowResetConfirmation] = useState(false);
+  const [isResettingAuction, setIsResettingAuction] = useState(false);
   const [showWhatsAppSettings, setShowWhatsAppSettings] = useState(false);
   const [categoryConfigs, setCategoryConfigs] = useState({});
   // Tournament-wide points awarded per booster — a single value shared by every
@@ -336,42 +337,55 @@ function CricketAuctionSession({ auth }) {
   };
 
   const confirmResetAuction = async () => {
-    // Persist the confirmation event and reset-start audit before changing app state.
-    await persistence.logAuditEvent('auction_reset_confirmed', 'confirmed', {
-      tournament_name: tournamentName || null,
-      players_count: players.length,
-      teams_count: Object.keys(teams || {}).length,
-      current_page: currentPage
-    });
+    if (isResettingAuction) return;
+    setIsResettingAuction(true);
+    try {
+      // Persist the confirmation event and reset-start audit before changing app state.
+      await persistence.logAuditEvent('auction_reset_confirmed', 'confirmed', {
+        tournament_name: tournamentName || null,
+        players_count: players.length,
+        teams_count: Object.keys(teams || {}).length,
+        current_page: currentPage
+      });
 
-    const resetSucceeded = await persistence.clearState({
-      tournamentName,
-      playersCount: players.length,
-      teamsCount: Object.keys(teams || {}).length,
-      currentPage
-    });
+      const resetSucceeded = await persistence.clearState({
+        tournamentName,
+        playersCount: players.length,
+        teamsCount: Object.keys(teams || {}).length,
+        currentPage
+      });
 
-    setPlayers([]);
-    setTeams({});
-    setCategoryConfigs({});
-    setBoosterPointsPerBooster(10);
-    auction.resetAuction();
-    setShowResetConfirmation(false);
-    setIsTournamentNameSet(false);
-    setTournamentName("");
-    setSponsorName("");
-    setTickerDetails("");
-    setCurrentPage('auction');
+      setPlayers([]);
+      setTeams({});
+      setCategoryConfigs({});
+      setBoosterPointsPerBooster(10);
+      auction.resetAuction();
+      setShowResetConfirmation(false);
+      setIsTournamentNameSet(false);
+      setTournamentName("");
+      setSponsorName("");
+      setTickerDetails("");
+      setCurrentPage('auction');
 
-    showManagedToast(resetSucceeded ? 'success' : 'error',
-      resetSucceeded
-        ? 'Auction has been reset. Reset activity was recorded.'
-        : 'Auction reset completed with a storage error. Check audit logs before continuing.',
-      {
-        style: resetSucceeded ? TOAST_STYLES.success : TOAST_STYLES.error,
-        icon: EMOJIS.REFRESH,
+      showManagedToast(resetSucceeded ? 'success' : 'error',
+        resetSucceeded
+          ? 'Auction has been reset. Reset activity was recorded.'
+          : 'Auction reset completed with a storage error. Check audit logs before continuing.',
+        {
+          style: resetSucceeded ? TOAST_STYLES.success : TOAST_STYLES.error,
+          icon: EMOJIS.REFRESH,
+          duration: 7000,
+        });
+    } catch (error) {
+      console.error('[AUCTION RESET] Failed:', error);
+      showManagedToast('error', 'Auction reset failed. Please check your connection and try again.', {
+        style: TOAST_STYLES.error,
+        icon: EMOJIS.WARNING,
         duration: 7000,
       });
+    } finally {
+      setIsResettingAuction(false);
+    }
   };
 
   const handleWhatsAppSettings = () => {
@@ -463,7 +477,7 @@ function CricketAuctionSession({ auth }) {
           }
           showManagedToast={showManagedToast}
         />
-        <ResetConfirmation isOpen={showResetConfirmation} onConfirm={confirmResetAuction} onCancel={cancelResetAuction} />
+        <ResetConfirmation isOpen={showResetConfirmation} onConfirm={confirmResetAuction} onCancel={cancelResetAuction} isLoading={isResettingAuction} />
         <WhatsAppSettings isOpen={showWhatsAppSettings} settings={whatsappSettings} onSave={handleSaveWhatsAppSettings} onClose={() => setShowWhatsAppSettings(false)} onTest={handleWhatsAppTest} />
       </>
     );
@@ -489,6 +503,7 @@ function CricketAuctionSession({ auth }) {
           isOpen={showResetConfirmation}
           onConfirm={confirmResetAuction}
           onCancel={cancelResetAuction}
+          isLoading={isResettingAuction}
         />
         <WhatsAppSettings
           isOpen={showWhatsAppSettings}
