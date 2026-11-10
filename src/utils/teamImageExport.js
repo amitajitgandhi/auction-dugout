@@ -405,3 +405,71 @@ export async function exportAllTeamsImage(teams, tournamentName) {
     const canvas = buildAllTeamsCanvas(teams, tournamentName);
     return shareOrDownloadCanvas(canvas, `${slug(tournamentName)}-all-teams.png`, `${tournamentName || 'Auction'} - All Teams`);
 }
+
+
+// Generate one PNG per team and download them together in a ZIP archive.
+function zipCrc32(bytes) {
+    let crc = -1;
+    for (let i = 0; i < bytes.length; i++) {
+        crc ^= bytes[i];
+        for (let j = 0; j < 8; j++) crc = (crc >>> 1) ^ (-(crc & 1) & 0xedb88320);
+    }
+    return (crc ^ -1) >>> 0;
+}
+
+function buildZip(files) {
+    const encoder = new TextEncoder();
+    const localParts = [];
+    const centralParts = [];
+    let offset = 0;
+    const put16 = (view, pos, value) => view.setUint16(pos, value, true);
+    const put32 = (view, pos, value) => view.setUint32(pos, value, true);
+    files.forEach(({ name, bytes }) => {
+        const filename = encoder.encode(name);
+        const crc = zipCrc32(bytes);
+        const local = new Uint8Array(30 + filename.length + bytes.length);
+        const lv = new DataView(local.buffer);
+        put32(lv, 0, 0x04034b50); put16(lv, 4, 20); put16(lv, 6, 0x0800);
+        put16(lv, 8, 0); put32(lv, 14, crc); put32(lv, 18, bytes.length);
+        put32(lv, 22, bytes.length); put16(lv, 26, filename.length);
+        local.set(filename, 30); local.set(bytes, 30 + filename.length);
+        localParts.push(local);
+
+        const central = new Uint8Array(46 + filename.length);
+        const cv = new DataView(central.buffer);
+        put32(cv, 0, 0x02014b50); put16(cv, 4, 20); put16(cv, 6, 20);
+        put16(cv, 8, 0x0800); put16(cv, 10, 0); put32(cv, 16, crc);
+        put32(cv, 20, bytes.length); put32(cv, 24, bytes.length);
+        put16(cv, 28, filename.length); put32(cv, 42, offset);
+        central.set(filename, 46); centralParts.push(central);
+        offset += local.length;
+    });
+    const centralSize = centralParts.reduce((sum, part) => sum + part.length, 0);
+    const end = new Uint8Array(22);
+    const ev = new DataView(end.buffer);
+    put32(ev, 0, 0x06054b50); put16(ev, 8, files.length); put16(ev, 10, files.length);
+    put32(ev, 12, centralSize); put32(ev, 16, offset);
+    return new Blob([...localParts, ...centralParts, end], { type: 'application/zip' });
+}
+
+export async function exportAllTeamImagesZip(teams, tournamentName) {
+    const entries = Object.entries(teams || {});
+    if (!entries.length) throw new Error('No teams available to export.');
+    const files = [];
+    for (const [teamName, teamData] of entries) {
+        const canvas = buildTeamCardCanvas(teamName, teamData, tournamentName);
+        const blob = await canvasToBlob(canvas);
+        if (!blob) throw new Error('Could not generate image for ' + teamName);
+        files.push({ name: slug(teamName) + '-squad.png', bytes: new Uint8Array(await blob.arrayBuffer()) });
+    }
+    const zip = buildZip(files);
+    const url = URL.createObjectURL(zip);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = slug(tournamentName || 'auction') + '-team-images.zip';
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 3000);
+    return files.length;
+}
