@@ -75,7 +75,9 @@ export const useAuctionBusinessLogic = (
                 // Fire-and-forget telemetry only after the auction state is confirmed saved.
                 // A logging failure cannot change the transaction result.
                 logActivity(authUser, tournamentName, action, {
-                    description,
+                    description: action === 'PLAYER_SOLD' && bidAmount != null
+                        ? `${description} for ₹${Number(bidAmount).toLocaleString('en-IN')}`
+                        : description,
                     entityType: teamName ? 'TEAM' : 'AUCTION',
                     entityId: teamName || null,
                     metadata: { amount: bidAmount ?? null }
