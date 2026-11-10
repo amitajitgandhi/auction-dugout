@@ -26,6 +26,7 @@ import { useAutoSave } from "./hooks/useAutoSave";
 import { useStartupRestore } from "./hooks/useStartupRestore";
 
 import { TOAST_STYLES, EMOJIS } from "./utils/constants";
+import { logActivity } from "./utils/activityLogger";
 
 export default function CricketAuctionTool() {
   const auth = useAuth();
@@ -98,6 +99,10 @@ function CricketAuctionSession({ auth }) {
   };
 
   const { showManagedToast, showFancyError } = useToastManager();
+
+  useEffect(() => {
+    if (authUser?.id) logActivity(authUser, tournamentName, 'LOGIN', { description: 'User signed in to Auction Dugout', eventCategory: 'AUTH' });
+  }, [authUser?.id]);
   const { whatsappSettings, setWhatsappSettings, sendWhatsAppNotification, handleWhatsAppTest, handleTeamWhatsAppShare } = useWhatsAppIntegration(showManagedToast);
   const auction = useAuction(players, showManagedToast);
   const persistence = usePersistence(showManagedToast, authUser);
@@ -216,6 +221,7 @@ function CricketAuctionSession({ auth }) {
       return;
     }
     setIsTournamentNameSet(true);
+    logActivity(authUser, tournamentName.trim(), 'TOURNAMENT_SETUP', { description: `Tournament setup completed: ${tournamentName.trim()}`, entityType: 'TOURNAMENT', entityId: tournamentName.trim() });
     showManagedToast('success', `Tournament "${tournamentName.trim()}" has been set!`, {
       style: TOAST_STYLES.success,
       icon: EMOJIS.TROPHY,
@@ -227,10 +233,12 @@ function CricketAuctionSession({ auth }) {
     // FileUpload displays one detailed success toast after photo processing completes.
     // Keep this callback focused on updating application state to avoid duplicate notifications.
     setPlayers(loadedPlayers);
+    logActivity(authUser, tournamentName, 'PLAYER_CSV_UPLOAD', { description: `${loadedPlayers.length} players loaded from CSV`, entityType: 'PLAYER', metadata: { count: loadedPlayers.length } });
   };
 
   const handleTeamsLoad = (loadedTeams) => {
     setTeams(loadedTeams);
+    logActivity(authUser, tournamentName, 'TEAM_CSV_UPLOAD', { description: `${Object.keys(loadedTeams).length} teams loaded from CSV`, entityType: 'TEAM', metadata: { count: Object.keys(loadedTeams).length } });
     showManagedToast('success', `Successfully loaded ${Object.keys(loadedTeams).length} teams from CSV file!`, {
       style: TOAST_STYLES.success,
       icon: EMOJIS.CHECK_MARK,
@@ -334,6 +342,7 @@ function CricketAuctionSession({ auth }) {
         currentPage
       });
 
+      logActivity(authUser, tournamentName, 'AUCTION_RESET', { description: `Auction reset requested for ${tournamentName || 'current tournament'}`, entityType: 'TOURNAMENT', entityId: tournamentName, metadata: { resetSucceeded } });
       setPlayers([]);
       setTeams({});
       setCategoryConfigs({});
