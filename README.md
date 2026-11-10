@@ -590,3 +590,25 @@ Any AI tool working in this repository should follow these rules:
 
 **Auction Dugout** — Built for professional cricket auctions.  
 **Product credit:** Designed with ❤️ by Amit Gandhi.
+
+
+## Activity logging
+
+Activity history is implemented as a best-effort, asynchronous feature and is deliberately separate from auction state persistence. The frontend buffers events and submits small batches to `public.activity_logs`; logging is never awaited by sale, unsold, retention, purse, booster, transfer, or player-edit operations. If telemetry fails, auction behavior and confirmed state saves remain unchanged. This is intentionally best-effort (events can be lost if the browser closes or remains offline before a batch is sent); it is not a transactional compliance audit/outbox.
+
+### Supabase setup required
+
+Run `supabase/activity_logs_setup.sql` once in the Supabase SQL Editor. It creates the append-only activity table, indexes, and row-level security policies. Users can insert and read only their own rows. No service-role key is exposed to the browser. Until this SQL is applied, activity inserts will fail harmlessly and appear as console warnings.
+
+### Events currently recorded
+
+- Authentication and setup: `LOGIN`, `TOURNAMENT_SETUP`.
+- Imports: `PLAYER_CSV_UPLOAD`, `TEAM_CSV_UPLOAD`.
+- Auction business actions after the main auction state save is confirmed: `PLAYER_SOLD`, `PLAYER_UNSOLD`, `UNSOLD_PLAYER_SOLD`, `OWNER_RETENTION`, `PURSE_UPDATE`, `BOOSTER_APPLIED`, `BOOSTER_REMOVED`, `BOOSTER_PPB_UPDATED`, `PLAYER_TRANSFER`, and `PLAYER_EDIT`.
+- Player Summary: `PLAYER_EDITED_PLAYER_SUMMARY`, `PLAYER_PHOTO_UPLOADED`, `PLAYER_PHOTO_CROPPED`.
+- Team Summary: `PLAYER_DETAILS_EDITED_TEAM_SUMMARY`.
+- Reset: `AUCTION_RESET`.
+
+The logger stores event descriptions, entity identifiers, limited before/after fields where available, and small metadata. It must not be used for passwords, access tokens, or full auction snapshots. Add new events through `src/utils/activityLogger.js`; keep calls fire-and-forget and place them only after the relevant operation succeeds.
+
+The current implementation does not yet include a dedicated Activity Dashboard, server-side durable queue, or guaranteed delivery for offline/unload scenarios. Those can be added separately without changing auction transaction logic.
