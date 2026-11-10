@@ -242,8 +242,8 @@ const MasterPlayersPage = ({
             logActivity(authUser, tournamentName, 'PLAYER_EDITED_PLAYER_SUMMARY', {
                 description: `Player details edited for ${editingPlayer?.name || updated.name} on Player Summary`,
                 entityType: 'PLAYER', entityId: updated.id,
-                oldData: { name: editingPlayer?.name, category: editingPlayer?.category, skill: editingPlayer?.skill, basePrice: editingPlayer?.basePrice },
-                newData: { name: updated.name, category: updated.category, skill: updated.skill, basePrice: updated.basePrice }
+                oldData: { name: editingPlayer?.name ?? null, category: editingPlayer?.category ?? null, skill: editingPlayer?.skill ?? null, basePrice: editingPlayer?.basePrice ?? null, cricHeroesLink: editingPlayer?.cricHeroesLink ?? editingPlayer?.cricHeroesUrl ?? null, photoUrl: editingPlayer?.photoUrl ?? editingPlayer?.photo ?? null },
+                newData: { name: updated.name, category: updated.category, skill: updated.skill, basePrice: updated.basePrice, cricHeroesLink: updated.cricHeroesLink, photoUrl: updated.photoUrl }
             });
             showManagedToast?.('success', 'Player details updated and saved successfully.', { icon: EMOJIS.CHECK_MARK, duration: 3000 });
         } catch (error) {
