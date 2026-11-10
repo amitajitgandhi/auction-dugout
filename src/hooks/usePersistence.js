@@ -181,6 +181,8 @@ export const usePersistence = (showManagedToast, user = null) => {
         let viewerDeleteSuccess = false;
         let auctionDeleteError = null;
         let viewerDeleteError = null;
+        let playersDeleteSuccess = false;
+        let playersDeleteError = null;
 
         await logAuditEvent('auction_reset_started', 'started', {
             reset_id: resetId,
@@ -190,6 +192,32 @@ export const usePersistence = (showManagedToast, user = null) => {
             current_page: resetContext.currentPage || null,
             trigger: 'reset_confirmation'
         });
+
+        // Remove only this account's players and image objects for the selected tournament.
+        if (user?.id && resetContext.tournamentName) {
+            try {
+                const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+                if (sessionError) throw sessionError;
+                const accessToken = sessionData?.session?.access_token;
+                if (!accessToken) throw new Error('No active authenticated session.');
+                const apiBase = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL)
+                    ? import.meta.env.VITE_API_BASE_URL
+                    : '';
+                const response = await fetch(`${apiBase}/api/reset-tournament-players`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tournamentName: resetContext.tournamentName, accessToken })
+                });
+                const result = await response.json().catch(() => ({}));
+                if (!response.ok || !result.success) throw new Error(result.message || 'Tournament player cleanup failed.');
+                playersDeleteSuccess = true;
+            } catch (error) {
+                playersDeleteError = error.message;
+                console.error('[AUCTION_RESET] Player/image cleanup failed:', error);
+            }
+        } else {
+            playersDeleteError = 'Tournament name or authenticated user is missing.';
+        }
 
         // Delete both cloud rows separately so each outcome is observable.
         if (user?.id) {
@@ -219,7 +247,7 @@ export const usePersistence = (showManagedToast, user = null) => {
         }
 
         const completedAt = new Date().toISOString();
-        const overallSuccess = !!user?.id && auctionDeleteSuccess && viewerDeleteSuccess;
+        const overallSuccess = !!user?.id && auctionDeleteSuccess && viewerDeleteSuccess && playersDeleteSuccess;
         const auditDetails = {
             reset_id: resetId,
             started_at: startedAt,
@@ -228,7 +256,9 @@ export const usePersistence = (showManagedToast, user = null) => {
             auction_data_deleted: auctionDeleteSuccess,
             auction_data_error: auctionDeleteError,
             auction_viewer_data_deleted: viewerDeleteSuccess,
-            auction_viewer_data_error: viewerDeleteError
+            auction_viewer_data_error: viewerDeleteError,
+            tournament_players_deleted: playersDeleteSuccess,
+            tournament_players_error: playersDeleteError
         };
 
         await logAuditEvent('auction_reset_completed', overallSuccess ? 'success' : 'partial_failure', auditDetails);
