@@ -105,7 +105,6 @@ const PlayerInfo = ({
                             <div className="flex items-center justify-between border-b border-gray-200 bg-gradient-to-r from-amber-50 to-orange-50 px-5 py-4">
                                 <div>
                                     <h3 id="max-bid-summary-title" className="text-lg font-extrabold text-gray-900">💰 MAX BID SUMMARY</h3>
-                                    <p className="mt-1 text-xs text-gray-500">Category: {summaryCategory}</p>
                                 </div>
                                 <button
                                     type="button"
