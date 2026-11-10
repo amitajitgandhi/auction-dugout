@@ -257,7 +257,7 @@ function drawTeamCard(ctx, x, y, width, teamName, teamData, { compact = false } 
 
 const PAGE_HEADER_H = 78;
 
-function drawPageHeader(ctx, width, tournamentName, subtitle) {
+function drawPageHeader(ctx, width, tournamentName, sponsorName) {
     const bannerH = PAGE_HEADER_H;
     drawGradientBanner(ctx, 0, 0, width, bannerH);
     ctx.textAlign = 'center';
@@ -268,8 +268,10 @@ function drawPageHeader(ctx, width, tournamentName, subtitle) {
         width / 2,
         38
     );
-    ctx.font = '14px Arial';
-    ctx.fillText(subtitle, width / 2, 62);
+    if (sponsorName && sponsorName.trim()) {
+        ctx.font = '14px Arial';
+        ctx.fillText(`Sponsored by ${sponsorName.trim()}`, width / 2, 62);
+    }
     ctx.textAlign = 'left';
     return bannerH;
 }
@@ -297,7 +299,7 @@ function makeScaledCanvas(width, height) {
 /**
  * Build the canvas for a single team's squad card.
  */
-function buildTeamCardCanvas(teamName, teamData, tournamentName) {
+function buildTeamCardCanvas(teamName, teamData, tournamentName, sponsorName = '') {
     const width = 640;
     const padOuter = 16;
     const cardH = teamCardHeight((teamData.players || []).length, false);
@@ -305,7 +307,7 @@ function buildTeamCardCanvas(teamName, teamData, tournamentName) {
     const height = PAGE_HEADER_H + padOuter * 2 + cardH + footerH;
 
     const { canvas, ctx } = makeScaledCanvas(width, height);
-    drawPageHeader(ctx, width, tournamentName, teamName);
+    drawPageHeader(ctx, width, tournamentName, sponsorName);
     drawTeamCard(ctx, padOuter, PAGE_HEADER_H + padOuter, width - padOuter * 2, teamName, teamData, { compact: false });
     drawFooter(ctx, width, height - 14);
 
@@ -316,7 +318,7 @@ function buildTeamCardCanvas(teamName, teamData, tournamentName) {
  * Build the canvas containing every team, laid out as a 2-column masonry grid
  * so it reads as one shareable "final squads" poster.
  */
-function buildAllTeamsCanvas(teams, tournamentName) {
+function buildAllTeamsCanvas(teams, tournamentName, sponsorName = '') {
     const entries = Object.entries(teams || {});
     const outerWidth = 940;
     const padOuter = 20;
@@ -343,7 +345,7 @@ function buildAllTeamsCanvas(teams, tournamentName) {
     const contentHeight = Math.max(...colHeights) - gap + padOuter + footerH;
 
     const { canvas, ctx } = makeScaledCanvas(outerWidth, contentHeight);
-    drawPageHeader(ctx, outerWidth, tournamentName, `ALL TEAMS • ${entries.length} teams`);
+    drawPageHeader(ctx, outerWidth, tournamentName, sponsorName);
     placements.forEach(({ teamName, data, x, y }) => {
         drawTeamCard(ctx, x, y, colWidth, teamName, data, { compact: true });
     });
@@ -393,16 +395,16 @@ const slug = (s) => (s || 'team').replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/
 /**
  * Export + share/download a single team's squad card as a PNG.
  */
-export async function exportTeamCardImage(teamName, teamData, tournamentName) {
-    const canvas = buildTeamCardCanvas(teamName, teamData, tournamentName);
+export async function exportTeamCardImage(teamName, teamData, tournamentName, sponsorName = '') {
+    const canvas = buildTeamCardCanvas(teamName, teamData, tournamentName, sponsorName);
     return shareOrDownloadCanvas(canvas, `${slug(teamName)}-squad.png`, `${teamName} Squad`);
 }
 
 /**
  * Export + share/download a single combined image with every team's squad.
  */
-export async function exportAllTeamsImage(teams, tournamentName) {
-    const canvas = buildAllTeamsCanvas(teams, tournamentName);
+export async function exportAllTeamsImage(teams, tournamentName, sponsorName = '') {
+    const canvas = buildAllTeamsCanvas(teams, tournamentName, sponsorName);
     return shareOrDownloadCanvas(canvas, `${slug(tournamentName)}-all-teams.png`, `${tournamentName || 'Auction'} - All Teams`);
 }
 
@@ -452,12 +454,12 @@ function buildZip(files) {
     return new Blob([...localParts, ...centralParts, end], { type: 'application/zip' });
 }
 
-export async function exportAllTeamImagesZip(teams, tournamentName) {
+export async function exportAllTeamImagesZip(teams, tournamentName, sponsorName = '') {
     const entries = Object.entries(teams || {});
     if (!entries.length) throw new Error('No teams available to export.');
     const files = [];
     for (const [teamName, teamData] of entries) {
-        const canvas = buildTeamCardCanvas(teamName, teamData, tournamentName);
+        const canvas = buildTeamCardCanvas(teamName, teamData, tournamentName, sponsorName);
         const blob = await canvasToBlob(canvas);
         if (!blob) throw new Error('Could not generate image for ' + teamName);
         files.push({ name: slug(teamName) + '-squad.png', bytes: new Uint8Array(await blob.arrayBuffer()) });
