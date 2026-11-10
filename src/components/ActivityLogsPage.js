@@ -20,7 +20,7 @@ export default function ActivityLogsPage({ authUser, tournamentName, onBack }) {
         setError('');
         let query = supabase
             .from('activity_logs')
-            .select('id, created_at, event_category, event_type, description, entity_type, entity_id, status')
+            .select('id, created_at, event_category, event_type, description, entity_type, entity_id, status, metadata')
             .eq('user_id', authUser.id)
             .order('created_at', { ascending: false })
             .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
@@ -68,9 +68,6 @@ export default function ActivityLogsPage({ authUser, tournamentName, onBack }) {
                         {[...new Set(rows.map(row => row.event_type).filter(Boolean))].sort().map(type => <option key={type} value={type}>{type.replaceAll('_', ' ')}</option>)}
                     </select>
                 </div>
-                <div className="bg-white rounded-xl p-4 mb-4 shadow text-sm text-gray-700">
-                    Loads at most 25 records per page. Search and filters are applied in the database; no exact-count query, polling, or realtime subscription is used.
-                </div>
                 {error && <div className="bg-red-900/60 border border-red-500 rounded-lg p-3 mb-4">Unable to load activity history: {error}. Confirm the activity_logs SQL setup and RLS policies have been applied.</div>}
                 <div className="bg-white rounded-xl shadow overflow-hidden">
                     {loading ? <div className="p-8 text-center text-gray-600">Loading activity...</div> :
@@ -86,7 +83,7 @@ export default function ActivityLogsPage({ authUser, tournamentName, onBack }) {
                                 {['PLAYER_SOLD', 'UNSOLD_PLAYER_SOLD', 'OWNER_RETENTION'].includes(row.event_type) && row.metadata?.amount != null && <p className="text-sm font-semibold text-emerald-700 mt-1">Sold amount: ₹{Number(row.metadata.amount).toLocaleString('en-IN')}</p>}
                                 <div className="flex flex-wrap gap-2 mt-2 text-xs">
                                     <span className="bg-slate-100 px-2 py-1 rounded">{row.event_category}</span>
-                                    {row.entity_type && <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded">{row.entity_type}{row.entity_id ? ` · ${row.entity_id}` : ''}</span>}
+                                    {row.entity_type && <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded">{row.entity_type}{row.event_type === 'PLAYER_SELECTED' ? '' : (row.entity_id ? ` · ${row.entity_id}` : '')}</span>}
                                     {row.status && row.status !== 'SUCCESS' && <span className="bg-red-100 text-red-700 px-2 py-1 rounded">{row.status}</span>}
                                 </div>
                             </div>
