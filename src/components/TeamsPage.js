@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { exportTeamsData, EMOJIS } from "../utils/constants";
 import { WHATSAPP_EMOJIS } from "../utils/whatsappUtils";
 import { exportTeamCardImage, exportAllTeamsImage } from "../utils/teamImageExport";
@@ -37,6 +37,20 @@ boosterPointsPerBooster,
     const [showBoosterPopup, setShowBoosterPopup] = useState(false);
     const [editingPlayer, setEditingPlayer] = useState(null);
     const [showConfirmation, setShowConfirmation] = useState(false);
+    useEffect(() => {
+        const handleSpinSelection = (event) => {
+            switch (event.detail) {
+                case 'table': onTableSpin?.(); break;
+                case 'custom': onJerseySpin?.(); break;
+                case 'team': handlePlayerSpin(); break;
+                case 'jersey': handleJerseyColor(); break;
+                default: break;
+            }
+        };
+        document.addEventListener('auction-dugout-spin', handleSpinSelection);
+        return () => document.removeEventListener('auction-dugout-spin', handleSpinSelection);
+    }, [onTableSpin, onJerseySpin, teams]);
+
     const [editForm, setEditForm] = useState({
         newTeam: '',
         newPrice: 0
@@ -354,10 +368,6 @@ boosterPointsPerBooster,
                 <button onClick={handleBoosterOpen} className="w-full text-left px-4 py-3 hover:bg-yellow-50 flex items-center gap-3"><span>⚡</span><span className="text-gray-700 font-medium">Add Booster Points</span></button>
                 <button onClick={handleExportTeams} disabled={Object.keys(teams).length === 0 || Object.values(teams).every(team => (team.players || []).length === 0)} className="w-full text-left px-4 py-3 hover:bg-blue-50 flex items-center gap-3 disabled:opacity-50"><span>📊</span><span className="text-gray-700 font-medium">Export Teams</span></button>
                 <button onClick={handleExportAllTeamsImage} disabled={Object.keys(teams).length === 0} className="w-full text-left px-4 py-3 hover:bg-emerald-50 flex items-center gap-3 disabled:opacity-50"><span>🖼️</span><span className="text-gray-700 font-medium">Export All Teams (Image)</span></button>
-                <button onClick={onTableSpin} className="w-full text-left px-4 py-3 hover:bg-purple-50 flex items-center gap-3"><span>🎯</span><span className="text-gray-700 font-medium">Table - Spin Wheel</span></button>
-                <button onClick={onJerseySpin} className="w-full text-left px-4 py-3 hover:bg-indigo-50 flex items-center gap-3"><span>🎨</span><span className="text-gray-700 font-medium">Jersey Color - Spin Wheel</span></button>
-                <button onClick={handlePlayerSpin} className="w-full text-left px-4 py-3 hover:bg-purple-50 flex items-center gap-3"><span>🎡</span><span className="text-gray-700 font-medium">Player Spin</span></button>
-                <button onClick={handleJerseyColor} className="w-full text-left px-4 py-3 hover:bg-indigo-50 flex items-center gap-3"><span>👕</span><span className="text-gray-700 font-medium">Jersey Color</span></button>
                 <button onClick={handleWhatsAppSettings} className="w-full text-left px-4 py-3 hover:bg-green-50 flex items-center gap-3"><span>📱</span><span className="text-gray-700 font-medium">WhatsApp Settings</span></button>
                 <div className="border-t border-gray-200 my-1"></div>
                 <button onClick={handleResetAuction} className="w-full text-left px-4 py-3 hover:bg-red-50 flex items-center gap-3"><span>🔄</span><span className="text-gray-700 font-medium">Reset Auction</span></button>
