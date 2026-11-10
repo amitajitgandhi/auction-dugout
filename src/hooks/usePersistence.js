@@ -202,7 +202,7 @@ export const usePersistence = (showManagedToast, user = null) => {
                 if (!accessToken) throw new Error('No active authenticated session.');
                 const apiBase = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL)
                     ? import.meta.env.VITE_API_BASE_URL
-                    : '';
+                    : 'https://auction-backend-xeai.onrender.com';
                 const response = await fetch(`${apiBase}/api/reset-tournament-players`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
