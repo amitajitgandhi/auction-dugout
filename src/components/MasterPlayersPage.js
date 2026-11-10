@@ -4,6 +4,7 @@ import { EMOJIS } from '../utils/constants';
 import { getCategoryRequirementStatus } from '../utils/centralizedTeamData';
 import StandardNavigationMenu from './StandardNavigationMenu';
 import PlayerPhotoCropper from './PlayerPhotoCropper';
+import { logActivity } from '../utils/activityLogger';
 
 // Master assignment uses the same normal sale logic as the auction.
 const getPlayerStatus = (p) => {
@@ -201,6 +202,16 @@ const MasterPlayersPage = ({
             if (saved === false) throw new Error('The photo uploaded, but the player record could not be saved.');
             setEditingPlayer(updatedPlayer);
             setEditForm(prev => ({ ...prev, photoUrl: result.image_url }));
+            if (cropSource.startsWith('blob:')) {
+                logActivity(authUser, tournamentName, 'PLAYER_PHOTO_UPLOADED', {
+                    description: `Photo uploaded for ${editingPlayer.name} from Player Summary`,
+                    entityType: 'PLAYER', entityId: editingPlayer.id
+                });
+            }
+            logActivity(authUser, tournamentName, 'PLAYER_PHOTO_CROPPED', {
+                description: `Photo cropped and saved for ${editingPlayer.name} from Player Summary`,
+                entityType: 'PLAYER', entityId: editingPlayer.id
+            });
             closePhotoCrop();
             showManagedToast?.('success', 'Cropped player photo saved successfully.', { icon: EMOJIS.CHECK_MARK, duration: 3500 });
         } catch (error) {
@@ -228,6 +239,12 @@ const MasterPlayersPage = ({
             const saved = await onUpdatePlayer?.(updated);
             if (saved === false) throw new Error('Player update was not confirmed as saved.');
             setEditingPlayer(null);
+            logActivity(authUser, tournamentName, 'PLAYER_EDITED_PLAYER_SUMMARY', {
+                description: `Player details edited for ${editingPlayer?.name || updated.name} on Player Summary`,
+                entityType: 'PLAYER', entityId: updated.id,
+                oldData: { name: editingPlayer?.name, category: editingPlayer?.category, skill: editingPlayer?.skill, basePrice: editingPlayer?.basePrice },
+                newData: { name: updated.name, category: updated.category, skill: updated.skill, basePrice: updated.basePrice }
+            });
             showManagedToast?.('success', 'Player details updated and saved successfully.', { icon: EMOJIS.CHECK_MARK, duration: 3000 });
         } catch (error) {
             console.error('[PLAYER_EDIT] Failed to persist edited player:', {
