@@ -4,7 +4,8 @@ import { EMOJIS } from "../utils/constants";
 const ResetConfirmation = ({ 
     isOpen, 
     onConfirm, 
-    onCancel 
+    onCancel,
+    isLoading = false
 }) => {
     if (!isOpen) return null;
 
@@ -50,20 +51,34 @@ const ResetConfirmation = ({
                             <strong>This action cannot be undone.</strong>
                         </p>
                     </div>
+                    {isLoading && (
+                        <div className="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-4 text-left" role="status" aria-live="polite">
+                            <div className="mb-2 flex items-center justify-between gap-3">
+                                <span className="font-semibold text-blue-900">Resetting auction data…</span>
+                                <span className="text-xs font-medium text-blue-700">Please wait</span>
+                            </div>
+                            <div className="h-3 w-full overflow-hidden rounded-full bg-blue-100">
+                                <div className="h-full w-1/3 rounded-full bg-blue-600 animate-[reset-progress_1.4s_ease-in-out_infinite]" />
+                            </div>
+                            <p className="mt-2 text-xs text-blue-700">Clearing players, teams, images and saved auction progress. This may take a while for large auctions.</p>
+                        </div>
+                    )}
                     <div className="flex flex-col sm:flex-row gap-3 justify-center">
                         <button
                             onClick={onCancel}
-                            className="flex-1 sm:flex-none px-6 py-3 bg-gray-200 text-gray-800 rounded-lg font-semibold hover:bg-gray-300 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400 flex items-center justify-center gap-2"
+                            disabled={isLoading}
+                            className="flex-1 sm:flex-none px-6 py-3 bg-gray-200 text-gray-800 rounded-lg font-semibold hover:bg-gray-300 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <span>{EMOJIS.CROSS_MARK}</span>
                             Cancel
                         </button>
                         <button
                             onClick={onConfirm}
-                            className="flex-1 sm:flex-none px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg font-semibold hover:from-red-600 hover:to-red-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-400 shadow-lg flex items-center justify-center gap-2"
+                            disabled={isLoading}
+                            className="flex-1 sm:flex-none px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg font-semibold hover:from-red-600 hover:to-red-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-400 shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <span>{EMOJIS.REFRESH}</span>
-                            Yes, Reset Auction
+                            {isLoading ? 'Resetting…' : 'Yes, Reset Auction'}
                         </button>
                     </div>
                 </div>
