@@ -749,6 +749,8 @@ onUpdatePointsPerBooster={handleUpdatePointsPerBooster}
                 onViewMaxBid={goToMaxBidPage}
                 onViewUnsoldPlayers={goToUnsoldPlayersPage}
                 onViewMasterPlayers={goToMasterPlayersPage}
+                onTableSpin={() => setCurrentPage('tablespin')}
+                onJerseySpin={() => setCurrentPage('jerseyspin')}
                 onLogout={handleLogout}
                 onResetAuction={handleResetAuction}
                 selectedCategory={auction.selectedCategory}
