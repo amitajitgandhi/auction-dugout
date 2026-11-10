@@ -5,6 +5,7 @@ const PlayerImage = ({ currentPlayer, imageKey, setImageKey }) => {
     const [imageLoadState, setImageLoadState] = useState('loading');
     const [useBackupIcon, setUseBackupIcon] = useState(false);
     const [urlAttempt, setUrlAttempt] = useState(0);
+    const [showPhotoPreview, setShowPhotoPreview] = useState(false);
 
     // Reset states for new player
     useEffect(() => {
@@ -123,11 +124,11 @@ const PlayerImage = ({ currentPlayer, imageKey, setImageKey }) => {
                 renderPlayerIcon()
             ) : (
                 <>
-                    <a
-                        href={getOriginalDriveLink()}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{ display: 'block', width: '100%', height: '100%' }}
+                    <button
+                        type="button"
+                        onClick={() => setShowPhotoPreview(true)}
+                        aria-label={`Enlarge photo of ${currentPlayer?.name || 'player'}`}
+                        style={{ display: 'block', width: '100%', height: '100%', cursor: 'zoom-in' }}
                     >
                         <img
                             key={imageKey}
@@ -136,13 +137,17 @@ const PlayerImage = ({ currentPlayer, imageKey, setImageKey }) => {
                             className="w-full h-full object-cover"
                             onError={handlePlayerImageError}
                             onLoad={handleImageLoad}
-                            style={{
-                                display: imageLoadState === 'error' ? 'none' : 'block',
-                                width: '100%',
-                                height: '100%'
-                            }}
+                            style={{ display: imageLoadState === 'error' ? 'none' : 'block', width: '100%', height: '100%' }}
                         />
-                    </a>
+                    </button>
+                    {showPhotoPreview && (
+                        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/80 p-4" onClick={() => setShowPhotoPreview(false)} role="presentation">
+                            <section className="relative max-h-[90vh] max-w-[90vw]" role="dialog" aria-modal="true" aria-label={`${currentPlayer?.name || 'Player'} photo`} onClick={event => event.stopPropagation()}>
+                                <button type="button" onClick={() => setShowPhotoPreview(false)} className="absolute -right-3 -top-3 z-10 rounded-full bg-white px-3 py-2 text-xl font-bold text-gray-800 shadow-lg" aria-label="Close photo">✕</button>
+                                <img src={getPlayerImageUrl()} alt={currentPlayer?.name || 'Player'} className="max-h-[85vh] max-w-[90vw] rounded-xl object-contain shadow-2xl" />
+                            </section>
+                        </div>
+                    )}
                     {imageLoadState === 'loading' && (
                         <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
                             <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500"></div>
