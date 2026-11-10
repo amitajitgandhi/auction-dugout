@@ -1,6 +1,7 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import ReactConfetti from "react-confetti";
-import { EMOJIS } from "../utils/constants";
+import { EMOJIS, exportTeamsData } from "../utils/constants";
+import { exportAllTeamImagesZip } from "../utils/teamImageExport";
 import PlayerImage from "./PlayerImage";
 import PlayerInfo from "./PlayerInfo";
 import ConfirmationDialogs from "./ConfirmationDialogs";
@@ -9,6 +10,7 @@ import StandardNavigationMenu from "./StandardNavigationMenu";
 const AuctionInterface = forwardRef(({
     currentPlayer,
     teams,
+    tournamentName,
     players = [],
     categoryConfigs = {},
     teamNameInput,
@@ -79,6 +81,26 @@ const AuctionInterface = forwardRef(({
         document.addEventListener('auction-dugout-spin', handleSpinSelection);
         return () => document.removeEventListener('auction-dugout-spin', handleSpinSelection);
     }, [onTableSpin, onJerseySpin, onViewTeams]);
+
+    // Export actions are handled here as well as on Team Summary so the shared menu works on either page.
+    useEffect(() => {
+        const handleExportSelection = async (event) => {
+            try {
+                if (event.detail === 'csv') {
+                    exportTeamsData(teams, tournamentName);
+                    showManagedToast?.('success', 'Teams data exported successfully!', { icon: EMOJIS.CHART, duration: 4000 });
+                } else if (event.detail === 'image') {
+                    const count = await exportAllTeamImagesZip(teams, tournamentName);
+                    showManagedToast?.('success', count + ' team images downloaded in a ZIP file.', { icon: EMOJIS.DOWNLOAD, duration: 4000 });
+                }
+            } catch (error) {
+                console.error('Failed to export auction data:', error);
+                showManagedToast?.('error', error?.message || 'Export failed. Please try again.', { icon: EMOJIS.WARNING, duration: 4000 });
+            }
+        };
+        document.addEventListener('auction-dugout-export', handleExportSelection);
+        return () => document.removeEventListener('auction-dugout-export', handleExportSelection);
+    }, [teams, tournamentName, showManagedToast]);
 
     // Reset animations for new player
     useEffect(() => {
@@ -207,6 +229,7 @@ const AuctionInterface = forwardRef(({
                 onUnsoldPlayers={onViewUnsoldPlayers}
                 onMaxBid={onViewMaxBid}
                 onLogout={onLogout}
+                onResetAuction={onResetAuction}
             />
 
             {/* Category and round header, restored from the earlier auction interface. */}
