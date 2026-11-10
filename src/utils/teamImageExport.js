@@ -279,7 +279,7 @@ function drawFooter(ctx, width, y) {
     ctx.font = '12px Arial';
     ctx.fillStyle = PALETTE.footerText;
     const dateStr = new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
-    ctx.fillText(`\u{1F3CF} Auction Dugout • Generated ${dateStr}`, width / 2, y);
+    ctx.fillText(`\u{1F3CF} Auction Dugout • Designed with ❤️ by Amit Gandhi`, width / 2, y);
     ctx.textAlign = 'left';
 }
 
