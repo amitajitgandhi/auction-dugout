@@ -12,7 +12,8 @@ import StandardNavigationMenu from "./StandardNavigationMenu";
 const TeamsPage = ({ 
     teams, 
     players, 
-    tournamentName, 
+    tournamentName,
+    sponsorName = '',
     tickerDetails = "", 
     onExportTeams, 
     onResetAuction, 
@@ -113,7 +114,7 @@ boosterPointsPerBooster,
             return;
         }
         try {
-            const count = await exportAllTeamImagesZip(teams, tournamentName);
+            const count = await exportAllTeamImagesZip(teams, tournamentName, sponsorName);
             showManagedToast('success', count + ' team images downloaded in a ZIP file.', { icon: EMOJIS.DOWNLOAD, duration: 4000 });
         } catch (error) {
             console.error('Failed to export team images:', error);
