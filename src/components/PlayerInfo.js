@@ -22,7 +22,7 @@ const PlayerInfo = ({
         <div>
             <div className="relative inline-block">
                 <h2 className="text-3xl font-bold text-gray-800 mb-3">
-                    {currentPlayer?.name || 'No Player'}
+                    {(currentPlayer?.name || 'No Player').toLowerCase().replace(/\b\p{L}/gu, letter => letter.toUpperCase())}
                 </h2>
                 {/* SOLD Stamp Animation */}
                 {showSoldStamp && (
@@ -48,16 +48,12 @@ const PlayerInfo = ({
                 )}
             </div>
             
-            <div className="space-y-2">
-                <div className="text-gray-600 flex items-center gap-2 text-lg">
-                    <span>{EMOJIS.SOCCER_BALL}</span>
-                    <span className="font-medium">Skill:</span>
-                    <span>{currentPlayer?.skill}</span>
-                </div>
-                <div className="text-purple-700 flex items-center gap-2 text-lg">
-                    <span>{EMOJIS.CLIPBOARD}</span>
-                    <span className="font-medium">Category:</span>
-                    <span className="font-semibold">{currentPlayer?.category}</span>
+            <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-2 text-base sm:text-lg">
+                    <div className="rounded-lg bg-gray-100 px-3 py-2 font-semibold text-gray-700">{currentPlayer?.skill || '—'}</div>
+                    <div className="rounded-lg bg-blue-50 px-3 py-2 font-semibold text-blue-800">{currentPlayer?.bowlingStyle || '—'}</div>
+                    <div className="rounded-lg bg-purple-50 px-3 py-2 font-semibold text-purple-800">{currentPlayer?.wicketkeeper || 'No'}</div>
+                    <div className="rounded-lg bg-amber-50 px-3 py-2 font-semibold text-amber-800">{currentPlayer?.category || '—'}</div>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
                     {/* CricHeroes Profile Link - Optional */}
