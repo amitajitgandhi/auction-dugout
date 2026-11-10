@@ -602,12 +602,12 @@ Run `supabase/activity_logs_setup.sql` once in the Supabase SQL Editor. It creat
 
 ### Events currently recorded
 
-- Authentication and setup: `LOGIN`, `TOURNAMENT_SETUP`.
+- Authentication and setup: `LOGIN`, `TOURNAMENT_SETUP`, `AUCTION_STARTED`, `PLAYER_SELECTED`.
 - Imports: `PLAYER_CSV_UPLOAD`, `TEAM_CSV_UPLOAD`.
 - Auction business actions after the main auction state save is confirmed: `PLAYER_SOLD`, `PLAYER_UNSOLD`, `UNSOLD_PLAYER_SOLD`, `OWNER_RETENTION`, `PURSE_UPDATE`, `BOOSTER_APPLIED`, `BOOSTER_REMOVED`, `BOOSTER_PPB_UPDATED`, `PLAYER_TRANSFER`, and `PLAYER_EDIT`.
 - Player Summary: `PLAYER_EDITED_PLAYER_SUMMARY`, `PLAYER_PHOTO_UPLOADED`, `PLAYER_PHOTO_CROPPED`.
 - Team Summary: `PLAYER_DETAILS_EDITED_TEAM_SUMMARY`.
-- Reset: `AUCTION_RESET`.
+- Reset and system health: `AUCTION_RESET`, `CLOUD_SAVE_FAILED`, `VIEWER_SYNC_FAILED`.
 
 The logger stores event descriptions, entity identifiers, limited before/after fields where available, and small metadata. It must not be used for passwords, access tokens, or full auction snapshots. Add new events through `src/utils/activityLogger.js`; keep calls fire-and-forget and place them only after the relevant operation succeeds.
 
