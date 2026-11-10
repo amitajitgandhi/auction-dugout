@@ -9,7 +9,6 @@ export default function ActivityLogsPage({ authUser, tournamentName, onBack }) {
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(0);
     const [hasMore, setHasMore] = useState(false);
-    const [eventFilter, setEventFilter] = useState('');
     const [error, setError] = useState('');
 
     const loadPage = useCallback(async () => {
@@ -23,8 +22,7 @@ export default function ActivityLogsPage({ authUser, tournamentName, onBack }) {
             .order('created_at', { ascending: false })
             .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
         if (tournamentName) query = query.eq('tournament_name', tournamentName);
-        if (eventFilter.trim()) query = query.ilike('event_type', `%${eventFilter.trim()}%`);
-        const { data, error: queryError, count } = await query;
+        const { data, error: queryError } = await query;
         if (queryError) {
             setError(queryError.message);
             setRows([]);
@@ -35,11 +33,10 @@ export default function ActivityLogsPage({ authUser, tournamentName, onBack }) {
             setRows(resultRows.slice(0, PAGE_SIZE));
         }
         setLoading(false);
-    }, [authUser?.id, tournamentName, page, eventFilter]);
+    }, [authUser?.id, tournamentName, page]);
 
     useEffect(() => { loadPage(); }, [loadPage]);
 
-    const totalPages = hasMore ? page + 2 : page + 1;
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 text-white p-4 md:p-8">
             <div className="max-w-6xl mx-auto">
@@ -54,10 +51,8 @@ export default function ActivityLogsPage({ authUser, tournamentName, onBack }) {
                         <button onClick={onBack} className="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600">Back</button>
                     </div>
                 </div>
-                <div className="bg-white rounded-xl p-4 mb-4 shadow">
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">Filter by event type</label>
-                    <input value={eventFilter} onChange={e => { setPage(0); setEventFilter(e.target.value); }} placeholder="e.g. PLAYER_SOLD, BOOSTER..." className="w-full md:w-96 border border-gray-300 rounded-lg px-3 py-2 text-gray-900" />
-                    <p className="text-xs text-gray-500 mt-2">Loads at most 25 records per page (one extra row checks whether another page exists). No exact-count query is run.</p>
+                <div className="bg-white rounded-xl p-4 mb-4 shadow text-sm text-gray-700">
+                    Loads at most 25 records per page (one extra row checks whether another page exists). No exact-count query, polling, or realtime subscription is used.
                 </div>
                 {error && <div className="bg-red-900/60 border border-red-500 rounded-lg p-3 mb-4">Unable to load activity history: {error}. Confirm the activity_logs SQL setup and RLS policies have been applied.</div>}
                 <div className="bg-white rounded-xl shadow overflow-hidden">
