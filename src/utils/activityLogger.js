@@ -55,7 +55,13 @@ export const logActivity = (user, tournamentName, eventType, details = {}) => {
     scheduleFlush();
 };
 
-export const flushActivityLogs = () => flush();
+export const flushActivityLogs = async () => {
+    while (flushing) await new Promise(resolve => setTimeout(resolve, 25));
+    while (queue.length) {
+        await flush();
+        if (flushing) await new Promise(resolve => setTimeout(resolve, 25));
+    }
+};
 
 /**
  * Clears this user's history for the reset tournament. This is intentionally
@@ -64,7 +70,7 @@ export const flushActivityLogs = () => flush();
  */
 export const clearTournamentActivity = async (userId, tournamentName) => {
     if (!userId || !tournamentName) return { success: false, reason: 'missing_scope' };
-    await flush();
+    await flushActivityLogs();
     const { error } = await supabase
         .from('activity_logs')
         .delete()
