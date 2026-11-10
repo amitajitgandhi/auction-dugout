@@ -81,8 +81,21 @@ const PlayerInfo = ({
                                     <button type="button" onClick={() => setShowCricHeroes(false)} className="rounded-full px-3 py-1 text-xl text-gray-600 hover:bg-gray-100" aria-label="Close CricHeroes profile">✕</button>
                                 </div>
                             </div>
-                            <iframe title="CricHeroes player profile" src={currentPlayer?.cricHeroesProfile} className="min-h-0 flex-1 border-0" referrerPolicy="no-referrer" />
-                            <div className="border-t border-gray-100 px-4 py-2 text-xs text-gray-500">If CricHeroes does not allow embedded viewing, use “Open externally”.</div>
+                            <div className="flex flex-1 flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50 px-6 py-10 text-center">
+                                <img src={cricheroeslogo} alt="CricHeroes" className="mb-5 h-16 w-16 object-contain" />
+                                <h4 className="mb-2 text-xl font-bold text-gray-900">View player profile on CricHeroes</h4>
+                                <p className="mb-6 max-w-lg text-sm leading-6 text-gray-600">
+                                    CricHeroes does not permit its pages to be displayed inside Auction Dugout. Open the profile in a new tab to view the complete player details.
+                                </p>
+                                <a
+                                    href={currentPlayer?.cricHeroesProfile}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-3 font-bold text-white shadow-md transition hover:from-blue-700 hover:to-indigo-700"
+                                >
+                                    Open CricHeroes Profile ↗
+                                </a>
+                            </div>
                         </section>
                     </div>
                 )}
