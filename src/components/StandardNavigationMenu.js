@@ -10,7 +10,8 @@ export default function StandardNavigationMenu({
   onLogout,
   children
 }) {
-  const [open, setOpen] = useState(false);\n  const [showSpinSubmenu, setShowSpinSubmenu] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [showSpinSubmenu, setShowSpinSubmenu] = useState(false);
   const items = [
     ['auction', '🏏', 'Auction', onAuction],
     ['teams', '👥', 'Team Summary', onTeamSummary],
