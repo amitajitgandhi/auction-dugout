@@ -137,7 +137,7 @@ export const useAuctionBusinessLogic = (
         );
 
         // Commit UI state only after Supabase confirms the proposed transaction.
-        const saved = await triggerAuctionSaveWithState('PLAYER_SOLD', `${playerObj.name} sold to ${teamName}`, teamName, bidAmount, updatedPlayers, updatedTeams);
+        const saved = await triggerAuctionSaveWithState('PLAYER_SOLD', `${playerObj.name} sold to ${teamName}`, teamName, bidAmount, updatedPlayers, updatedTeams, {}, { oldData: { playerStatus: playerObj.sold ? 'SOLD' : (playerObj.soldTo === 'Unsold' ? 'UNSOLD' : 'AVAILABLE'), team: playerObj.soldTo || null, price: playerObj.soldPrice ?? null, teamPurse: getTeamInfo(teams[teamName], teamName).currentPurse }, newData: { playerStatus: 'SOLD', team: teamName, price: bidAmount, teamPurse: getTeamInfo(updatedTeams[teamName], teamName).currentPurse } });
         if (!saved) {
             sellingPlayerIdsRef.current.delete(playerKey);
             return { success: false, message: 'Sale not completed because the server could not confirm the save. Please retry when connected.' };
@@ -258,7 +258,7 @@ export const useAuctionBusinessLogic = (
                 : (player.name === auction.currentPlayer.name ? { ...player, soldTo: 'Unsold', soldPrice: 0, sold: false, wasUnsold: true } : player)
         );
 
-        const saved = await triggerAuctionSaveWithState('PLAYER_UNSOLD', `${auction.currentPlayer.name} marked as unsold`, 'Unsold', 0, updatedPlayers);
+        const saved = await triggerAuctionSaveWithState('PLAYER_UNSOLD', `${auction.currentPlayer.name} marked as unsold`, 'Unsold', 0, updatedPlayers, null, {}, { oldData: { playerStatus: auction.currentPlayer.sold ? 'SOLD' : (auction.currentPlayer.soldTo === 'Unsold' ? 'UNSOLD' : 'AVAILABLE'), team: auction.currentPlayer.soldTo || null, price: auction.currentPlayer.soldPrice ?? null }, newData: { playerStatus: 'UNSOLD', team: 'Unsold', price: 0 } });
         if (!saved) return;
         setPlayers(updatedPlayers);
         showManagedToast('info', `${auction.currentPlayer.name} marked as unsold.`, {
@@ -307,7 +307,7 @@ export const useAuctionBusinessLogic = (
         const updatedTeams = processPlayerPurchase(teams, teamName, { ...playerObj, category: assignedCategory }, bidAmount, assignedCategory, categoryConfigs);
         if (!updatedTeams) return { success: false, message: 'Failed to process purchase. Budget or limit issue.' };
         const updatedPlayers = players.map(p => p.id === playerObj.id ? { ...p, category: assignedCategory, soldTo: teamName, soldPrice: bidAmount, sold: true, wasUnsold: p.wasUnsold || true } : p);
-        const saved = await triggerAuctionSaveWithState('UNSOLD_PLAYER_SOLD', `${playerObj.name} sold later to ${teamName}`, teamName, bidAmount, updatedPlayers, updatedTeams);
+        const saved = await triggerAuctionSaveWithState('UNSOLD_PLAYER_SOLD', `${playerObj.name} sold later to ${teamName}`, teamName, bidAmount, updatedPlayers, updatedTeams, {}, { oldData: { playerStatus: 'UNSOLD', team: currentPlayer.soldTo || 'Unsold', price: currentPlayer.soldPrice ?? 0, teamPurse: getTeamInfo(teams[teamName], teamName).currentPurse }, newData: { playerStatus: 'SOLD', team: teamName, price: bidAmount, teamPurse: getTeamInfo(updatedTeams[teamName], teamName).currentPurse } });
         if (!saved) return { success: false, message: 'Sale not completed because the server save failed.' };
         setPlayers(updatedPlayers);
         setTeams(updatedTeams);
@@ -411,7 +411,9 @@ export const useAuctionBusinessLogic = (
                 teamName,
                 amount,
                 updatedPlayers,
-                updatedTeams
+                updatedTeams,
+                {},
+                { oldData: { playerStatus: currentPlayer.soldTo === 'Unsold' ? 'UNSOLD' : 'AVAILABLE', team: currentPlayer.soldTo || null, price: currentPlayer.soldPrice ?? null, teamPurse: getTeamInfo(teams[teamName], teamName).currentPurse }, newData: { playerStatus: 'RETAINED', team: teamName, price: amount, category, teamPurse: getTeamInfo(updatedTeams[teamName], teamName).currentPurse } }
             );
             if (!saved) return { success: false, message: 'Retention not completed because the server save failed.' };
             setPlayers(updatedPlayers);
@@ -435,7 +437,7 @@ export const useAuctionBusinessLogic = (
             return false;
         }
 
-        const saved = await triggerAuctionSaveWithState('PURSE_UPDATE', `Team ${teamName} purse updated to ₹${Number(newPurse).toLocaleString('en-IN')}`, teamName, newPurse, null, updatedTeams);
+        const saved = await triggerAuctionSaveWithState('PURSE_UPDATE', `Team ${teamName} purse updated to ₹${Number(newPurse).toLocaleString('en-IN')}`, teamName, newPurse, null, updatedTeams, {}, { oldData: { initialPurse: teams[teamName]?.initialPurse ?? null, currentPurse: getTeamInfo(teams[teamName], teamName).currentPurse }, newData: { initialPurse: updatedTeams[teamName]?.initialPurse ?? null, currentPurse: getTeamInfo(updatedTeams[teamName], teamName).currentPurse } });
         if (!saved) return false;
         setTeams(updatedTeams);
         return true;
@@ -457,7 +459,9 @@ export const useAuctionBusinessLogic = (
             teamName,
             newCount,
             null,
-            updatedTeams
+            updatedTeams,
+            {},
+            { oldData: { boosterCount: teams[teamName]?.boosterCount ?? 0, pointsPerBooster: boosterPointsPerBooster, totalBoosterPoints: (teams[teamName]?.boosterCount ?? 0) * boosterPointsPerBooster }, newData: { boosterCount: newCount, pointsPerBooster: boosterPointsPerBooster, totalBoosterPoints: newCount * boosterPointsPerBooster } }
         );
         if (!saved) return false;
         setTeams(updatedTeams);
@@ -496,7 +500,9 @@ const handleDecrementTeamBooster = async (teamName) => {
         teamName,
         newCount,
         null,
-        updatedTeams
+        updatedTeams,
+        {},
+        { oldData: { boosterCount: currentCount, pointsPerBooster: boosterPointsPerBooster, totalBoosterPoints: currentCount * boosterPointsPerBooster }, newData: { boosterCount: newCount, pointsPerBooster: boosterPointsPerBooster, totalBoosterPoints: newCount * boosterPointsPerBooster } }
     );
     if (!saved) return false;
     setTeams(updatedTeams);
@@ -519,7 +525,8 @@ const handleDecrementTeamBooster = async (teamName) => {
             newPointsPerBooster,
             null,
             updatedTeams,
-            { boosterPointsPerBooster: newPointsPerBooster }
+            { boosterPointsPerBooster: newPointsPerBooster },
+            { oldData: { pointsPerBooster: boosterPointsPerBooster }, newData: { pointsPerBooster: newPointsPerBooster } }
         );
         if (!saved) return false;
         setTeams(updatedTeams);
@@ -543,7 +550,7 @@ const handleDecrementTeamBooster = async (teamName) => {
                 : p
         );
 
-        const saved = await triggerAuctionSaveWithState('PLAYER_TRANSFER', `${player.name} transferred from ${fromTeam} to ${toTeam}`, toTeam, newPrice, updatedPlayers, updatedTeams);
+        const saved = await triggerAuctionSaveWithState('PLAYER_TRANSFER', `${player.name} transferred from ${fromTeam} to ${toTeam}`, toTeam, newPrice, updatedPlayers, updatedTeams, {}, { oldData: { team: fromTeam, price: player.soldPrice ?? null, fromTeamPurse: getTeamInfo(teams[fromTeam], fromTeam).currentPurse, toTeamPurse: getTeamInfo(teams[toTeam], toTeam).currentPurse }, newData: { team: toTeam, price: newPrice, fromTeamPurse: getTeamInfo(updatedTeams[fromTeam], fromTeam).currentPurse, toTeamPurse: getTeamInfo(updatedTeams[toTeam], toTeam).currentPurse } });
         if (!saved) return false;
         setPlayers(updatedPlayers);
         setTeams(updatedTeams);
