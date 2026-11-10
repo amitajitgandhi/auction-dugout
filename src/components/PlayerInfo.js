@@ -121,7 +121,7 @@ const PlayerInfo = ({
                                         <tr>
                                             <th className="w-[34%] px-3 py-3 text-left">Team Name</th>
                                             <th className="w-[22%] px-2 py-3 text-right">Remaining Purse</th>
-                                            <th className="w-[20%] px-2 py-3 text-right">Players to Buy</th>
+                                            <th className="w-[20%] px-2 py-3 text-right">Remaining Players</th>
                                             <th className="w-[24%] px-3 py-3 text-right">Max Bid</th>
                                         </tr>
                                     </thead>
@@ -132,7 +132,7 @@ const PlayerInfo = ({
                                                 <tr key={team.teamName} className="hover:bg-amber-50">
                                                     <td className="break-words px-3 py-3 font-semibold text-gray-800">{team.teamName}</td>
                                                     <td className="whitespace-nowrap px-2 py-3 text-right font-medium text-gray-700">₹{team.remainingPoints.toLocaleString("en-IN")}</td>
-                                                    <td className="whitespace-nowrap px-2 py-3 text-right font-semibold text-gray-700">{team.categoryBreakdown[summaryCategory]?.playersRemaining ?? 0}</td>
+                                                    <td className="whitespace-nowrap px-2 py-3 text-right font-semibold text-gray-700">{Object.values(team.categoryBreakdown || {}).reduce((total, category) => total + (category.playersRemaining || 0), 0)}</td>
                                                     <td className="whitespace-nowrap px-3 py-3 text-right font-bold text-green-700">{canBidInCategory ? `₹${team.maxBid.toLocaleString("en-IN")}` : "—"}</td>
                                                 </tr>
                                             );
