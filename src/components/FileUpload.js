@@ -267,7 +267,8 @@ const FileUpload = ({
                     console.log("Player CSV photo processing summary:", summary);
                     if (showManagedToast) {
                         showManagedToast('success',
-                            `Players loaded: ${enrichedPlayers.length}. Photos uploaded: ${summary.uploaded}; dummy images: ${summary.dummy}; failed player saves: ${summary.failed}; duplicate rows: ${summary.duplicates}.`);
+                            `Loaded ${enrichedPlayers.length} players. Photos: ${summary.uploaded} uploaded, ${summary.dummy} dummy; ${summary.failed} save failures; ${summary.duplicates} duplicates.`,
+                            { style: { background: '#ecfdf5', color: '#065f46', border: '1px solid #10b981' }, icon: EMOJIS.CHECK_MARK, duration: 5000 });
                     }
                 }
 
