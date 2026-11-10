@@ -13,6 +13,7 @@ export default function StandardNavigationMenu({
 }) {
   const [open, setOpen] = useState(false);
   const [showSpinSubmenu, setShowSpinSubmenu] = useState(false);
+  const [showExportSubmenu, setShowExportSubmenu] = useState(false);
   const items = [
     ['auction', '🏏', 'Auction', onAuction],
     ['teams', '👥', 'Team Summary', onTeamSummary],
@@ -39,8 +40,14 @@ export default function StandardNavigationMenu({
           <button type="button" onClick={() => { setOpen(false); setShowSpinSubmenu(false); document.dispatchEvent(new CustomEvent('auction-dugout-spin', { detail: 'team' })); }} className="w-full text-left px-4 py-3 hover:bg-purple-50 flex gap-3"><span>👥</span><span>Team</span></button>
           <button type="button" onClick={() => { setOpen(false); setShowSpinSubmenu(false); document.dispatchEvent(new CustomEvent('auction-dugout-spin', { detail: 'jersey' })); }} className="w-full text-left px-4 py-3 hover:bg-indigo-50 flex gap-3"><span>👕</span><span>Jersey</span></button>
         </div>}
-        {!showSpinSubmenu && <button type="button" onClick={() => setShowSpinSubmenu(true)} className="w-full text-left px-4 py-3 hover:bg-purple-50 flex gap-3"><span>🎯</span><span className="text-gray-700 font-medium">Spin Wheel</span><span className="ml-auto">›</span></button>}
-        {!showSpinSubmenu && onResetAuction && <button type="button" onClick={() => { setOpen(false); onResetAuction(); }} className="w-full text-left px-4 py-3 hover:bg-red-50 flex gap-3"><span>🗑️</span><span className="text-red-600 font-semibold">Reset Auction</span></button>}
+        {!showSpinSubmenu && !showExportSubmenu && <button type="button" onClick={() => setShowExportSubmenu(true)} className="w-full text-left px-4 py-3 hover:bg-blue-50 flex gap-3"><span>📊</span><span className="text-gray-700 font-medium">Export</span><span className="ml-auto">›</span></button>}
+        {showExportSubmenu && <div className="py-1">
+          <button type="button" onClick={() => setShowExportSubmenu(false)} className="w-full text-left px-4 py-3 border-b border-gray-200 font-semibold text-indigo-700 hover:bg-indigo-50">← Back</button>
+          <button type="button" onClick={() => { setOpen(false); setShowExportSubmenu(false); document.dispatchEvent(new CustomEvent('auction-dugout-export', { detail: 'image' })); }} className="w-full text-left px-4 py-3 hover:bg-emerald-50">🖼️ Export (Image)</button>
+          <button type="button" onClick={() => { setOpen(false); setShowExportSubmenu(false); document.dispatchEvent(new CustomEvent('auction-dugout-export', { detail: 'csv' })); }} className="w-full text-left px-4 py-3 hover:bg-blue-50">📄 Export (CSV)</button>
+        </div>}
+        {!showSpinSubmenu && !showExportSubmenu && <button type="button" onClick={() => setShowSpinSubmenu(true)} className="w-full text-left px-4 py-3 hover:bg-purple-50 flex gap-3"><span>🎯</span><span className="text-gray-700 font-medium">Spin Wheel</span><span className="ml-auto">›</span></button>}
+        {!showSpinSubmenu && !showExportSubmenu && onResetAuction && <button type="button" onClick={() => { setOpen(false); onResetAuction(); }} className="w-full text-left px-4 py-3 hover:bg-red-50 flex gap-3"><span>🗑️</span><span className="text-red-600 font-semibold">Reset Auction</span></button>}
         {onLogout && (
           <>
             <div className="border-t border-gray-200 my-1"></div>
