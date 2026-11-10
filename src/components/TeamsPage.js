@@ -317,35 +317,6 @@ boosterPointsPerBooster,
         setShowMenu(false);
     };
 
-    // ✅ Export one combined image with every team's squad — a single "final
-    // results" poster to share on WhatsApp.
-    const handleExportAllTeamsImage = async () => {
-        if (Object.keys(teams).length === 0) {
-            showManagedToast('error', 'No teams available to export! Please add teams first.', {
-                icon: EMOJIS.WARNING,
-                duration: 3000,
-            });
-            setShowMenu(false);
-            return;
-        }
-        setShowMenu(false);
-        try {
-            const count = await exportAllTeamImagesZip(teams, tournamentName);
-            if (count > 0) {
-                showManagedToast('success', count + ' team images downloaded in a ZIP file.', {
-                    icon: EMOJIS.DOWNLOAD,
-                    duration: 3500,
-                });
-            }
-        } catch (error) {
-            console.error('Failed to export all-teams image:', error);
-            showManagedToast('error', 'Failed to generate the combined image. Please try again.', {
-                icon: EMOJIS.WARNING,
-                duration: 3500,
-            });
-        }
-    };
-
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-800 to-gray-900 bg-fixed relative overflow-x-hidden">
             {/* Tournament Name Ticker */}
