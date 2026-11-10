@@ -612,3 +612,20 @@ Run `supabase/activity_logs_setup.sql` once in the Supabase SQL Editor. It creat
 The logger stores event descriptions, entity identifiers, limited before/after fields where available, and small metadata. It must not be used for passwords, access tokens, or full auction snapshots. Add new events through `src/utils/activityLogger.js`; keep calls fire-and-forget and place them only after the relevant operation succeeds.
 
 The current implementation does not yet include a dedicated Activity Dashboard, server-side durable queue, or guaranteed delivery for offline/unload scenarios. Those can be added separately without changing auction transaction logic.
+
+
+### Activity History dashboard and reset behavior
+
+The Activity History page is available from the Team Summary navigation menu. It queries only the signed-in user's rows, returns 25 records per page, fetches only display columns, and checks for another page with one extra row rather than running an exact-count query. This keeps dashboard reads and egress bounded. It does not subscribe to realtime updates or poll.
+
+Reset Auction flushes pending events on a best-effort basis, then deletes activity rows for the signed-in user and the tournament being reset. The reset action itself is not logged, because the requested behavior is to leave no activity history for that tournament. The SQL setup now includes a user-scoped DELETE policy; rerun the updated `supabase/activity_logs_setup.sql` in Supabase SQL Editor to apply it.
+
+### Free-tier cost controls
+
+- No external analytics or logging service is used.
+- No realtime subscription, polling, full-table export, or exact-count dashboard query.
+- Dashboard pagination is capped at 25 displayed rows per request.
+- The event logger batches inserts and caps its in-memory queue.
+- An unused event-type index was removed to reduce database storage and write overhead.
+- Activity history is scoped to the current tournament during reset. Consider deleting old completed-tournament logs periodically if database size becomes a concern; do not add a scheduled database job on the Free plan without checking feature availability and usage.
+- This remains best-effort telemetry; a durable server-side outbox would add infrastructure and write load, so it has intentionally not been added.
