@@ -15,6 +15,7 @@ import WhatsAppSettings from "./components/WhatsAppSettings";
 import AuthPage from "./components/AuthPage";
 import UnsoldPlayersPage from "./components/UnsoldPlayersPage"; // NEW PAGE
 import MasterPlayersPage from "./components/MasterPlayersPage";
+import ActivityLogsPage from "./components/ActivityLogsPage";
 
 import { useAuth } from "./hooks/useAuth";
 import { useAuction } from "./hooks/useAuction";
@@ -26,7 +27,7 @@ import { useAutoSave } from "./hooks/useAutoSave";
 import { useStartupRestore } from "./hooks/useStartupRestore";
 
 import { TOAST_STYLES, EMOJIS } from "./utils/constants";
-import { logActivity } from "./utils/activityLogger";
+import { logActivity, clearTournamentActivity } from "./utils/activityLogger";
 
 export default function CricketAuctionTool() {
   const auth = useAuth();
@@ -345,7 +346,10 @@ function CricketAuctionSession({ auth }) {
         currentPage
       });
 
-      logActivity(authUser, tournamentName, 'AUCTION_RESET', { description: `Auction reset requested for ${tournamentName || 'current tournament'}`, entityType: 'TOURNAMENT', entityId: tournamentName, metadata: { resetSucceeded } });
+      // Remove this tournament's activity history as part of Reset Auction.
+      // Logging cleanup is best-effort and cannot change the reset result.
+      const activityCleanup = await clearTournamentActivity(authUser?.id, tournamentName);
+      if (!activityCleanup.success) console.warn('[AUCTION RESET] Activity history was not cleared:', activityCleanup.reason);
       setPlayers([]);
       setTeams({});
       setCategoryConfigs({});
@@ -417,6 +421,10 @@ function CricketAuctionSession({ auth }) {
       setBoosterPointsPerBooster
     );
   };
+
+  if (currentPage === 'activitylogs') {
+    return <ActivityLogsPage authUser={authUser} tournamentName={tournamentName} onBack={goToTeamsPage} />;
+  }
 
   // NEW PAGE RENDER
   if (currentPage === 'masterplayers') {
@@ -546,6 +554,7 @@ onUpdatePointsPerBooster={handleUpdatePointsPerBooster}
           onTableSpin={() => setCurrentPage('tablespin')}
           onJerseySpin={() => setCurrentPage('jerseyspin')}
           onLogout={handleLogout}
+          onActivityLogs={() => setCurrentPage('activitylogs')}
         />
         <ResetConfirmation 
           isOpen={showResetConfirmation}
