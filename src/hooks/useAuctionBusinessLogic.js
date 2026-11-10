@@ -536,7 +536,7 @@ const handleDecrementTeamBooster = async (teamName) => {
 
     // ✅ CENTRALIZED: Function to handle player transfers using centralized management
     const handlePlayerTransfer = async (player, fromTeam, toTeam, newPrice) => {
-        const updatedTeams = processPlayerTransfer(teams, player, fromTeam, toTeam, newPrice);
+        const updatedTeams = processPlayerTransfer(teams, player, fromTeam, toTeam, newPrice, categoryConfigs);
         
         if (!updatedTeams) {
             showFancyError("Failed to transfer player. Please check team budgets and try again.");
@@ -568,7 +568,7 @@ const handleDecrementTeamBooster = async (teamName) => {
         const sameTeam = currentTeam === newTeam;
         const updatedTeams = sameTeam
             ? updatePlayerPriceInTeam(teams, player, currentTeam, newPrice)
-            : processPlayerTransfer(teams, player, currentTeam, newTeam, newPrice);
+            : processPlayerTransfer(teams, player, currentTeam, newTeam, newPrice, categoryConfigs);
 
         if (!updatedTeams) {
             showFancyError(
