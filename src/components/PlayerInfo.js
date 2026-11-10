@@ -14,7 +14,6 @@ const PlayerInfo = ({
     onViewMaxBid
 }) => {
     const [showMaxBidSummary, setShowMaxBidSummary] = useState(false);
-    const [showCricHeroes, setShowCricHeroes] = useState(false);
     const summaryCategory = currentPlayer?.category || selectedCategory || "OPEN";
     const summaryTeams = useMemo(() => calculateTeamMaxBidAnalysis({
         teams, players, categoryConfigs, selectedCategoryForAnalysis: summaryCategory
@@ -58,7 +57,23 @@ const PlayerInfo = ({
                     <div className="flex min-w-0 items-center gap-2 rounded-lg bg-blue-50 px-3 py-2 text-base font-semibold text-blue-700">
                         <img src={cricheroeslogo} alt="CricHeroes" className="h-6 w-6 shrink-0 object-contain" />
                         {currentPlayer?.cricHeroesProfile?.trim() ? (
-                            <button type="button" onClick={() => setShowCricHeroes(true)} className="truncate underline transition-colors hover:text-blue-900">cricheroes</button>
+                            <button type="button" onClick={() => {
+                                const profileUrl = currentPlayer?.cricHeroesProfile?.trim();
+                                if (!profileUrl) return;
+                                const popupWidth = 1000;
+                                const popupHeight = 760;
+                                const left = Math.max(0, Math.round((window.screen.availWidth - popupWidth) / 2));
+                                const top = Math.max(0, Math.round((window.screen.availHeight - popupHeight) / 2));
+                                const profileWindow = window.open(
+                                    profileUrl,
+                                    "auction-dugout-cricheroes-profile",
+                                    `popup=yes,width=${popupWidth},height=${popupHeight},left=${left},top=${top},resizable=yes,scrollbars=yes`
+                                );
+                                if (profileWindow) {
+                                    profileWindow.opener = null;
+                                    profileWindow.focus();
+                                }
+                            }} className="truncate underline transition-colors hover:text-blue-900">cricheroes</button>
                         ) : <span> - </span>}
                     </div>
                     <button
@@ -71,34 +86,6 @@ const PlayerInfo = ({
                     </button>
                 </div>
 
-                {showCricHeroes && (
-                    <div className="fixed inset-0 z-[140] flex items-center justify-center bg-black/75 p-3 backdrop-blur-sm" onClick={() => setShowCricHeroes(false)} role="presentation">
-                        <section className="flex h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="cricheroes-modal-title" onClick={event => event.stopPropagation()}>
-                            <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
-                                <h3 id="cricheroes-modal-title" className="font-bold text-gray-900">CricHeroes Profile</h3>
-                                <div className="flex items-center gap-3">
-                                    <a href={currentPlayer?.cricHeroesProfile} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-blue-700 underline">Open externally</a>
-                                    <button type="button" onClick={() => setShowCricHeroes(false)} className="rounded-full px-3 py-1 text-xl text-gray-600 hover:bg-gray-100" aria-label="Close CricHeroes profile">✕</button>
-                                </div>
-                            </div>
-                            <div className="flex flex-1 flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50 px-6 py-10 text-center">
-                                <img src={cricheroeslogo} alt="CricHeroes" className="mb-5 h-16 w-16 object-contain" />
-                                <h4 className="mb-2 text-xl font-bold text-gray-900">View player profile on CricHeroes</h4>
-                                <p className="mb-6 max-w-lg text-sm leading-6 text-gray-600">
-                                    CricHeroes does not permit its pages to be displayed inside Auction Dugout. Open the profile in a new tab to view the complete player details.
-                                </p>
-                                <a
-                                    href={currentPlayer?.cricHeroesProfile}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-3 font-bold text-white shadow-md transition hover:from-blue-700 hover:to-indigo-700"
-                                >
-                                    Open CricHeroes Profile ↗
-                                </a>
-                            </div>
-                        </section>
-                    </div>
-                )}
                 {showMaxBidSummary && (
                     <div
                         className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 p-3 backdrop-blur-sm"
