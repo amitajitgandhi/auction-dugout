@@ -119,9 +119,10 @@ const PlayerInfo = ({
                                 <table className="w-full table-fixed text-sm">
                                     <thead className="sticky top-0 bg-gray-100 text-xs uppercase tracking-wide text-gray-600">
                                         <tr>
-                                            <th className="w-[42%] px-3 py-3 text-left">Team Name</th>
-                                            <th className="w-[29%] px-2 py-3 text-right">Remaining Purse</th>
-                                            <th className="w-[29%] px-3 py-3 text-right">Max Bid</th>
+                                            <th className="w-[34%] px-3 py-3 text-left">Team Name</th>
+                                            <th className="w-[22%] px-2 py-3 text-right">Remaining Purse</th>
+                                            <th className="w-[20%] px-2 py-3 text-right">Players to Buy</th>
+                                            <th className="w-[24%] px-3 py-3 text-right">Max Bid</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-100">
@@ -131,12 +132,13 @@ const PlayerInfo = ({
                                                 <tr key={team.teamName} className="hover:bg-amber-50">
                                                     <td className="break-words px-3 py-3 font-semibold text-gray-800">{team.teamName}</td>
                                                     <td className="whitespace-nowrap px-2 py-3 text-right font-medium text-gray-700">₹{team.remainingPoints.toLocaleString("en-IN")}</td>
+                                                    <td className="whitespace-nowrap px-2 py-3 text-right font-semibold text-gray-700">{team.categoryBreakdown[summaryCategory]?.playersRemaining ?? 0}</td>
                                                     <td className="whitespace-nowrap px-3 py-3 text-right font-bold text-green-700">{canBidInCategory ? `₹${team.maxBid.toLocaleString("en-IN")}` : "—"}</td>
                                                 </tr>
                                             );
                                         })}
                                         {summaryTeams.length === 0 && (
-                                            <tr><td colSpan="3" className="px-4 py-8 text-center text-gray-500">No team data available.</td></tr>
+                                            <tr><td colSpan="4" className="px-4 py-8 text-center text-gray-500">No team data available.</td></tr>
                                         )}
                                     </tbody>
                                 </table>
