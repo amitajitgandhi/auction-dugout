@@ -213,7 +213,17 @@ app.post('/api/upload-player', async (req, res) => {
             return data[0] || null;
         };
         const existing = await findExistingPlayer();
-        if (existing) return res.json({ message: 'Player already saved', image_url: existing.photo_url, source: 'existing', player_saved: true });
+        if (existing) {
+            const { error: metadataError } = await supabase.from('players').update({
+                skill: skill || null,
+                bowling_style: String(bowlingStyle || '').trim() || null,
+                wicketkeeper: /^yes$/i.test(String(wicketkeeper || '').trim()) ? 'Yes' : (/^no$/i.test(String(wicketkeeper || '').trim()) ? 'No' : null),
+                category: category || 'OPEN',
+                cricheroes_profile: cricHeroesProfile || null,
+            }).eq('id', existing.id).eq('user_id', userId);
+            if (metadataError) throw metadataError;
+            return res.json({ message: 'Player metadata updated; existing photo reused', image_url: existing.photo_url, source: 'existing', player_saved: true });
+        }
         const savePlayerRecord = async (photoUrlValue) => {
             const { error: dbError } = await supabase.from('players').insert([{
                 user_id: userId,
