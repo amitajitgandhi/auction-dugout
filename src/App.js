@@ -316,20 +316,10 @@ function CricketAuctionSession({ auth }) {
   };
 
   const handleResetAuction = () => {
-    persistence.logAuditEvent('auction_reset_confirmation_opened', 'info', {
-      tournament_name: tournamentName || null,
-      players_count: players.length,
-      teams_count: Object.keys(teams || {}).length,
-      current_page: currentPage
-    });
     setShowResetConfirmation(true);
   };
 
   const cancelResetAuction = () => {
-    persistence.logAuditEvent('auction_reset_cancelled', 'cancelled', {
-      tournament_name: tournamentName || null,
-      current_page: currentPage
-    });
     setShowResetConfirmation(false);
   };
 
@@ -337,14 +327,6 @@ function CricketAuctionSession({ auth }) {
     if (isResettingAuction) return;
     setIsResettingAuction(true);
     try {
-      // Persist the confirmation event and reset-start audit before changing app state.
-      await persistence.logAuditEvent('auction_reset_confirmed', 'confirmed', {
-        tournament_name: tournamentName || null,
-        players_count: players.length,
-        teams_count: Object.keys(teams || {}).length,
-        current_page: currentPage
-      });
-
       const resetSucceeded = await persistence.clearState({
         tournamentName,
         playersCount: players.length,
@@ -366,8 +348,8 @@ function CricketAuctionSession({ auth }) {
 
       showManagedToast(resetSucceeded ? 'success' : 'error',
         resetSucceeded
-          ? 'Auction has been reset. Reset activity was recorded.'
-          : 'Auction reset completed with a storage error. Check audit logs before continuing.',
+          ? 'Auction has been reset successfully.'
+          : 'Auction reset completed, but some cloud data or player images could not be deleted. Please check the console or try again.',
         {
           style: resetSucceeded ? TOAST_STYLES.success : TOAST_STYLES.error,
           icon: EMOJIS.REFRESH,
