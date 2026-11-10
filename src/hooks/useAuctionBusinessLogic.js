@@ -41,7 +41,7 @@ export const useAuctionBusinessLogic = (
     const sellingPlayerIdsRef = useRef(new Set());
 
     // ✅ CENTRALIZED: Function to save auction progress with enhanced error handling
-    const triggerAuctionSaveWithState = async (action, description, teamName, bidAmount, updatedPlayers = null, updatedTeams = null, overrides = {}) => {
+    const triggerAuctionSaveWithState = async (action, description, teamName, bidAmount, updatedPlayers = null, updatedTeams = null, overrides = {}, activityDetails = {}) => {
         if (!authUser?.id || !isTournamentNameSet) {
             showManagedToast?.('error', 'Auction is locked: sign in and complete tournament setup before making changes.', { duration: 6000 });
             return false;
@@ -80,7 +80,9 @@ export const useAuctionBusinessLogic = (
                         : description,
                     entityType: teamName ? 'TEAM' : 'AUCTION',
                     entityId: teamName || null,
-                    metadata: { amount: bidAmount ?? null }
+                    metadata: { amount: bidAmount ?? null },
+                    oldData: activityDetails.oldData ?? null,
+                    newData: activityDetails.newData ?? null
                 });
                 return true;
             }
@@ -582,7 +584,12 @@ const handleDecrementTeamBooster = async (teamName) => {
             newTeam,
             newPrice,
             updatedPlayers,
-            updatedTeams
+            updatedTeams,
+            {},
+            {
+                oldData: { team: currentTeam, price: player.soldPrice ?? null },
+                newData: { team: newTeam, price: newPrice }
+            }
         );
         if (!saved) return false;
         setPlayers(updatedPlayers);
