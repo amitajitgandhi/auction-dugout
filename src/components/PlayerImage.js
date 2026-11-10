@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { getDefaultPlayerImage } from "../utils/constants";
 
 const PlayerImage = ({ currentPlayer, imageKey, setImageKey }) => {
@@ -6,6 +7,7 @@ const PlayerImage = ({ currentPlayer, imageKey, setImageKey }) => {
     const [useBackupIcon, setUseBackupIcon] = useState(false);
     const [urlAttempt, setUrlAttempt] = useState(0);
     const [showPhotoPreview, setShowPhotoPreview] = useState(false);
+    const [photoZoom, setPhotoZoom] = useState(1);
 
     // Reset states for new player
     useEffect(() => {
@@ -126,7 +128,7 @@ const PlayerImage = ({ currentPlayer, imageKey, setImageKey }) => {
                 <>
                     <button
                         type="button"
-                        onClick={() => setShowPhotoPreview(true)}
+                        onClick={() => { setPhotoZoom(1); setShowPhotoPreview(true); }}
                         aria-label={`Enlarge photo of ${currentPlayer?.name || 'player'}`}
                         style={{ display: 'block', width: '100%', height: '100%', cursor: 'zoom-in' }}
                     >
@@ -140,13 +142,50 @@ const PlayerImage = ({ currentPlayer, imageKey, setImageKey }) => {
                             style={{ display: imageLoadState === 'error' ? 'none' : 'block', width: '100%', height: '100%' }}
                         />
                     </button>
-                    {showPhotoPreview && (
-                        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/80 p-4" onClick={() => setShowPhotoPreview(false)} role="presentation">
-                            <section className="relative max-h-[90vh] max-w-[90vw]" role="dialog" aria-modal="true" aria-label={`${currentPlayer?.name || 'Player'} photo`} onClick={event => event.stopPropagation()}>
-                                <button type="button" onClick={() => setShowPhotoPreview(false)} className="absolute -right-3 -top-3 z-10 rounded-full bg-white px-3 py-2 text-xl font-bold text-gray-800 shadow-lg" aria-label="Close photo">✕</button>
-                                <img src={getPlayerImageUrl()} alt={currentPlayer?.name || 'Player'} className="max-h-[85vh] max-w-[90vw] rounded-xl object-contain shadow-2xl" />
+                    {showPhotoPreview && createPortal(
+                        <div
+                            className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black/90 p-4"
+                            onClick={() => setShowPhotoPreview(false)}
+                            onWheel={(event) => {
+                                event.preventDefault();
+                                setPhotoZoom(current => Math.min(3, Math.max(1, current + (event.deltaY < 0 ? 0.2 : -0.2))));
+                            }}
+                            role="presentation"
+                        >
+                            <section
+                                className="relative flex max-h-[90vh] max-w-[95vw] flex-col items-center"
+                                role="dialog"
+                                aria-modal="true"
+                                aria-label={`${currentPlayer?.name || 'Player'} photo`}
+                                onClick={event => event.stopPropagation()}
+                            >
+                                <div className="mb-3 flex items-center gap-3 rounded-full bg-white/10 px-3 py-2 text-white">
+                                    <button type="button" onClick={() => setPhotoZoom(current => Math.max(1, +(current - 0.2).toFixed(1)))} disabled={photoZoom <= 1} className="h-9 w-9 rounded-full bg-white/20 text-2xl disabled:opacity-40" aria-label="Zoom out">−</button>
+                                    <span className="min-w-14 text-center text-sm">{Math.round(photoZoom * 100)}%</span>
+                                    <button type="button" onClick={() => setPhotoZoom(current => Math.min(3, +(current + 0.2).toFixed(1)))} disabled={photoZoom >= 3} className="h-9 w-9 rounded-full bg-white/20 text-2xl disabled:opacity-40" aria-label="Zoom in">+</button>
+                                    <button type="button" onClick={() => setPhotoZoom(1)} className="ml-1 rounded-full bg-white/20 px-3 py-2 text-sm">Reset</button>
+                                    <button type="button" onClick={() => setShowPhotoPreview(false)} className="ml-2 rounded-full bg-white px-3 py-2 text-lg font-bold text-gray-800" aria-label="Close photo">✕</button>
+                                </div>
+                                <div className="max-h-[80vh] max-w-[95vw] overflow-auto">
+                                    <img
+                                        src={getPlayerImageUrl()}
+                                        alt={currentPlayer?.name || 'Player'}
+                                        draggable="false"
+                                        className="rounded-xl object-contain shadow-2xl transition-transform duration-150"
+                                        style={{
+                                            maxHeight: '80vh',
+                                            maxWidth: '95vw',
+                                            width: 'auto',
+                                            height: 'auto',
+                                            transform: `scale(${photoZoom})`,
+                                            transformOrigin: 'center center'
+                                        }}
+                                    />
+                                </div>
+                                <p className="mt-2 text-xs text-white/70">Use + / − or mouse wheel to zoom</p>
                             </section>
-                        </div>
+                        </div>,
+                        document.body
                     )}
                     {imageLoadState === 'loading' && (
                         <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
