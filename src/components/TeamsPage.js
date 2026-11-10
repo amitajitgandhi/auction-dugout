@@ -107,6 +107,20 @@ boosterPointsPerBooster,
         }
     };
 
+    const handleExportAllTeamsImage = async () => {
+        if (!Object.keys(teams).length) {
+            showManagedToast('error', 'No teams available to export! Please add teams first.', { icon: EMOJIS.WARNING, duration: 3000 });
+            return;
+        }
+        try {
+            const count = await exportAllTeamImagesZip(teams, tournamentName);
+            showManagedToast('success', count + ' team images downloaded in a ZIP file.', { icon: EMOJIS.DOWNLOAD, duration: 4000 });
+        } catch (error) {
+            console.error('Failed to export team images:', error);
+            showManagedToast('error', 'Failed to generate team images. Please try again.', { icon: EMOJIS.WARNING, duration: 3500 });
+        }
+    };
+
     useEffect(() => {
         const handleExportSelection = (event) => {
             if (event.detail === 'csv') handleExportTeams();
