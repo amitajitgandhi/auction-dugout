@@ -14,6 +14,7 @@ const PlayerInfo = ({
     onViewMaxBid
 }) => {
     const [showMaxBidSummary, setShowMaxBidSummary] = useState(false);
+    const [showCricHeroes, setShowCricHeroes] = useState(false);
     const summaryCategory = currentPlayer?.category || selectedCategory || "OPEN";
     const summaryTeams = useMemo(() => calculateTeamMaxBidAnalysis({
         teams, players, categoryConfigs, selectedCategoryForAnalysis: summaryCategory
@@ -57,7 +58,7 @@ const PlayerInfo = ({
                     <div className="flex min-w-0 items-center gap-2 rounded-lg bg-blue-50 px-3 py-2 text-base font-semibold text-blue-700">
                         <img src={cricheroeslogo} alt="CricHeroes" className="h-6 w-6 shrink-0 object-contain" />
                         {currentPlayer?.cricHeroesProfile?.trim() ? (
-                            <a href={currentPlayer.cricHeroesProfile} target="_blank" rel="noopener noreferrer" className="truncate underline transition-colors hover:text-blue-900">cricheroes</a>
+                            <button type="button" onClick={() => setShowCricHeroes(true)} className="truncate underline transition-colors hover:text-blue-900">cricheroes</button>
                         ) : <span> - </span>}
                     </div>
                     <button
@@ -70,6 +71,21 @@ const PlayerInfo = ({
                     </button>
                 </div>
 
+                {showCricHeroes && (
+                    <div className="fixed inset-0 z-[140] flex items-center justify-center bg-black/75 p-3 backdrop-blur-sm" onClick={() => setShowCricHeroes(false)} role="presentation">
+                        <section className="flex h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="cricheroes-modal-title" onClick={event => event.stopPropagation()}>
+                            <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
+                                <h3 id="cricheroes-modal-title" className="font-bold text-gray-900">CricHeroes Profile</h3>
+                                <div className="flex items-center gap-3">
+                                    <a href={currentPlayer?.cricHeroesProfile} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-blue-700 underline">Open externally</a>
+                                    <button type="button" onClick={() => setShowCricHeroes(false)} className="rounded-full px-3 py-1 text-xl text-gray-600 hover:bg-gray-100" aria-label="Close CricHeroes profile">✕</button>
+                                </div>
+                            </div>
+                            <iframe title="CricHeroes player profile" src={currentPlayer?.cricHeroesProfile} className="min-h-0 flex-1 border-0" referrerPolicy="no-referrer" />
+                            <div className="border-t border-gray-100 px-4 py-2 text-xs text-gray-500">If CricHeroes does not allow embedded viewing, use “Open externally”.</div>
+                        </section>
+                    </div>
+                )}
                 {showMaxBidSummary && (
                     <div
                         className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 p-3 backdrop-blur-sm"
