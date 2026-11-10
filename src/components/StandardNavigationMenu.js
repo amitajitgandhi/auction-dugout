@@ -7,6 +7,7 @@ export default function StandardNavigationMenu({
   onPlayerSummary,
   onUnsoldPlayers,
   onMaxBid,
+  onResetAuction,
   onLogout,
   children
 }) {
@@ -30,7 +31,7 @@ export default function StandardNavigationMenu({
           ? <div key={key} className="px-4 py-3 bg-indigo-50 text-indigo-700 font-bold flex gap-3"><span>{icon}</span>{label}</div>
           : <button key={key} onClick={() => { action?.(); setOpen(false); }} className="w-full text-left px-4 py-3 hover:bg-gray-50 flex gap-3"><span>{icon}</span><span className="text-gray-700 font-medium">{label}</span></button>
         )}
-        {!showSpinSubmenu && children && <>{children}</>}
+        {!showSpinSubmenu && children}
         {showSpinSubmenu && <div className="py-1">
           <button type="button" onClick={() => setShowSpinSubmenu(false)} className="w-full text-left px-4 py-3 border-b border-gray-200 font-semibold text-indigo-700 hover:bg-indigo-50">← Back</button>
           <button type="button" onClick={() => { setOpen(false); setShowSpinSubmenu(false); document.dispatchEvent(new CustomEvent('auction-dugout-spin', { detail: 'table' })); }} className="w-full text-left px-4 py-3 hover:bg-purple-50 flex gap-3"><span>🎯</span><span>Auction Table</span></button>
@@ -39,6 +40,7 @@ export default function StandardNavigationMenu({
           <button type="button" onClick={() => { setOpen(false); setShowSpinSubmenu(false); document.dispatchEvent(new CustomEvent('auction-dugout-spin', { detail: 'jersey' })); }} className="w-full text-left px-4 py-3 hover:bg-indigo-50 flex gap-3"><span>👕</span><span>Jersey</span></button>
         </div>}
         {!showSpinSubmenu && <button type="button" onClick={() => setShowSpinSubmenu(true)} className="w-full text-left px-4 py-3 hover:bg-purple-50 flex gap-3"><span>🎯</span><span className="text-gray-700 font-medium">Spin Wheel</span><span className="ml-auto">›</span></button>}
+        {!showSpinSubmenu && onResetAuction && <button type="button" onClick={() => { setOpen(false); onResetAuction(); }} className="w-full text-left px-4 py-3 hover:bg-red-50 flex gap-3"><span>🗑️</span><span className="text-red-600 font-semibold">Reset Auction</span></button>}
         {onLogout && (
           <>
             <div className="border-t border-gray-200 my-1"></div>
