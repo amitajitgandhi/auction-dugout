@@ -252,10 +252,11 @@ const TeamEditPopup = ({
                                 <div className="text-xs text-blue-700">
                                     <p className="font-semibold mb-1">How Edit Balance Works:</p>
                                     <ul className="space-y-1">
-                                        <li>• <strong>Total Points:</strong> Original budget from team CSV file (editable here)</li>
-                                        <li>• <strong>Points Left:</strong> Available budget for future purchases (auto-calculated)</li>
-                                        <li>• <strong>Formula:</strong> Points Left = Total Points - Total Spent</li>
-                                        <li>• <strong>Use Case:</strong> Adjust team budgets, fix data entry errors, or add bonus funds</li>
+                                        <li>Â• <strong>Total Points:</strong> Original budget from team CSV file (editable here)</li>
+                                        <li>Â• <strong>Points Left:</strong> Available budget for future purchases (auto-calculated)</li>
+                                        <li>Â• <strong>Formula:</strong> Points Left = Total Points - Total Spent</li>
+                                        <li>Â• <strong>Use Case:</strong> Adjust team budgets, fix data entry errors, or add bonus funds</li>
+                                        <li>Â• <strong>Booster impact:</strong> Saving a new balance resets this team's booster count to zero and removes previously allocated booster points. Enter the total budget you want the team to have, excluding boosters.</li>
                                     </ul>
                                 </div>
                             </div>
