@@ -585,6 +585,12 @@ const handleDecrementTeamBooster = async (teamName) => {
         if (!saved) return false;
         setPlayers(updatedPlayers);
         setTeams(updatedTeams);
+        logActivity(authUser, tournamentName, 'PLAYER_DETAILS_EDITED_TEAM_SUMMARY', {
+            description: `${player.name} details edited on Team Summary (${sameTeam ? 'price updated' : 'team changed'})`,
+            entityType: 'PLAYER', entityId: player.id,
+            oldData: { team: currentTeam, price: player.soldPrice ?? null },
+            newData: { team: newTeam, price: newPrice }
+        });
         return true;
     };
 
