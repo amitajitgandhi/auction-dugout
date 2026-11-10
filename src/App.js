@@ -691,12 +691,12 @@ onUpdatePointsPerBooster={handleUpdatePointsPerBooster}
         {auction.showConfetti && (
           <ReactConfetti width={window.innerWidth} height={window.innerHeight} numberOfPieces={500} recycle={false} initialVelocityY={10} gravity={0.2} run={auction.showConfetti} confettiSource={{ x: 0, y: window.innerHeight, w: window.innerWidth, h: 0 }} />
         )}
-        <div className="flex-1 flex flex-col justify-center items-center">
-          <h1 className="text-4xl md:text-6xl font-extrabold mb-8 text-center text-white drop-shadow-lg bg-gradient-to-r from-yellow-400 via-red-500 to-pink-500 bg-clip-text text-transparent px-6 py-4 rounded-xl mt-8 shadow-lg border-4 border-yellow-300 animate-pulse">
+        <div className={`flex-1 flex flex-col items-center ${auction.auctionStarted ? "justify-start pt-1" : "justify-center"}`}>
+          <h1 className={`text-4xl md:text-6xl font-extrabold text-center text-white drop-shadow-lg bg-gradient-to-r from-yellow-400 via-red-500 to-pink-500 bg-clip-text text-transparent rounded-xl shadow-lg border-4 border-yellow-300 animate-pulse ${auction.auctionStarted ? "mb-3 px-4 py-2 mt-0" : "mb-8 px-6 py-4 mt-8"}`}>
             {EMOJIS.CRICKET_BAT} Auction Dugout {EMOJIS.TROPHY}
           </h1>
           {isTournamentNameSet && (
-            <div className="w-full max-w-4xl mx-auto text-center px-4 mb-6 -mt-4">
+            <div className={`w-full max-w-4xl mx-auto text-center px-4 ${auction.auctionStarted ? "mb-3 mt-0" : "mb-6 -mt-4"}`}>
               <div className="text-2xl md:text-3xl font-extrabold text-white break-words">{tournamentName}</div>
               {sponsorName.trim() && (
                   <div className="mt-2 text-yellow-300 break-words">
