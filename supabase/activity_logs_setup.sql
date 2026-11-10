@@ -36,7 +36,7 @@ create policy "Users can read their own activity logs"
     on public.activity_logs for select to authenticated
     using (auth.uid() = user_id);
 
--- No update/delete policy is provided: activity history is append-only for users.
+-- Users cannot update activity rows. Deletion is permitted only for the user's own rows, for Reset Auction cleanup.
 
 -- Reset Auction must be able to clear only the signed-in user's records for
 -- the tournament being reset. This does not grant access to other users' logs.
