@@ -10,6 +10,9 @@ export default function ActivityLogsPage({ authUser, tournamentName, onBack }) {
     const [page, setPage] = useState(0);
     const [hasMore, setHasMore] = useState(false);
     const [error, setError] = useState('');
+    const [searchText, setSearchText] = useState('');
+    const [categoryFilter, setCategoryFilter] = useState('ALL');
+    const [eventFilter, setEventFilter] = useState('ALL');
 
     const loadPage = useCallback(async () => {
         if (!authUser?.id) return;
@@ -22,6 +25,10 @@ export default function ActivityLogsPage({ authUser, tournamentName, onBack }) {
             .order('created_at', { ascending: false })
             .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
         if (tournamentName) query = query.eq('tournament_name', tournamentName);
+        if (categoryFilter !== 'ALL') query = query.eq('event_category', categoryFilter);
+        if (eventFilter !== 'ALL') query = query.eq('event_type', eventFilter);
+        const term = searchText.trim().replace(/[,%()]/g, ' ');
+        if (term) query = query.or(`description.ilike.%${term}%,event_type.ilike.%${term}%,entity_type.ilike.%${term}%,entity_id.ilike.%${term}%`);
         const { data, error: queryError } = await query;
         if (queryError) {
             setError(queryError.message);
@@ -33,7 +40,7 @@ export default function ActivityLogsPage({ authUser, tournamentName, onBack }) {
             setRows(resultRows.slice(0, PAGE_SIZE));
         }
         setLoading(false);
-    }, [authUser?.id, tournamentName, page]);
+    }, [authUser?.id, tournamentName, page, categoryFilter, eventFilter, searchText]);
 
     useEffect(() => { loadPage(); }, [loadPage]);
 
@@ -51,8 +58,18 @@ export default function ActivityLogsPage({ authUser, tournamentName, onBack }) {
                         <button onClick={onBack} className="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600">Back</button>
                     </div>
                 </div>
+                <div className="bg-white rounded-xl p-4 mb-4 shadow grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <input value={searchText} onChange={e => { setSearchText(e.target.value); setPage(0); }} placeholder="Search player, team, event..." className="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500" />
+                    <select value={categoryFilter} onChange={e => { setCategoryFilter(e.target.value); setPage(0); }} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 text-sm">
+                        <option value="ALL">All categories</option><option value="BUSINESS">Business</option><option value="SYSTEM">System</option>
+                    </select>
+                    <select value={eventFilter} onChange={e => { setEventFilter(e.target.value); setPage(0); }} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 text-sm">
+                        <option value="ALL">All activities</option>
+                        {[...new Set(rows.map(row => row.event_type).filter(Boolean))].sort().map(type => <option key={type} value={type}>{type.replaceAll('_', ' ')}</option>)}
+                    </select>
+                </div>
                 <div className="bg-white rounded-xl p-4 mb-4 shadow text-sm text-gray-700">
-                    Loads at most 25 records per page (one extra row checks whether another page exists). No exact-count query, polling, or realtime subscription is used.
+                    Loads at most 25 records per page. Search and filters are applied in the database; no exact-count query, polling, or realtime subscription is used.
                 </div>
                 {error && <div className="bg-red-900/60 border border-red-500 rounded-lg p-3 mb-4">Unable to load activity history: {error}. Confirm the activity_logs SQL setup and RLS policies have been applied.</div>}
                 <div className="bg-white rounded-xl shadow overflow-hidden">
@@ -66,6 +83,7 @@ export default function ActivityLogsPage({ authUser, tournamentName, onBack }) {
                                     <div className="text-xs text-gray-500">{formatDate(row.created_at)}</div>
                                 </div>
                                 <p className="text-sm text-gray-700 mt-1">{row.description || '—'}</p>
+                                {['PLAYER_SOLD', 'UNSOLD_PLAYER_SOLD', 'OWNER_RETENTION'].includes(row.event_type) && row.metadata?.amount != null && <p className="text-sm font-semibold text-emerald-700 mt-1">Sold amount: ₹{Number(row.metadata.amount).toLocaleString('en-IN')}</p>}
                                 <div className="flex flex-wrap gap-2 mt-2 text-xs">
                                     <span className="bg-slate-100 px-2 py-1 rounded">{row.event_category}</span>
                                     {row.entity_type && <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded">{row.entity_type}{row.entity_id ? ` · ${row.entity_id}` : ''}</span>}
