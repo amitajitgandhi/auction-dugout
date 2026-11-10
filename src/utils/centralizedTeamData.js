@@ -468,7 +468,7 @@ export const retainPlayer = (teams, teamName, player, retentionAmount, category,
  * @param {number} newPrice - New price for the player
  * @returns {Object} - Updated teams object or null if invalid
  */
-export const processPlayerTransfer = (teams, player, fromTeam, toTeam, newPrice) => {
+export const processPlayerTransfer = (teams, player, fromTeam, toTeam, newPrice, categoryConfigs = {}) => {
     if (!teams || !player || !fromTeam || !toTeam || typeof newPrice !== 'number' || newPrice <= 0) {
         console.error('Invalid parameters for processPlayerTransfer');
         return null;
@@ -501,6 +501,18 @@ export const processPlayerTransfer = (teams, player, fromTeam, toTeam, newPrice)
     }
 
     const existingPlayer = sourceTeam.players[playerIndex];
+
+    // Enforce the destination team's configured limit for this player's category.
+    // Unconfigured categories (or a zero limit) remain unrestricted.
+    const transferCategory = existingPlayer.category || player.category;
+    const categoryLimit = parseInt(categoryConfigs?.[transferCategory]?.playersPerCategory, 10) || 0;
+    const destinationCategoryCount = (destTeam.players || []).filter(
+        p => p.category === transferCategory
+    ).length;
+    if (categoryLimit > 0 && destinationCategoryCount >= categoryLimit) {
+        console.error(`Destination team ${toTeam} has no remaining ${transferCategory} slots (${destinationCategoryCount}/${categoryLimit})`);
+        return null;
+    }
 
     // Process the transfer
     return {
