@@ -50,10 +50,10 @@ const PlayerInfo = ({
             
             <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-2 text-base sm:text-lg">
-                    <div className="rounded-lg bg-gray-100 px-3 py-2 font-semibold text-gray-700">{currentPlayer?.skill || '—'}</div>
-                    <div className="rounded-lg bg-blue-50 px-3 py-2 font-semibold text-blue-800">{currentPlayer?.bowlingStyle || 'Not specified'}</div>
-                    <div className="rounded-lg bg-purple-50 px-3 py-2 font-semibold text-purple-800">{currentPlayer?.wicketkeeper || 'Not specified'}</div>
-                    <div className="rounded-lg bg-amber-50 px-3 py-2 font-semibold text-amber-800">{currentPlayer?.category || '—'}</div>
+                    <div className="flex items-center gap-2 rounded-lg bg-gray-100 px-3 py-2 font-semibold text-gray-700"><span aria-hidden="true">🏏</span><span>{currentPlayer?.skill || "—"}</span></div>
+                    <div className="flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-2 font-semibold text-blue-800"><span aria-hidden="true">🎾</span><span>{currentPlayer?.bowlingStyle || "—"}</span></div>
+                    <div className="flex items-center gap-2 rounded-lg bg-purple-50 px-3 py-2 font-semibold text-purple-800"><span aria-hidden="true">🧤</span><span>{currentPlayer?.wicketkeeper || "—"}</span></div>
+                    <div className="flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 font-semibold text-amber-800"><span aria-hidden="true">🏆</span><span>{currentPlayer?.category || "—"}</span></div>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
                     {/* CricHeroes Profile Link - Optional */}
