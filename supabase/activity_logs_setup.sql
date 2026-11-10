@@ -23,8 +23,6 @@ create index if not exists activity_logs_user_created_idx
     on public.activity_logs (user_id, created_at desc);
 create index if not exists activity_logs_tournament_created_idx
     on public.activity_logs (user_id, tournament_name, created_at desc);
-create index if not exists activity_logs_event_type_idx
-    on public.activity_logs (user_id, event_type, created_at desc);
 
 alter table public.activity_logs enable row level security;
 
@@ -39,3 +37,10 @@ create policy "Users can read their own activity logs"
     using (auth.uid() = user_id);
 
 -- No update/delete policy is provided: activity history is append-only for users.
+
+-- Reset Auction must be able to clear only the signed-in user's records for
+-- the tournament being reset. This does not grant access to other users' logs.
+drop policy if exists "Users can delete their own activity logs" on public.activity_logs;
+create policy "Users can delete their own activity logs"
+    on public.activity_logs for delete to authenticated
+    using (auth.uid() = user_id);
