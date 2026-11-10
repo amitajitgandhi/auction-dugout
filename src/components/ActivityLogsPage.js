@@ -36,20 +36,23 @@ export default function ActivityLogsPage({ authUser, tournamentName, onBack }) {
     const [categoryFilter, setCategoryFilter] = useState('ALL');
     const [eventFilter, setEventFilter] = useState('ALL');
     const [selectedJson, setSelectedJson] = useState(null);
+    const [sortColumn, setSortColumn] = useState('created_at');
+    const [sortDirection, setSortDirection] = useState('desc');
 
     const buildQuery = useCallback(() => {
         let query = supabase
             .from('activity_logs')
             .select('id, created_at, event_category, event_type, description, entity_type, entity_id, status, metadata, old_data, new_data')
             .eq('user_id', authUser.id)
-            .order('created_at', { ascending: false });
+            .order(sortColumn, { ascending: sortDirection === 'asc', nullsFirst: false })
+            .order('id', { ascending: false });
         if (tournamentName) query = query.eq('tournament_name', tournamentName);
         if (categoryFilter !== 'ALL') query = query.eq('event_category', categoryFilter);
         if (eventFilter !== 'ALL') query = query.eq('event_type', eventFilter);
         const term = searchText.trim().replace(/[,%()]/g, ' ');
         if (term) query = query.or(`description.ilike.%${term}%,event_type.ilike.%${term}%,entity_type.ilike.%${term}%,entity_id.ilike.%${term}%`);
         return query;
-    }, [authUser?.id, tournamentName, categoryFilter, eventFilter, searchText]);
+    }, [authUser?.id, tournamentName, categoryFilter, eventFilter, searchText, sortColumn, sortDirection]);
 
     const loadPage = useCallback(async () => {
         if (!authUser?.id) return;
@@ -69,6 +72,18 @@ export default function ActivityLogsPage({ authUser, tournamentName, onBack }) {
     }, [authUser?.id, buildQuery, page]);
 
     useEffect(() => { loadPage(); }, [loadPage]);
+
+    const toggleSort = (column) => {
+        setPage(0);
+        if (sortColumn === column) setSortDirection(direction => direction === 'asc' ? 'desc' : 'asc');
+        else { setSortColumn(column); setSortDirection('asc'); }
+    };
+
+    const sortHeader = (label, column) => (
+        <button type="button" onClick={() => toggleSort(column)} className="inline-flex items-center gap-1.5 text-left hover:text-blue-700 focus:outline-none focus:underline" aria-label={`Sort by ${label}`}>
+            <span>{label}</span><span className={sortColumn === column ? 'text-blue-700' : 'text-slate-400'}>{sortColumn === column ? (sortDirection === 'asc' ? '↑' : '↓') : '↕'}</span>
+        </button>
+    );
 
     const eventOptions = useMemo(() => [...new Set(rows.map(row => row.event_type).filter(Boolean))].sort(), [rows]);
 
@@ -174,11 +189,11 @@ export default function ActivityLogsPage({ authUser, tournamentName, onBack }) {
                                 </colgroup>
                                 <thead className="sticky top-0 z-10 bg-slate-100 border-b border-slate-200">
                                     <tr className="text-[11px] uppercase tracking-wider text-slate-600">
-                                        <th className="px-4 py-3.5 font-bold">Date &amp; Time</th>
-                                        <th className="px-4 py-3.5 font-bold">Activity</th>
-                                        <th className="px-4 py-3.5 font-bold">Description</th>
+                                        <th className="px-4 py-3.5 font-bold">{sortHeader("Date & Time", "created_at")}</th>
+                                        <th className="px-4 py-3.5 font-bold">{sortHeader("Activity", "event_type")}</th>
+                                        <th className="px-4 py-3.5 font-bold">{sortHeader("Description", "description")}</th>
                                         <th className="px-4 py-3.5 font-bold">Changes (JSON)</th>
-                                        <th className="px-4 py-3.5 font-bold">Category</th>
+                                        <th className="px-4 py-3.5 font-bold">{sortHeader("Category", "event_category")}</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
