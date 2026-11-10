@@ -120,8 +120,8 @@ const PlayerInfo = ({
                                     <thead className="sticky top-0 bg-gray-100 text-xs uppercase tracking-wide text-gray-600">
                                         <tr>
                                             <th className="w-[34%] px-3 py-3 text-left">Team Name</th>
-                                            <th className="w-[22%] px-2 py-3 text-right">Remaining Purse</th>
-                                            <th className="w-[20%] px-2 py-3 text-right">Remaining Players</th>
+                                            <th className="w-[24%] whitespace-nowrap px-2 py-3 text-right">Purse Balance</th>
+                                            <th className="w-[20%] whitespace-nowrap px-2 py-3 text-right">Players to Buy</th>
                                             <th className="w-[24%] px-3 py-3 text-right">Max Bid</th>
                                         </tr>
                                     </thead>
