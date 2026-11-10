@@ -29,7 +29,7 @@ onDecrementTeamBooster,
 onUpdatePointsPerBooster,
 boosterPointsPerBooster,
     updateTeamPurse,
-    onViewUnsoldPlayers, onViewMasterPlayers, onViewAuction, onViewMaxBid, onTableSpin, onJerseySpin, onLogout // shared navigation
+    onViewUnsoldPlayers, onViewMasterPlayers, onViewAuction, onViewMaxBid, onTableSpin, onJerseySpin, onLogout, onActivityLogs // shared navigation
 }) => {
     const [showMenu, setShowMenu] = useState(false);
     const [showPlayerSpin, setShowPlayerSpin] = useState(false);
@@ -339,6 +339,7 @@ boosterPointsPerBooster,
                 onResetAuction={handleResetAuction}
                 onLogout={onLogout}
             >
+                <button type="button" onClick={() => onActivityLogs?.()} className="w-full text-left px-4 py-3 hover:bg-cyan-50 flex items-center gap-3"><span>🧾</span><span className="text-gray-700 font-medium">Activity History</span></button>
                 <div className="border-t border-gray-200 my-1"></div>
                 <button onClick={handleTeamEdit} className="w-full text-left px-4 py-3 hover:bg-blue-50 flex items-center gap-3"><span>🖊️</span><span className="text-gray-700 font-medium">Edit Balance</span></button>
                 <button onClick={handleBoosterOpen} className="w-full text-left px-4 py-3 hover:bg-yellow-50 flex items-center gap-3"><span>⚡</span><span className="text-gray-700 font-medium">Add Booster Points</span></button>
