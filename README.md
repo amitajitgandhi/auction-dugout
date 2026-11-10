@@ -329,11 +329,17 @@ Important:
 - If the bucket is private or its policies change, public photo URL behaviour must be reviewed. The current application expects browser-readable player image URLs.
 - Do not delete or rename the bucket without migrating existing photo references and updating backend configuration.
 
-### 9.6 Audit logging dependency
+### 9.6 Reset behaviour and audit logging
 
-The current `src/hooks/usePersistence.js` still attempts best-effort inserts into `public.auction_audit_logs` for audit events. The owner-provided schema above does not include this table. Its former migration file has been removed from the repository at the owner's request.
+The application does **not** use a Supabase `auction_audit_logs` table. The table does not exist in the live project, and the application-side audit insert calls have been removed.
 
-This audit table is **not one of the four tables defined above**, but the application code still references it. If the table exists in the live Supabase project, audit logging continues. If it does not exist, audit inserts will fail and be logged in the browser console; the audit helper is designed not to block the main reset/save workflow. Before removing the code or relying on audit history, verify whether `auction_audit_logs` exists in the live database.
+Auction reset operates directly on the existing application data:
+1. Calls the authenticated backend endpoint `/api/reset-tournament-players` to remove the selected tournament's player rows and associated objects from the `player-images` bucket.
+2. Deletes the signed-in owner's row from `public.auction_data`.
+3. Deletes the signed-in owner's row from `public.auction_viewer_data`.
+4. Reports success only when all required cleanup operations succeed.
+
+Reset diagnostics are written to the browser console using the `[AUCTION_RESET]` prefix. Do not add a dependency on an audit table unless the table, policies, retention requirements and deployment setup are deliberately introduced together.
 
 ### 9.7 RLS and security considerations
 
@@ -348,7 +354,7 @@ Expected security model:
 
 ### 9.8 Migration-file cleanup and provisioning warning
 
-The SQL files under `supabase/migrations/` were removed from Git at the owner's request. Deleting a migration file from Git does **not** roll back or remove the corresponding table, column, index, policy, function or trigger from the live Supabase project. It only removes the versioned setup script from this repository.
+The SQL files under `supabase/migrations/` were removed from Git at the owner's request. Deleting a migration file from Git does **not** roll back or remove the corresponding table, column, index, policy, function or trigger from the live Supabase project. It only removes the versioned setup script from this repository. The application no longer references `auction_audit_logs`.
 
 The schema in this section documents the owner-provided baseline; it is not an executable migration. A new Supabase environment must be provisioned with the required schema, indexes, RLS policies and Storage bucket configuration through an approved SQL/setup process. The separate `supabase/auction_viewer_data.sql` file remains in the repository as a setup reference, but it should be checked against the actual schema before reuse.
 
