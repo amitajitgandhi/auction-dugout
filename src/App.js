@@ -598,6 +598,7 @@ onUpdatePointsPerBooster={handleUpdatePointsPerBooster}
           isOpen={showResetConfirmation}
           onConfirm={confirmResetAuction}
           onCancel={cancelResetAuction}
+        isLoading={isResettingAuction}
         />
         <WhatsAppSettings
           isOpen={showWhatsAppSettings}
@@ -628,6 +629,7 @@ onUpdatePointsPerBooster={handleUpdatePointsPerBooster}
           isOpen={showResetConfirmation}
           onConfirm={confirmResetAuction}
           onCancel={cancelResetAuction}
+        isLoading={isResettingAuction}
         />
         <WhatsAppSettings
           isOpen={showWhatsAppSettings}
@@ -657,6 +659,7 @@ onUpdatePointsPerBooster={handleUpdatePointsPerBooster}
           isOpen={showResetConfirmation}
           onConfirm={confirmResetAuction}
           onCancel={cancelResetAuction}
+        isLoading={isResettingAuction}
         />
         <WhatsAppSettings
           isOpen={showWhatsAppSettings}
