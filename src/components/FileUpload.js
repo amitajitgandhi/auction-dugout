@@ -170,6 +170,8 @@ const FileUpload = ({
                     const name = (row["Name"] || "").replace(/[\u200B-\u200D\uFEFF\uFFFD]/g, '').trim();
                     const skill = (row["Skillset"] || "").replace(/[\u200B-\u200D\uFEFF\uFFFD]/g, '').trim();
                     const category = (row["Category"] || "").replace(/[\u200B-\u200D\uFEFF\uFFFD]/g, '').trim() || "OPEN";
+                    const bowlingStyle = (row["Bowling Style"] || "Does not bowl").trim() || "Does not bowl";
+                    const wicketkeeper = /^yes$/i.test((row["Wicketkeeper"] || "No").trim()) ? "Yes" : "No";
                     const originalPhotoLink = (row["Photo Link"] || "").trim();
                     const rawPhotoUrl = formatDriveLink(originalPhotoLink);
                     const cricHeroesProfile = formatCricHeroesProfile(row["CricHeroes_Profile"] || "");
@@ -194,6 +196,8 @@ const FileUpload = ({
                                 body: JSON.stringify({
                                     name,
                                     skill,
+                                    bowlingStyle,
+                                    wicketkeeper,
                                     category,
                                     photoUrl: originalPhotoLink,
                                     cricHeroesProfile,
@@ -237,6 +241,8 @@ const FileUpload = ({
                         id: index,
                         name,
                         skill,
+                        bowlingStyle,
+                        wicketkeeper,
                         category,
                         photo: selectedPhoto,
                         driveLink: originalPhotoLink,
@@ -333,11 +339,11 @@ const FileUpload = ({
     // Function to download sample players CSV
     const downloadSamplePlayersCSV = () => {
         const sampleData = [
-            ['Name', 'Skillset', 'Photo Link', 'Category', 'CricHeroes_Profile'],
-            ['Virat Kohli', 'Batsman', 'https://example.com/virat.jpg', 'PLATINUM', 'https://cricheroes.com/player-profile/1234567/virat-kohli'],
-            ['Jasprit Bumrah', 'Bowler', 'https://example.com/bumrah.jpg', 'ICON', 'https://cricheroes.com/player-profile/2345678/jasprit-bumrah'],
-            ['MS Dhoni', 'Wicket Keeper', 'https://example.com/dhoni.jpg', 'GOLD', 'https://cricheroes.com/player-profile/3456789/ms-dhoni'],
-            ['Ravindra Jadeja', 'All Rounder', 'https://example.com/jadeja.jpg', 'SILVER', 'https://cricheroes.com/player-profile/4567890/ravindra-jadeja'],
+            ['Name', 'Skillset', 'Bowling Style', 'Wicketkeeper', 'Photo Link', 'Category', 'CricHeroes_Profile'],
+            ['Virat Kohli', 'Batsman', 'Right Arm', 'No', 'https://example.com/virat.jpg', 'PLATINUM', 'https://cricheroes.com/player-profile/1234567/virat-kohli'],
+            ['Jasprit Bumrah', 'Bowler', 'Right Arm', 'No', 'https://example.com/bumrah.jpg', 'ICON', 'https://cricheroes.com/player-profile/2345678/jasprit-bumrah'],
+            ['MS Dhoni', 'Wicket Keeper', 'Does not bowl', 'Yes', 'https://example.com/dhoni.jpg', 'GOLD', 'https://cricheroes.com/player-profile/3456789/ms-dhoni'],
+            ['Ravindra Jadeja', 'All Rounder', 'Left Arm', 'No', 'https://example.com/jadeja.jpg', 'SILVER', 'https://cricheroes.com/player-profile/4567890/ravindra-jadeja'],
             ['Sample Player', 'Batsman', 'https://example.com/sample.jpg', 'OPEN', '']
         ];
         
