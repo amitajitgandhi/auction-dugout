@@ -170,6 +170,8 @@ function CricketAuctionSession({ auth }) {
       return;
     }
 
+    logActivity(authUser, tournamentName, 'PLAYER_SELECTED', { description: `${auction.currentPlayer.name} selected for auction`, entityType: 'PLAYER', entityId: auction.currentPlayer.id });
+
     const broadcastCurrentPlayer = async () => {
       try {
         const currentState = {
@@ -269,6 +271,7 @@ function CricketAuctionSession({ auth }) {
 
   const handleStartAuctionFromConfig = async (configs) => {
     setCategoryConfigs(configs);
+    logActivity(authUser, tournamentName, 'AUCTION_STARTED', { description: `Auction started for ${tournamentName}`, entityType: 'TOURNAMENT', entityId: tournamentName });
     auction.startAuction();
     goToAuctionPage();
     if (authUser?.id && isTournamentNameSet) {
