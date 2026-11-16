@@ -77,6 +77,51 @@ const MasterPlayersPage = ({
         });
     }, [players, statusFilter, categoryFilter]);
 
+    const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
+
+    const sortablePlayers = useMemo(() => {
+        const getSortValue = (player, key) => {
+            switch (key) {
+                case 'name': return player.name || '';
+                case 'category': return player.category || '';
+                case 'status': return getPlayerStatus(player);
+                case 'team': return player.soldTo && player.soldTo !== 'Unsold' ? player.soldTo : '';
+                case 'price': return getPlayerStatus(player) === 'SOLD' ? Number(player.soldPrice) || 0 : -1;
+                default: return '';
+            }
+        };
+
+        return [...filteredPlayers].sort((a, b) => {
+            const aValue = getSortValue(a, sortConfig.key);
+            const bValue = getSortValue(b, sortConfig.key);
+            const comparison = typeof aValue === 'number' && typeof bValue === 'number'
+                ? aValue - bValue
+                : String(aValue).localeCompare(String(bValue), undefined, { numeric: true, sensitivity: 'base' });
+            return sortConfig.direction === 'asc' ? comparison : -comparison;
+        });
+    }, [filteredPlayers, sortConfig]);
+
+    const handleSort = (key) => {
+        setSortConfig(current => ({
+            key,
+            direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc'
+        }));
+    };
+
+    const renderSortableHeader = (label, key, alignment = 'left') => (
+        <button
+            type="button"
+            onClick={() => handleSort(key)}
+            className={`inline-flex items-center gap-1 font-semibold hover:text-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 rounded ${alignment === 'center' ? 'justify-center' : ''}`}
+            aria-label={`Sort by ${label} ${sortConfig.key === key ? (sortConfig.direction === 'asc' ? 'descending' : 'ascending') : 'ascending'}`}
+        >
+            <span>{label}</span>
+            <span className={sortConfig.key === key ? 'text-indigo-600' : 'text-gray-400'} aria-hidden="true">
+                {sortConfig.key === key ? (sortConfig.direction === 'asc' ? '↑' : '↓') : '↕'}
+            </span>
+        </button>
+    );
+
     const getRowInputs = (playerId) =>
         rowInputs[playerId] || { team: '', category: '', amount: '' };
 
@@ -385,20 +430,20 @@ const MasterPlayersPage = ({
                                     <tr className="bg-gray-100">
                                         <th className="px-2 py-2 text-left text-xs font-semibold text-gray-600">#</th>
                                         <th className="px-2 py-2 text-center text-xs font-semibold text-gray-600">Photo</th>
-                                        <th className="px-2 py-2 text-left text-xs font-semibold text-gray-600">Player Name</th>
-                                        <th className="px-2 py-2 text-left text-xs font-semibold text-gray-600">Category</th>
-                                        <th className="px-2 py-2 text-left text-xs font-semibold text-gray-600">Status</th>
-                                        <th className="px-2 py-2 text-left text-xs font-semibold text-gray-600">Assigned Team</th>
-                                        <th className="px-2 py-2 text-left text-xs font-semibold text-gray-600">Sale / Retention Price</th>
+                                        <th className="px-2 py-2 text-left text-xs font-semibold text-gray-600">{renderSortableHeader('Player Name', 'name')}</th>
+                                        <th className="px-2 py-2 text-left text-xs font-semibold text-gray-600">{renderSortableHeader('Category', 'category')}</th>
+                                        <th className="px-2 py-2 text-left text-xs font-semibold text-gray-600">{renderSortableHeader('Status', 'status')}</th>
+                                        <th className="px-2 py-2 text-left text-xs font-semibold text-gray-600">{renderSortableHeader('Assigned Team', 'team')}</th>
+                                        <th className="px-2 py-2 text-left text-xs font-semibold text-gray-600">{renderSortableHeader('Sale / Retention Price', 'price')}</th>
                                         <th className="px-2 py-2 text-left text-xs font-semibold text-gray-600">Action</th>
-                                         <th className="px-2 py-2 text-center text-xs font-semibold text-gray-600">Edit</th>
+                                        <th className="px-2 py-2 text-center text-xs font-semibold text-gray-600">Edit</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {filteredPlayers.length === 0 && (
                                         <tr><td colSpan={9} className="px-4 py-6 text-center text-gray-500 text-xs">No players match this filter.</td></tr>
                                     )}
-                                    {filteredPlayers.map((player, idx) => {
+                                    {sortablePlayers.map((player, idx) => {
                                         const status = getPlayerStatus(player);
                                         const inputs = getRowInputs(player.id);
                                         const isSubmitting = submittingId === player.id;
