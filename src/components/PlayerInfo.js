@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { calculateTeamMaxBidAnalysis } from "../utils/maxBidCalculator";
 import { EMOJIS } from "../utils/constants";
+import { formatPlayerDisplayName } from "../utils/whatsappUtils";
 import cricheroeslogo from '../assets/cricheroes.png';
 
 const PlayerInfo = ({ 
