@@ -225,6 +225,12 @@ function CricketAuctionSession({ auth }) {
       showFancyError("Tournament name must be at least 3 characters long.");
       return;
     }
+    const increment = Number(bidAmountIncrement);
+    if (!Number.isSafeInteger(increment) || increment <= 0) {
+      showFancyError("Please enter a valid bid amount increment greater than 0.");
+      return;
+    }
+    setBidAmountIncrement(increment);
     setIsTournamentNameSet(true);
     logActivity(authUser, tournamentName.trim(), 'TOURNAMENT_SETUP', { description: `Tournament setup completed: ${tournamentName.trim()}`, entityType: 'TOURNAMENT', entityId: tournamentName.trim() });
     showManagedToast('success', `Tournament "${tournamentName.trim()}" has been set!`, {
@@ -767,7 +773,6 @@ onUpdatePointsPerBooster={handleUpdatePointsPerBooster}
                 setTeamNameInput={auction.setTeamNameInput}
                 bidAmountInput={auction.bidAmountInput}
                 setBidAmountInput={auction.setBidAmountInput}
-                bidAmountIncrement={bidAmountIncrement}
                 bidAmountIncrement={bidAmountIncrement}
                 onMarkSold={handleMarkSold}
                 onMarkUnsold={handleMarkUnsold}
