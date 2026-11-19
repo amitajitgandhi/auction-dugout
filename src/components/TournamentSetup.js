@@ -8,6 +8,8 @@ const TournamentSetup = ({
     setSponsorName,
     tickerDetails,
     setTickerDetails,
+    bidAmountIncrement = 100000,
+    setBidAmountIncrement,
     onSubmit,
     onLogout,
     isSubmitting = false
@@ -47,7 +49,7 @@ const TournamentSetup = ({
                 </div>
             </div>
             <div className="flex justify-center pt-1">
-                <button onClick={onSubmit} className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-8 py-2.5 rounded-lg font-bold shadow-md hover:from-green-600 hover:to-emerald-700 transition disabled:opacity-50" disabled={!tournamentName.trim() || isSubmitting}>
+                <button onClick={onSubmit} className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-8 py-2.5 rounded-lg font-bold shadow-md hover:from-green-600 hover:to-emerald-700 transition disabled:opacity-50" disabled={!tournamentName.trim() || !Number.isFinite(Number(bidAmountIncrement)) || Number(bidAmountIncrement) <= 0 || isSubmitting}>
                     {isSubmitting ? "Setting..." : "Set Tournament"}
                 </button>
             </div>
