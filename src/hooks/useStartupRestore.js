@@ -72,7 +72,7 @@ export const useStartupRestore = (persistence, showManagedToast, user = null) =>
     }, [user?.id]);
 
     // Handle startup restore confirmation
-    const handleStartupRestoreConfirm = async (setPlayers, setTeams, setTournamentName, setIsTournamentNameSet, setSponsorName = null, setTickerDetails = null, setWhatsappSettings, whatsappSettings, setCategoryConfigs, setBoosterPointsPerBooster = null) => {
+    const handleStartupRestoreConfirm = async (setPlayers, setTeams, setTournamentName, setIsTournamentNameSet, setSponsorName = null, setTickerDetails = null, setWhatsappSettings, whatsappSettings, setCategoryConfigs, setBoosterPointsPerBooster = null, setBidAmountIncrement = null) => {
         if (startupRestoreData) {
             try {
                 // Restore state
@@ -84,7 +84,8 @@ export const useStartupRestore = (persistence, showManagedToast, user = null) =>
                 setTickerDetails?.(startupRestoreData.tickerDetails || '');
                 setWhatsappSettings(startupRestoreData.whatsappSettings || whatsappSettings);
                 setCategoryConfigs(startupRestoreData.categoryConfigs || {}); // Restore category configurations
-                setBoosterPointsPerBooster?.(startupRestoreData.boosterPointsPerBooster ?? 10); // Restore tournament-wide points-per-booster
+                setBoosterPointsPerBooster?.(startupRestoreData.boosterPointsPerBooster ?? 10);
+                setBidAmountIncrement?.(startupRestoreData.bidAmountIncrement ?? 100000); // Restore tournament-wide points-per-booster
 
                 console.log('? Auction data restored successfully:', {
                     players: startupRestoreData.players?.length || 0,
