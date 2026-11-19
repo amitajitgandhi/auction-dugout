@@ -18,6 +18,7 @@ const AuctionInterface = forwardRef(({
     setTeamNameInput,
     bidAmountInput,
     setBidAmountInput,
+    bidAmountIncrement = 100000,
     onMarkSold,
     onMarkUnsold,
     onNextPlayer,
@@ -342,11 +343,11 @@ const AuctionInterface = forwardRef(({
                                             </select>
                                         </div>
                                         <div className="flex flex-col gap-2">
-                                            <label className="font-semibold text-gray-700">Bid Amount</label>
+                                            <label className="font-semibold text-gray-700">Bid Amount <span className="text-xs font-normal text-gray-500">(increment: {Number(bidAmountIncrement).toLocaleString()})</span></label>
                                             <input
                                                 type="number"
                                                 min="0"
-                                                step="100000"
+                                                step={bidAmountIncrement}
                                                 className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
                                                 value={bidAmountInput}
                                                 onChange={e => setBidAmountInput(e.target.value)}
