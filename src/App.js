@@ -139,7 +139,6 @@ function CricketAuctionSession({ auth }) {
     whatsappSettings,
     categoryConfigs,
     boosterPointsPerBooster,
-          bidAmountIncrement,
     setBoosterPointsPerBooster
   );
 
@@ -358,6 +357,7 @@ function CricketAuctionSession({ auth }) {
       setTeams({});
       setCategoryConfigs({});
       setBoosterPointsPerBooster(10);
+      setBidAmountIncrement(100000);
       auction.resetAuction();
       setShowResetConfirmation(false);
       setIsTournamentNameSet(false);
@@ -767,6 +767,7 @@ onUpdatePointsPerBooster={handleUpdatePointsPerBooster}
                 setTeamNameInput={auction.setTeamNameInput}
                 bidAmountInput={auction.bidAmountInput}
                 setBidAmountInput={auction.setBidAmountInput}
+                bidAmountIncrement={bidAmountIncrement}
                 bidAmountIncrement={bidAmountIncrement}
                 onMarkSold={handleMarkSold}
                 onMarkUnsold={handleMarkUnsold}
