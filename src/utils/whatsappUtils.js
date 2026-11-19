@@ -240,13 +240,17 @@ _Test completed successfully_`;
     }
 };
 
+// Match the Camel Case formatting used by the Auction Interface.
+export const formatPlayerDisplayName = (name) =>
+    String(name || 'No Player').trim().toLowerCase().replace(/\\b\\p{L}/gu, letter => letter.toUpperCase());
+
 // Format auction message for WhatsApp
 export const formatAuctionMessage = (playerName, teamName, price, tournamentName, skill = '', category = '') => {
     return `*${tournamentName.toUpperCase()}* *AUCTION UPDATE*
 
 *-------PLAYER SOLD-------*
 
-* Player: *${playerName}*
+* Player: *${formatPlayerDisplayName(playerName)}*
 * Team: ${teamName}
 * Points: ${price.toLocaleString()}${skill ? `
 * Skill: ${skill}` : ''}${category ? `
@@ -263,7 +267,7 @@ export const formatUnsoldMessage = (playerName, tournamentName, skill = '', cate
 
 *-------PLAYER UNSOLD-------*
 
-* Player: *${playerName}*${skill ? `
+* Player: *${formatPlayerDisplayName(playerName)}*${skill ? `
 * Skill: ${skill}` : ''}${category ? `
 * Category: ${category}` : ''}
 
