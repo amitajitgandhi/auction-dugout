@@ -242,7 +242,7 @@ _Test completed successfully_`;
 
 // Match the Camel Case formatting used by the Auction Interface.
 export const formatPlayerDisplayName = (name) =>
-    String(name || 'No Player').trim().toLowerCase().replace(/\\b\\p{L}/gu, letter => letter.toUpperCase());
+    String(name || 'No Player').trim().toLowerCase().replace(/\b\p{L}/gu, letter => letter.toUpperCase());
 
 // Format auction message for WhatsApp
 export const formatAuctionMessage = (playerName, teamName, price, tournamentName, skill = '', category = '') => {
