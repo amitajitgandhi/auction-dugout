@@ -12,6 +12,7 @@ import {
 } from '../utils/centralizedTeamData';
 import { EMOJIS } from '../utils/constants';
 import { logActivity } from '../utils/activityLogger';
+import { formatPlayerDisplayName } from '../utils/whatsappUtils';
 
 export const useAuctionBusinessLogic = (
     players,
@@ -148,7 +149,7 @@ export const useAuctionBusinessLogic = (
 
         return { 
             success: true, 
-            message: `${playerObj.name} successfully sold to ${teamName} for ${bidAmount.toLocaleString()}!`,
+            message: `${formatPlayerDisplayName(playerObj.name)} successfully sold to ${teamName} for ${bidAmount.toLocaleString()}!`,
             updatedTeams,
             updatedPlayers
         };
@@ -261,7 +262,7 @@ export const useAuctionBusinessLogic = (
         const saved = await triggerAuctionSaveWithState('PLAYER_UNSOLD', `${auction.currentPlayer.name} marked as unsold`, 'Unsold', 0, updatedPlayers, null, {}, { oldData: { playerStatus: auction.currentPlayer.sold ? 'SOLD' : (auction.currentPlayer.soldTo === 'Unsold' ? 'UNSOLD' : 'AVAILABLE'), team: auction.currentPlayer.soldTo || null, price: auction.currentPlayer.soldPrice ?? null }, newData: { playerStatus: 'UNSOLD', team: 'Unsold', price: 0 } });
         if (!saved) return;
         setPlayers(updatedPlayers);
-        showManagedToast('info', `${auction.currentPlayer.name} marked as unsold.`, {
+        showManagedToast('info', `${formatPlayerDisplayName(auction.currentPlayer.name)} marked as unsold.`, {
             style: {
                 border: '2px solid #f59e42',
                 padding: '16px',
