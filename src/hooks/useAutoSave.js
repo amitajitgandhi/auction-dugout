@@ -13,12 +13,13 @@ export const useAutoSave = (
     boosterPointsPerBooster = 10, // Tournament-wide points-per-booster value
     sponsorName = "",
     tickerDetails = "",
-    accountReady = true
+    accountReady = true,
+    bidAmountIncrement = 100000
 ) => {
     // Keep the interval stable while always reading the latest React state.
     const autoSaveIntervalRef = useRef(null);
     const latestStateRef = useRef(null);
-    latestStateRef.current = { players, teams, tournamentName, sponsorName, tickerDetails, isTournamentNameSet, whatsappSettings, auction, categoryConfigs, boosterPointsPerBooster };
+    latestStateRef.current = { players, teams, tournamentName, sponsorName, tickerDetails, isTournamentNameSet, whatsappSettings, auction, categoryConfigs, boosterPointsPerBooster, bidAmountIncrement };
 
     // Auto-save functionality - save state every 2-3 minutes after tournament is created
     useEffect(() => {
@@ -52,6 +53,7 @@ export const useAutoSave = (
                         whatsappSettings: latest.whatsappSettings,
                         categoryConfigs: latest.categoryConfigs,
                         boosterPointsPerBooster: latest.boosterPointsPerBooster,
+                        bidAmountIncrement: latest.bidAmountIncrement,
                         auctionStarted: latest.auction.auctionStarted,
                         selectedCategory: latest.auction.selectedCategory,
                         completedCategories: Array.from(latest.auction.completedCategories || []),
@@ -110,6 +112,7 @@ export const useAutoSave = (
                     whatsappSettings,
                     categoryConfigs, // Include category configurations
                     boosterPointsPerBooster,
+                    bidAmountIncrement,
                     auctionStarted: auction.auctionStarted,
                     selectedCategory: auction.selectedCategory,
                     completedCategories: Array.from(auction.completedCategories || []),
