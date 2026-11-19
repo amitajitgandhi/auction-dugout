@@ -42,6 +42,11 @@ const TournamentSetup = ({
                     <label htmlFor="sponsor-name" className="block font-semibold mb-1 text-gray-700">Sponsored By <span className="text-gray-400 font-normal">(optional)</span></label>
                     <input id="sponsor-name" type="text" placeholder="e.g., ABC Developers" value={sponsorName} onChange={(e) => setSponsorName(e.target.value)} onKeyDown={handleKeyPress} className={inputClass} maxLength={80} disabled={isSubmitting} />
                 </div>
+                <div>
+                    <label htmlFor="bid-amount-increment" className="block font-semibold mb-1 text-gray-700">Bid Amount Increment <span className="text-red-500">*</span></label>
+                    <input id="bid-amount-increment" type="number" min="1" step="1" placeholder="e.g., 100000" value={bidAmountIncrement} onChange={(e) => setBidAmountIncrement(e.target.value)} onKeyDown={handleKeyPress} className={inputClass} disabled={isSubmitting} />
+                    <p className="text-xs text-gray-500 mt-1">Controls the increment step for the Bid Amount field during the auction.</p>
+                </div>
                 <div className="md:col-span-2">
                     <label htmlFor="ticker-details" className="block font-semibold mb-1 text-gray-700">Ticker Details <span className="text-gray-400 font-normal">(optional)</span></label>
                     <input id="ticker-details" type="text" placeholder="e.g., Welcome to the Season 4 Auction • Best of luck to all teams!" value={tickerDetails} onChange={(e) => setTickerDetails(e.target.value)} onKeyDown={handleKeyPress} className={inputClass} maxLength={180} disabled={isSubmitting} />
