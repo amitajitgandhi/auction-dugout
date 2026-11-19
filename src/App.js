@@ -54,6 +54,7 @@ function CricketAuctionSession({ auth }) {
   // Tournament-wide points awarded per booster — a single value shared by every
   // team for the whole tournament (never a per-team value).
   const [boosterPointsPerBooster, setBoosterPointsPerBooster] = useState(10);
+  const [bidAmountIncrement, setBidAmountIncrement] = useState(100000);
   const auctionInterfaceRef = useRef(null);
   // This component is keyed by auth user ID, so its state is account-scoped.
   const accountInitialized = !!authUser?.id;
@@ -138,10 +139,11 @@ function CricketAuctionSession({ auth }) {
     whatsappSettings,
     categoryConfigs,
     boosterPointsPerBooster,
+          bidAmountIncrement,
     setBoosterPointsPerBooster
   );
 
-  useAutoSave(players, teams, tournamentName, isTournamentNameSet, whatsappSettings, auction, persistence, authUser, categoryConfigs, boosterPointsPerBooster, sponsorName, tickerDetails, accountInitialized);
+  useAutoSave(players, teams, tournamentName, isTournamentNameSet, whatsappSettings, auction, persistence, authUser, categoryConfigs, boosterPointsPerBooster, sponsorName, tickerDetails, accountInitialized, bidAmountIncrement);
   const { showStartupRestore, startupRestoreData, handleStartupRestoreConfirm, handleStartupRestoreCancel } = useStartupRestore(persistence, showManagedToast, authUser);
 
   // New: when players/teams are set after restore, rehydrate the auction state
@@ -185,6 +187,7 @@ function CricketAuctionSession({ auth }) {
           whatsappSettings,
           categoryConfigs,
           boosterPointsPerBooster,
+          bidAmountIncrement,
           auctionStarted: auction.auctionStarted,
           selectedCategory: auction.selectedCategory,
           completedCategories: Array.from(auction.completedCategories || []),
@@ -287,6 +290,7 @@ function CricketAuctionSession({ auth }) {
           whatsappSettings,
           categoryConfigs: configs,
           boosterPointsPerBooster,
+          bidAmountIncrement,
           auctionStarted: true,
           selectedCategory: auction.selectedCategory,
           completedCategories: Array.from(auction.completedCategories || []),
@@ -418,7 +422,8 @@ function CricketAuctionSession({ auth }) {
       setWhatsappSettings,
       whatsappSettings,
       setCategoryConfigs,
-      setBoosterPointsPerBooster
+      setBoosterPointsPerBooster,
+      setBidAmountIncrement
     );
   };
 
@@ -459,6 +464,7 @@ function CricketAuctionSession({ auth }) {
               whatsappSettings,
               categoryConfigs,
               boosterPointsPerBooster,
+          bidAmountIncrement,
               auctionStarted: auction.auctionStarted,
               selectedCategory: auction.selectedCategory,
               completedCategories: Array.from(auction.completedCategories || []),
@@ -728,7 +734,7 @@ onUpdatePointsPerBooster={handleUpdatePointsPerBooster}
           )}
           <div className="w-full max-w-4xl mx-auto">
             {!isTournamentNameSet && (
-              <TournamentSetup tournamentName={tournamentName} setTournamentName={setTournamentName} sponsorName={sponsorName} setSponsorName={setSponsorName} tickerDetails={tickerDetails} setTickerDetails={setTickerDetails} onSubmit={handleTournamentNameSubmit} onLogout={handleLogout} />
+              <TournamentSetup tournamentName={tournamentName} setTournamentName={setTournamentName} sponsorName={sponsorName} setSponsorName={setSponsorName} tickerDetails={tickerDetails} setTickerDetails={setTickerDetails} bidAmountIncrement={bidAmountIncrement} setBidAmountIncrement={setBidAmountIncrement} onSubmit={handleTournamentNameSubmit} onLogout={handleLogout} />
             )}
             {isTournamentNameSet && !auction.auctionStarted && (
               <FileUpload 
@@ -761,6 +767,7 @@ onUpdatePointsPerBooster={handleUpdatePointsPerBooster}
                 setTeamNameInput={auction.setTeamNameInput}
                 bidAmountInput={auction.bidAmountInput}
                 setBidAmountInput={auction.setBidAmountInput}
+                bidAmountIncrement={bidAmountIncrement}
                 onMarkSold={handleMarkSold}
                 onMarkUnsold={handleMarkUnsold}
                 onNextPlayer={auction.pickNextPlayer}
