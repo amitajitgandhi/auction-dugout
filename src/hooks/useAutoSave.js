@@ -150,6 +150,7 @@ export const useAutoSave = (
         whatsappSettings, 
         categoryConfigs, // Add categoryConfigs to dependencies
         boosterPointsPerBooster,
+        bidAmountIncrement,
         auction.auctionStarted,
         auction.selectedCategory, 
         auction.completedCategories, 
