@@ -217,7 +217,7 @@ app.post('/api/upload-player', async (req, res) => {
             const { error: metadataError } = await supabase.from('players').update({
                 skill: skill || null,
                 bowling_style: String(bowlingStyle || '').trim() || null,
-                wicketkeeper: /^yes$/i.test(String(wicketkeeper || '').trim()) ? 'Yes' : (/^no$/i.test(String(wicketkeeper || '').trim()) ? 'No' : null),
+                wicketkeeper: String(wicketkeeper || '').trim() || null,
                 category: category || 'OPEN',
                 cricheroes_profile: cricHeroesProfile || null,
             }).eq('id', existing.id).eq('user_id', userId);
