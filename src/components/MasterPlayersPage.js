@@ -173,6 +173,7 @@ const MasterPlayersPage = ({
             name: player.name || '',
             category: player.category || '',
             skill: player.skill || '',
+            wicketkeeper: player.wicketkeeper || '',
             basePrice: player.basePrice ?? '',
             cricHeroesLink: player.cricHeroesLink || player.cricHeroesUrl || '',
             photoUrl: player.photoUrl || player.photo || ''
@@ -274,6 +275,7 @@ const MasterPlayersPage = ({
             name: editForm.name.trim(),
             category: editForm.category.trim(),
             skill: editForm.skill.trim(),
+            wicketkeeper: editForm.wicketkeeper.trim(),
             basePrice: editForm.basePrice === '' ? editingPlayer.basePrice : Number(editForm.basePrice),
             cricHeroesLink: editForm.cricHeroesLink.trim(),
             photoUrl,
@@ -557,6 +559,7 @@ const MasterPlayersPage = ({
                                 ['name', 'Player Name', 'text'],
                                 ['category', 'Category', 'text'],
                                 ['skill', 'Skill', 'text'],
+                                ['wicketkeeper', 'Wicketkeeper', 'text'],
                                 ['basePrice', 'Base Price', 'number'],
                                 ['cricHeroesLink', 'CricHeroes Link', 'url']
                             ].map(([field, label, type]) => (
