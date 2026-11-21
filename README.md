@@ -201,7 +201,7 @@ The current required columns are:
 Optional columns include:
 - `CricHeroes_Profile`
 - `bowling_style` / `Bowling Style` / `Bowling_Style`
-- `wicketkeeper` / `Wicketkeeper`
+- `wicketkeeper` / `Wicketkeeper` — freeform text (for example: `Yes`, `No`, `Part-time`, `Former`, or a custom note)
 
 Inspect `validatePlayerCSV` and the importer mapping before changing accepted headers. The importer normalizes and validates names, rejects duplicate normalized names within the uploaded file, formats supported image/profile links, and processes player photo uploads. The backend endpoint `POST /api/upload-player` handles the server-side player/photo persistence path. Re-import behaviour for existing player records is implemented server-side; preserve the intended update semantics and existing photo handling.
 
